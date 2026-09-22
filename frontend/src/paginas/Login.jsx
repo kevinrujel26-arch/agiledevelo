@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, panelSegunRol } from '../contexto/AuthContext';
 import { Alerta, Campo } from '../componentes/comunes';
+import PantallaAuth from '../componentes/PantallaAuth';
 
 export default function Login() {
   const { usuario, iniciarSesion, avisoSesion, limpiarAviso } = useAuth();
@@ -43,31 +44,28 @@ export default function Login() {
   }
 
   return (
-    <div className="contenedor contenedor-angosto">
-      <div className="panel">
-        <h1>Iniciar sesión</h1>
-        <Alerta tipo="exito">{state?.mensaje}</Alerta>
-        <Alerta tipo="aviso" alCerrar={limpiarAviso}>{avisoSesion}</Alerta>
-        <Alerta>{error}</Alerta>
-        <form onSubmit={enviar} noValidate>
-          <Campo etiqueta="Correo electrónico" id="correo">
-            <input id="correo" type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} autoComplete="email" />
-          </Campo>
-          <Campo etiqueta="Contraseña" id="contrasena">
-            <input id="contrasena" type="password" value={contrasena} onChange={(e) => setContrasena(e.target.value)} autoComplete="current-password" />
-          </Campo>
-          <label className="casilla">
-            <input type="checkbox" checked={recordarme} onChange={(e) => setRecordarme(e.target.checked)} />
-            Recordarme en este equipo
-          </label>
-          <button type="submit" className="boton boton-primario boton-bloque" disabled={enviando}>
-            {enviando ? 'Ingresando…' : 'Ingresar'}
-          </button>
-        </form>
-        <p className="pie-formulario">
-          ¿No tienes cuenta? <Link to="/registro">Regístrate</Link>
-        </p>
-      </div>
-    </div>
+    <PantallaAuth titulo="Bienvenido de nuevo" subtitulo="Ingresa para gestionar tus alquileres.">
+      <Alerta tipo="exito">{state?.mensaje}</Alerta>
+      <Alerta tipo="aviso" alCerrar={limpiarAviso}>{avisoSesion}</Alerta>
+      <Alerta>{error}</Alerta>
+      <form onSubmit={enviar} noValidate>
+        <Campo etiqueta="Correo electrónico" id="correo">
+          <input id="correo" type="email" placeholder="tu@correo.com" value={correo} onChange={(e) => setCorreo(e.target.value)} autoComplete="email" />
+        </Campo>
+        <Campo etiqueta="Contraseña" id="contrasena">
+          <input id="contrasena" type="password" placeholder="••••••••" value={contrasena} onChange={(e) => setContrasena(e.target.value)} autoComplete="current-password" />
+        </Campo>
+        <label className="casilla">
+          <input type="checkbox" checked={recordarme} onChange={(e) => setRecordarme(e.target.checked)} />
+          Recordarme en este equipo
+        </label>
+        <button type="submit" className="boton boton-primario boton-grande boton-bloque" disabled={enviando}>
+          {enviando ? 'Ingresando…' : 'Ingresar'}
+        </button>
+      </form>
+      <p className="pie-formulario">
+        ¿No tienes cuenta? <Link to="/registro">Regístrate gratis</Link>
+      </p>
+    </PantallaAuth>
   );
 }

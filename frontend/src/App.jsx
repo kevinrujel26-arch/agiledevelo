@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Link, Navigate, Route, Routes } from 'react-router-dom';
 import Encabezado from './componentes/Encabezado';
 import { RutaProtegida } from './componentes/comunes';
 import Catalogo from './paginas/Catalogo';
@@ -13,6 +13,7 @@ import AdminMaquinas from './paginas/admin/AdminMaquinas';
 import AdminMaquinaForm from './paginas/admin/AdminMaquinaForm';
 import AdminDisponibilidad from './paginas/admin/AdminDisponibilidad';
 import { NOMBRE_APP } from './utils/formato';
+import { LogoMarca } from './componentes/Ilustracion';
 
 export default function App() {
   return (
@@ -58,7 +59,35 @@ export default function App() {
       </main>
       <footer className="pie">
         <div className="contenedor">
-          © {new Date().getFullYear()} {NOMBRE_APP} · Alquiler de maquinaria pesada
+          <div className="pie-rejilla">
+            <div>
+              <Link to="/" className="marca" style={{ marginBottom: 12 }}>
+                <LogoMarca />
+                {NOMBRE_APP}
+              </Link>
+              <p style={{ maxWidth: 320, margin: '12px 0 0' }}>
+                Alquiler de maquinaria pesada por días. Compara, revisa la disponibilidad y reserva en línea.
+              </p>
+            </div>
+            <div>
+              <h4>Explorar</h4>
+              <ul>
+                <li><Link to="/">Catálogo</Link></li>
+                <li><a href="/#equipos">Equipos disponibles</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4>Cuenta</h4>
+              <ul>
+                <li><Link to="/login">Iniciar sesión</Link></li>
+                <li><Link to="/registro">Crear cuenta</Link></li>
+              </ul>
+            </div>
+          </div>
+          <div className="pie-legal">
+            <span>© {new Date().getFullYear()} {NOMBRE_APP}. Todos los derechos reservados.</span>
+            <span>Proyecto académico · Agile Development · UPAO</span>
+          </div>
         </div>
       </footer>
     </>

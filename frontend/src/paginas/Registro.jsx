@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/cliente';
 import { Alerta, Campo } from '../componentes/comunes';
 import { CORREO_VALIDO } from '../utils/formato';
+import PantallaAuth from '../componentes/PantallaAuth';
 
 function validar({ nombre, correo, contrasena, confirmar }) {
   const e = {};
@@ -53,32 +54,28 @@ export default function Registro() {
   }
 
   return (
-    <div className="contenedor contenedor-angosto">
-      <div className="panel">
-        <h1>Crear cuenta</h1>
-        <p className="texto-suave">Regístrate como cliente para reservar maquinaria.</p>
-        <Alerta>{errorGeneral}</Alerta>
-        <form onSubmit={enviar} noValidate>
-          <Campo etiqueta="Nombre completo" id="nombre" error={errores.nombre}>
-            <input id="nombre" name="nombre" value={datos.nombre} onChange={cambiar} autoComplete="name" />
-          </Campo>
-          <Campo etiqueta="Correo electrónico" id="correo" error={errores.correo}>
-            <input id="correo" name="correo" type="email" value={datos.correo} onChange={cambiar} autoComplete="email" />
-          </Campo>
-          <Campo etiqueta="Contraseña" id="contrasena" error={errores.contrasena} ayuda="Mínimo 8 caracteres">
-            <input id="contrasena" name="contrasena" type="password" value={datos.contrasena} onChange={cambiar} autoComplete="new-password" />
-          </Campo>
-          <Campo etiqueta="Repite la contraseña" id="confirmar" error={errores.confirmar}>
-            <input id="confirmar" name="confirmar" type="password" value={datos.confirmar} onChange={cambiar} autoComplete="new-password" />
-          </Campo>
-          <button type="submit" className="boton boton-primario boton-bloque" disabled={enviando}>
-            {enviando ? 'Registrando…' : 'Registrarme'}
-          </button>
-        </form>
-        <p className="pie-formulario">
-          ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>
-        </p>
-      </div>
-    </div>
+    <PantallaAuth titulo="Crea tu cuenta" subtitulo="Regístrate como cliente para reservar maquinaria.">
+      <Alerta>{errorGeneral}</Alerta>
+      <form onSubmit={enviar} noValidate>
+        <Campo etiqueta="Nombre completo" id="nombre" error={errores.nombre}>
+          <input id="nombre" name="nombre" placeholder="Ana Torres" value={datos.nombre} onChange={cambiar} autoComplete="name" />
+        </Campo>
+        <Campo etiqueta="Correo electrónico" id="correo" error={errores.correo}>
+          <input id="correo" name="correo" type="email" placeholder="tu@correo.com" value={datos.correo} onChange={cambiar} autoComplete="email" />
+        </Campo>
+        <Campo etiqueta="Contraseña" id="contrasena" error={errores.contrasena} ayuda="Mínimo 8 caracteres">
+          <input id="contrasena" name="contrasena" type="password" placeholder="••••••••" value={datos.contrasena} onChange={cambiar} autoComplete="new-password" />
+        </Campo>
+        <Campo etiqueta="Repite la contraseña" id="confirmar" error={errores.confirmar}>
+          <input id="confirmar" name="confirmar" type="password" placeholder="••••••••" value={datos.confirmar} onChange={cambiar} autoComplete="new-password" />
+        </Campo>
+        <button type="submit" className="boton boton-primario boton-grande boton-bloque" disabled={enviando}>
+          {enviando ? 'Creando cuenta…' : 'Crear cuenta'}
+        </button>
+      </form>
+      <p className="pie-formulario">
+        ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>
+      </p>
+    </PantallaAuth>
   );
 }

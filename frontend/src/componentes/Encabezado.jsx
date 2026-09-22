@@ -1,6 +1,7 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth, panelSegunRol } from '../contexto/AuthContext';
 import { NOMBRE_APP } from '../utils/formato';
+import { LogoMarca } from './Ilustracion';
 
 export default function Encabezado() {
   const { usuario, esAdmin, cerrarSesion } = useAuth();
@@ -15,8 +16,8 @@ export default function Encabezado() {
     <header className="encabezado">
       <div className="contenedor encabezado-interior">
         <Link to="/" className="marca">
-          <img src="/favicon.svg" alt="" width="28" height="28" />
-          {NOMBRE_APP}
+          <LogoMarca />
+          <span className="marca-texto">{NOMBRE_APP}</span>
         </Link>
         <nav className="nav-principal">
           <NavLink to="/" end>
@@ -29,7 +30,8 @@ export default function Encabezado() {
           {usuario ? (
             <>
               <Link to={panelSegunRol(usuario)} className="nombre-usuario" title={usuario.correo}>
-                {usuario.nombre}
+                <span className="avatar" aria-hidden="true">{usuario.nombre.trim().charAt(0).toUpperCase()}</span>
+                <span className="nombre-texto">{usuario.nombre.split(' ')[0]}</span>
                 {esAdmin && <span className="insignia insignia-admin">Admin</span>}
               </Link>
               <button type="button" className="boton boton-secundario boton-chico" onClick={salir}>

@@ -2,6 +2,7 @@ import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexto/AuthContext';
 import { urlArchivo } from '../api/cliente';
 import { formatearMoneda } from '../utils/formato';
+import { Icono } from './Ilustracion';
 
 export function Alerta({ tipo = 'error', children, alCerrar }) {
   if (!children) return null;
@@ -68,12 +69,12 @@ export function FotoMaquina({ ruta, alt, className = '' }) {
   if (!ruta) {
     return (
       <div className={`foto-vacia ${className}`} aria-label="Sin foto">
-        <svg viewBox="0 0 64 40" width="64" aria-hidden="true">
+        <svg viewBox="0 0 64 40" width="72" aria-hidden="true">
           <path d="M6 30h30l-4-12H20l-2-8H10zM36 18l8-12 4 2-6 14" fill="none" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" />
           <circle cx="14" cy="34" r="4" fill="currentColor" />
           <circle cx="28" cy="34" r="4" fill="currentColor" />
         </svg>
-        <span>Sin foto</span>
+        <span>Foto próximamente</span>
       </div>
     );
   }
@@ -86,17 +87,23 @@ export function TarjetaMaquina({ maquina }) {
     <Link to={`/maquinas/${maquina.id}`} className="tarjeta-maquina">
       <div className="tarjeta-foto">
         <FotoMaquina ruta={maquina.fotoPrincipal} alt={maquina.nombre} />
+        <span className="insignia tarjeta-categoria">{maquina.categoria.nombre}</span>
         {maquina.enMantenimiento && <span className="insignia insignia-aviso flotante">En mantenimiento</span>}
       </div>
       <div className="tarjeta-cuerpo">
-        <span className="insignia">{maquina.categoria.nombre}</span>
         <h3>{maquina.nombre}</h3>
         <p className="texto-suave">
-          {maquina.marca} · {maquina.modelo} · {maquina.ubicacion}
+          {maquina.marca} · {maquina.modelo}
         </p>
-        <p className="tarifa">
-          {formatearMoneda(maquina.tarifaDiaria)} <span>/ día</span>
+        <p className="texto-suave" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Icono nombre="ubicacion" tamanio={15} /> {maquina.ubicacion}
         </p>
+        <div className="tarjeta-pie">
+          <p className="tarifa">
+            {formatearMoneda(maquina.tarifaDiaria)} <span>/ día</span>
+          </p>
+          <span className="ver-mas" aria-hidden="true"><Icono nombre="flecha" /></span>
+        </div>
       </div>
     </Link>
   );

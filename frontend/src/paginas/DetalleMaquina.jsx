@@ -1,9 +1,11 @@
-// Detalle de máquina: base para HU-04 (el calendario y el botón "Reservar" llegan en el Sprint 3)
+// Detalle de máquina: base para HU-04 (el botón "Reservar" llega en el Sprint 3)
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../api/cliente';
 import { Alerta, Cargando, FotoMaquina } from '../componentes/comunes';
-import { formatearMoneda, formatearRango } from '../utils/formato';
+import { Icono } from '../componentes/Ilustracion';
+import Calendario from '../componentes/Calendario';
+import { formatearMoneda } from '../utils/formato';
 
 export default function DetalleMaquina() {
   const { id } = useParams();
@@ -31,9 +33,11 @@ export default function DetalleMaquina() {
 
   if (error) {
     return (
-      <div className="contenedor">
-        <Alerta>{error}</Alerta>
-        <Link to="/">← Volver al catálogo</Link>
+      <div className="contenedor contenedor-angosto">
+        <div className="panel centrado">
+          <Alerta>{error}</Alerta>
+          <Link to="/" className="boton boton-secundario">← Volver al catálogo</Link>
+        </div>
       </div>
     );
   }
@@ -44,11 +48,12 @@ export default function DetalleMaquina() {
     return (
       <div className="contenedor contenedor-angosto">
         <div className="panel centrado">
-          <h1>{maquina.nombre}</h1>
-          <Alerta tipo="aviso">
-            Esta máquina está en mantenimiento y no se puede reservar por ahora. Vuelve a revisarla en unos días.
-          </Alerta>
-          <Link to="/" className="boton boton-secundario">← Ver otras máquinas</Link>
+          <span className="insignia insignia-aviso"><Icono nombre="herramienta" tamanio={14} /> En mantenimiento</span>
+          <h1 style={{ marginTop: 14 }}>{maquina.nombre}</h1>
+          <p className="texto-suave">
+            Este equipo está en mantenimiento y no se puede reservar por ahora. Vuelve a revisarlo en unos días.
+          </p>
+          <Link to="/" className="boton boton-secundario">← Ver otros equipos</Link>
         </div>
       </div>
     );
@@ -59,68 +64,82 @@ export default function DetalleMaquina() {
 
   return (
     <div className="contenedor">
-      <Link to="/" className="enlace-volver">← Volver al catálogo</Link>
+      <nav className="migas" aria-label="Ruta">
+        <Link to="/">Catálogo</Link> <span>/</span> <span>{maquina.categoria.nombre}</span> <span>/</span>
+        <span style={{ color: 'var(--texto)' }}>{maquina.nombre}</span>
+      </nav>
+
       <div className="detalle">
-        <div className="galeria">
-          <FotoMaquina ruta={fotos[fotoActiva]?.url} alt={maquina.nombre} className="galeria-principal" />
-          {fotos.length > 1 && (
-            <div className="galeria-miniaturas">
-              {fotos.map((f, i) => (
-                <button
-                  type="button"
-                  key={f.id}
-                  className={i === fotoActiva ? 'activa' : ''}
-                  onClick={() => setFotoActiva(i)}
-                  aria-label={`Ver foto ${i + 1}`}
-                >
-                  <FotoMaquina ruta={f.url} alt="" />
-                </button>
-              ))}
-            </div>
+        {/* ----------------------------- Columna izquierda ----------------------------- */}
+        <div>
+          <div className="galeria">
+            <FotoMaquina ruta={fotos[fotoActiva]?.url} alt={maquina.nombre} className="galeria-principal" />
+            {fotos.length > 1 && (
+              <div className="galeria-miniaturas">
+                {fotos.map((f, i) => (
+                  <button
+                    type="button"
+                    key={f.id}
+                    className={i === fotoActiva ? 'activa' : ''}
+                    onClick={() => setFotoActiva(i)}
+                    aria-label={`Ver foto ${i + 1}`}
+                  >
+                    <FotoMaquina ruta={f.url} alt="" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {especificaciones.length > 0 && (
+            <section className="bloque-detalle">
+              <h2 className="subtitulo">Especificaciones técnicas</h2>
+              <div className="specs">
+                {especificaciones.map(([clave, valor]) => (
+                  <div className="spec" key={clave}>
+                    <span>{clave}</span>
+                    <strong>{valor}</strong>
+                  </div>
+                ))}
+              </div>
+            </section>
           )}
+
+          <section className="bloque-detalle">
+            <h2 className="subtitulo">Disponibilidad</h2>
+            <Calendario ocupados={ocupados} meses={2} />
+          </section>
         </div>
 
-        <div className="detalle-info">
+        {/* ------------------------------ Columna derecha ------------------------------ */}
+        <aside className="panel panel-precio detalle-info">
           <span className="insignia">{maquina.categoria.nombre}</span>
           <h1>{maquina.nombre}</h1>
-          <p className="texto-suave">
+          <p className="texto-suave" style={{ margin: 0 }}>
             {maquina.marca} · Modelo {maquina.modelo}
           </p>
           <p className="tarifa tarifa-grande">
             {formatearMoneda(maquina.tarifaDiaria)} <span>/ día</span>
           </p>
-          <p>
-            <strong>Ubicación:</strong> {maquina.ubicacion}
-          </p>
-          {maquina.descripcion && <p>{maquina.descripcion}</p>}
 
-          {especificaciones.length > 0 && (
-            <>
-              <h2 className="subtitulo">Especificaciones técnicas</h2>
-              <table className="tabla-specs">
-                <tbody>
-                  {especificaciones.map(([clave, valor]) => (
-                    <tr key={clave}>
-                      <th scope="row">{clave}</th>
-                      <td>{valor}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </>
-          )}
+          <div className="datos-rapidos">
+            <div className="dato">
+              <span>Ubicación</span>
+              <strong>{maquina.ubicacion}</strong>
+            </div>
+            <div className="dato">
+              <span>Alquiler mínimo</span>
+              <strong>1 día</strong>
+            </div>
+          </div>
 
-          <h2 className="subtitulo">Fechas no disponibles (próximos 6 meses)</h2>
-          {ocupados.length === 0 ? (
-            <p className="texto-suave">Sin fechas ocupadas. ¡Disponible!</p>
-          ) : (
-            <ul className="lista-fechas">
-              {ocupados.map((o) => (
-                <li key={`${o.tipo}-${o.fechaInicio}`}>{formatearRango(o.fechaInicio, o.fechaFin)}</li>
-              ))}
-            </ul>
-          )}
-        </div>
+          {maquina.descripcion && <p className="descripcion">{maquina.descripcion}</p>}
+
+          <div className="nota-reserva">
+            <Icono nombre="info" />
+            <span>La reserva en línea estará disponible muy pronto. Revisa en el calendario las fechas libres.</span>
+          </div>
+        </aside>
       </div>
     </div>
   );
