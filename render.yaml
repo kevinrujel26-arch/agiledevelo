@@ -1,0 +1,47 @@
+# EN-04: despliegue en Render (https://render.com) con "Blueprint".
+# En Render: New > Blueprint > conecta tu repositorio. Crea la BD, la API y el frontend.
+databases:
+  - name: alquiler-db
+    plan: free
+    databaseName: alquiler_maquinaria
+    user: alquiler
+
+services:
+  - type: web
+    name: alquiler-api
+    runtime: node
+    plan: free
+    # Sin rootDir para que el backend pueda leer database/migrations.
+    # Las migraciones corren al arrancar (el plan gratis no permite preDeployCommand).
+    buildCommand: cd backend && npm install --omit=dev
+    startCommand: cd backend && npm run db:migrar && npm start
+    healthCheckPath: /api/salud
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: alquiler-db
+          property: connectionString
+      - key: DB_SSL
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        sync: false            # pon aquí la URL del frontend, ej. https://alquiler-web.onrender.com
+      - key: APP_TZ
+        value: America/Lima
+
+  - type: web
+    name: alquiler-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        sync: false            # URL de la API, ej. https://alquiler-api.onrender.com
