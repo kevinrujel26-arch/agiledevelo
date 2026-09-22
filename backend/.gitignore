@@ -1,4 +1,10 @@
-node_modules/
+target/
 .env
 uploads/
-coverage/
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+nbproject/

@@ -29,7 +29,7 @@ CREATE TABLE usuarios (
   id                  INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   nombre              VARCHAR(120) NOT NULL CHECK (length(trim(nombre)) > 0),
   correo              VARCHAR(160) NOT NULL,
-  contrasena_hash     VARCHAR(100) NOT NULL,          -- bcrypt, nunca texto plano
+  contrasena_hash     VARCHAR(100) NOT NULL,          -- PBKDF2-SHA256 con sal, nunca texto plano
   rol                 VARCHAR(20)  NOT NULL DEFAULT 'CLIENTE'
                         CHECK (rol IN ('CLIENTE', 'ADMINISTRADOR')),
   activo              BOOLEAN      NOT NULL DEFAULT TRUE,  -- HU-15

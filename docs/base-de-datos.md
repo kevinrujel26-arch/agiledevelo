@@ -108,7 +108,7 @@ erDiagram
 | Regla | Historia | Cómo se garantiza |
 |---|---|---|
 | El correo no se repite | HU-01 | Índice único `ux_usuarios_correo` (los correos se guardan en minúsculas) |
-| La contraseña se guarda cifrada | HU-01 | Solo existe la columna `contrasena_hash` (bcrypt) |
+| La contraseña se guarda cifrada | HU-01 | Solo existe la columna `contrasena_hash` (PBKDF2-SHA256 con sal) |
 | Nombre de categoría único | HU-14 | Índice único sobre `lower(trim(nombre))` |
 | Cada máquina tiene exactamente una categoría | HU-14 | `categoria_id NOT NULL` + FK con `ON DELETE RESTRICT` |
 | Máximo 5 fotos por máquina | HU-08 | Trigger `tg_fotos_max` |

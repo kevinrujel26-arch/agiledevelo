@@ -3,4 +3,7 @@ node_modules/
 uploads/
 dist/
 coverage/
+target/
+.idea/
+*.iml
 .DS_Store

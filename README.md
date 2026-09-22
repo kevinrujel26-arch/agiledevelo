@@ -5,10 +5,13 @@ Proyecto del curso **Agile Development (ISIA-109, UPAO)**. Es una plataforma web
 | Capa | Tecnología |
 |---|---|
 | Base de datos | PostgreSQL 16 |
-| Backend (API REST) | Node.js 20 + Express 5, `pg`, JWT, bcrypt, Zod, Multer |
+| Backend (API REST) | **Java 21 sin frameworks**: servidor HTTP del JDK (`com.sun.net.httpserver`) y JDBC |
 | Frontend | React 18 + Vite + React Router |
-| Pruebas | Jest + Supertest (pruebas de aceptación por historia de usuario) |
-| CI / Despliegue | GitHub Actions · Render |
+| Pruebas | JUnit 5 (pruebas de aceptación por historia de usuario) |
+| Construcción | Maven |
+| CI / Despliegue | GitHub Actions · Render (backend) · Vercel (frontend) · Neon (BD) |
+
+Las **únicas dependencias** del backend son el driver JDBC de PostgreSQL y JUnit. El resto está escrito en Java con el JDK: el enrutador, el JSON, los tokens JWT, el cifrado de contraseñas (PBKDF2) y la subida de archivos (multipart).
 
 > **Nota:** "MaquiRenta" es un nombre provisional. Se cambia en `frontend/src/utils/formato.js` (`NOMBRE_APP`) y en `frontend/index.html`.
 
@@ -16,77 +19,70 @@ Proyecto del curso **Agile Development (ISIA-109, UPAO)**. Es una plataforma web
 
 | Sprint | Ítem | Estado |
 |---|---|---|
-| 1 | EN-01 Repositorio, entorno y CI · EN-02 Base de datos · EN-03 Autenticación · EN-04 Despliegue · EN-05 Roles | ✅ Hecho |
+| 1 | EN-01 Repositorio y CI · EN-02 Base de datos · EN-03 Autenticación · EN-04 Despliegue · EN-05 Roles | ✅ Hecho |
 | 2 | HU-01 Registro · HU-02 Login/logout · HU-14 Categorías · HU-08 Registrar y publicar máquina · HU-09 Disponibilidad · HU-03 Catálogo | ✅ Hecho |
 | 3 | HU-11 Buscar/filtrar · HU-04 Detalle (calendario y botón Reservar) · HU-05 Reservar · HU-12 Cancelar · HU-07 Mis reservas | Pendiente |
 | 4 | HU-06 Pago con Mercado Pago · HU-13 Historial de pagos · HU-10 Reservas y pagos (admin) · HU-15 Gestionar clientes | Pendiente |
 
-Las tablas de los Sprints 3 y 4 (`reservas`, `pagos`, `solicitudes_reembolso`, `auditoria`) ya existen en la base de datos. En [`docs/trazabilidad.md`](docs/trazabilidad.md) está cada criterio de aceptación con el archivo que lo implementa y la prueba que lo verifica.
+En [`docs/trazabilidad.md`](docs/trazabilidad.md) está cada criterio de aceptación con la clase que lo implementa y la prueba que lo verifica.
 
-## Estructura
+## Arquitectura del backend
 
 ```
-alquiler-maquinaria/
-├── database/
-│   ├── migrations/001_esquema_inicial.sql   ← EN-02: todas las tablas
-│   └── docker-init/                          ← crea la BD de pruebas en Docker
-├── backend/
-│   ├── src/
-│   │   ├── app.js                ← rutas y middlewares
-│   │   ├── config.js, db.js
-│   │   ├── middleware/           ← autenticación, roles, validación, fotos, errores
-│   │   ├── modulos/              ← auth, categorias, maquinas, disponibilidad
-│   │   └── utils/
-│   ├── scripts/                  ← migrar.js y sembrar.js
-│   └── tests/                    ← pruebas por historia de usuario
-├── frontend/
-│   └── src/
-│       ├── api/cliente.js        ← llamadas al backend
-│       ├── contexto/AuthContext  ← sesión del usuario
-│       ├── componentes/
-│       └── paginas/              ← públicas, cliente y admin/
-├── docs/                         ← diagrama ER, API, trazabilidad
-├── docker-compose.yml            ← PostgreSQL local
-├── render.yaml                   ← despliegue (EN-04)
-└── .github/workflows/ci.yml      ← integración continua (EN-01)
+Controlador (HTTP)  ->  Servicio (reglas de negocio)  ->  Repositorio (SQL/JDBC)  ->  PostgreSQL
+```
+
+```
+backend/src/main/java/pe/upao/alquiler/
+├── App.java                 <- punto de entrada (servidor, migrar, sembrar, reiniciar)
+├── Aplicacion.java          <- arma todos los objetos (inyección de dependencias a mano)
+├── config/Config.java       <- lee variables de entorno y backend/.env
+├── http/                    <- Servidor, Enrutador, Solicitud, Respuesta, Multipart
+├── json/Json.java           <- lector/escritor de JSON
+├── bd/                      <- Bd (JDBC + pool), Migraciones, Sembrador
+├── seguridad/               <- Jwt, Contrasenas (PBKDF2), Autenticador, Rol
+├── util/                    <- Validador, Fechas, Paginacion, ErrorApp
+├── modelo/                  <- Categoria, Maquina, Foto, Bloqueo (records)
+├── auth/                    <- HU-01, HU-02
+├── categorias/              <- HU-14
+├── maquinas/                <- HU-03, HU-08 (incluye fotos)
+└── disponibilidad/          <- HU-09
 ```
 
 ## Cómo ejecutarlo en tu computadora
 
 ### Requisitos
-- [Node.js 20 o superior](https://nodejs.org)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) para la base de datos, o PostgreSQL instalado (ver más abajo)
+- **JDK 21**, por ejemplo [Temurin 21](https://adoptium.net/temurin/releases/?version=21).
+- **Maven**. IntelliJ IDEA y NetBeans ya lo traen integrado. Para usarlo en la terminal: [descárgalo](https://maven.apache.org/download.cgi), descomprímelo y agrega su carpeta `bin` al PATH.
+- **Node.js 20+**, para el frontend.
+- **Docker Desktop**, para la base de datos local.
 
 ### 1. Base de datos
 ```bash
 docker compose up -d
 ```
-Esto crea las bases `alquiler_maquinaria` (desarrollo) y `alquiler_maquinaria_test` (pruebas). El usuario y la contraseña son `alquiler` / `alquiler`.
-
-<details>
-<summary>¿Sin Docker? Con PostgreSQL instalado</summary>
-
-En psql o pgAdmin, como superusuario:
-```sql
-CREATE USER alquiler WITH PASSWORD 'alquiler';
-CREATE DATABASE alquiler_maquinaria OWNER alquiler;
-CREATE DATABASE alquiler_maquinaria_test OWNER alquiler;
-```
-La migración activa la extensión `btree_gist`, que viene con PostgreSQL y que el dueño de la base puede activar desde la versión 13.
-</details>
+Crea las bases `alquiler_maquinaria` (desarrollo) y `alquiler_maquinaria_test` (pruebas) en el puerto **5433**, con usuario y contraseña `alquiler` / `alquiler`.
 
 ### 2. Backend
 ```bash
 cd backend
-cp .env.example .env        # en Windows: copy .env.example .env
-npm install
-npm run db:migrar           # crea las tablas
-npm run db:sembrar          # crea el admin, 6 categorías y 7 máquinas de ejemplo
-npm run dev                 # API en http://localhost:3000
+copy .env.example .env               # en Mac/Linux: cp .env.example .env
+mvn compile exec:java "-Dexec.args=reiniciar"   # crea las tablas y carga admin, categorías y máquinas
+mvn compile exec:java                            # arranca la API en http://localhost:3000
 ```
 Para comprobarlo, abre http://localhost:3000/api/salud y debe responder `{"estado":"ok"}`.
 
-**Administrador inicial:** `admin@alquiler.pe` / `Admin12345`. Cámbialo en `.env` antes de ejecutar `db:sembrar`.
+**Administrador inicial:** `admin@alquiler.pe` / `Admin12345`. Se configura en `.env`.
+
+Otros comandos útiles:
+| Comando | Qué hace |
+|---|---|
+| `mvn compile exec:java "-Dexec.args=migrar"` | Aplica solo las migraciones pendientes |
+| `mvn compile exec:java "-Dexec.args=sembrar"` | Carga los datos iniciales sin borrar nada |
+| `mvn compile exec:java "-Dexec.args=reiniciar"` | ⚠ Borra todo y vuelve a crear la BD (solo en desarrollo) |
+| `mvn package` | Genera `target/alquiler-backend.jar`, que se ejecuta con `java -jar target/alquiler-backend.jar` |
+
+**Con IntelliJ o NetBeans:** abre la carpeta `backend` como proyecto Maven y ejecuta la clase `App`. Para cargar los datos, ejecútala con el argumento `reiniciar`. El directorio de trabajo debe ser la carpeta `backend`.
 
 ### 3. Frontend
 En otra terminal:
@@ -95,23 +91,13 @@ cd frontend
 npm install
 npm run dev                 # http://localhost:5173
 ```
-En desarrollo, Vite redirige `/api` y `/uploads` al backend, así que no necesitas configurar nada más.
 
 ### 4. Pruebas automatizadas
 ```bash
 cd backend
-npm test                    # usa la BD alquiler_maquinaria_test (se borra en cada ejecución)
-npm run test:cobertura      # con reporte de cobertura en backend/coverage/
+mvn test                    # usa la BD alquiler_maquinaria_test (se borra en cada ejecución)
 ```
-
-## Prueba rápida (demo del Sprint 2)
-
-1. Entra como admin, ve a **Administración → Categorías** y crea "Grúas".
-2. En **Máquinas → + Registrar máquina** completa los datos y guárdala. Queda como **Borrador** y aún no se ve en el catálogo.
-3. Sube 2 fotos, cambia cuál es la principal y pulsa **Publicar**. Ahora aparece en el catálogo.
-4. En **Disponibilidad** bloquea dos rangos de fechas. Abre la máquina en el catálogo: esas fechas aparecen como no disponibles.
-5. Cierra sesión, regístrate como cliente nuevo y entra: llegas a **Mi cuenta**. Si intentas abrir `/admin`, el sistema te lo impide.
-6. Equivoca la contraseña 5 veces: la cuenta queda bloqueada 15 minutos.
+Deben pasar **50 pruebas**. En IntelliJ también puedes hacer clic derecho en `src/test/java` y elegir **Run 'All Tests'**.
 
 ## Reglas de sesión (HU-02)
 
@@ -119,23 +105,31 @@ npm run test:cobertura      # con reporte de cobertura en backend/coverage/
 |---|---|---|
 | Expira por inactividad | 30 minutos | 7 días |
 | Duración máxima | 8 horas | 30 días |
-| Dónde se guarda el token | `sessionStorage` (se borra al cerrar la pestaña) | `localStorage` |
 
-Cada token está ligado a una fila de la tabla `sesiones`. Al cerrar sesión, esa fila se marca como revocada y el token deja de funcionar aunque aún no haya vencido. Los valores se cambian en `backend/src/config.js`.
+Cada token JWT está ligado a una fila de la tabla `sesiones`. Al cerrar sesión, esa fila se marca como revocada y el token deja de funcionar aunque aún no haya vencido. Los valores se cambian en `config/Config.java`.
 
 ## Despliegue (EN-04)
 
-1. Sube el repositorio a GitHub.
-2. En [Render](https://render.com) entra a **New → Blueprint** y elige el repositorio. `render.yaml` crea la base de datos, la API y el frontend.
-3. Cuando termine, completa las dos variables marcadas como `sync: false`:
-   - En **alquiler-api**: `CORS_ORIGIN` = URL del frontend (p. ej. `https://alquiler-web.onrender.com`)
-   - En **alquiler-web**: `VITE_API_URL` = URL de la API (p. ej. `https://alquiler-api.onrender.com`), y luego **Manual Deploy**.
-4. Carga los datos iniciales una vez desde la pestaña **Shell** de la API: `cd backend && npm run db:sembrar`.
+| Parte | Servicio | Cómo |
+|---|---|---|
+| Base de datos | **Neon** (gratis, no vence) | Crea un proyecto y copia la connection string, quitando `&channel_binding=require` |
+| Backend | **Render**, Web Service con **Docker** | Usa el `Dockerfile` de la raíz del repositorio |
+| Frontend | **Vercel** | Root Directory `frontend`; ya incluye `vercel.json` |
+
+Variables del backend en Render:
+| Variable | Valor |
+|---|---|
+| `DATABASE_URL` | la URL de Neon |
+| `DB_SSL` | `true` |
+| `JWT_SECRET` | una clave larga y aleatoria |
+| `CORS_ORIGIN` | la URL de Vercel, sin `/` al final |
+| `APP_TZ` | `America/Lima` |
+
+En Vercel, define la variable `VITE_API_URL` con la URL de Render. Las tablas se crean solas al arrancar la API. Para cargar el admin y los datos de ejemplo en Neon, ejecuta desde tu PC `mvn compile exec:java "-Dexec.args=sembrar"` con `DATABASE_URL` y `DB_SSL=true` apuntando a Neon.
 
 Limitaciones del plan gratuito de Render:
-- La API "se duerme" tras 15 minutos sin uso y tarda unos 50 segundos en despertar. Ábrela un rato antes de exponer.
-- La base de datos gratuita vence a los 30 días; se puede recrear.
-- El disco no es persistente: **las fotos subidas se pierden en cada redespliegue**. Para producción conviene guardarlas en un servicio externo (Cloudinary o S3). Es buen candidato para un habilitador del Sprint 3.
+- La API se duerme tras 15 minutos sin uso y tarda cerca de 1 minuto en despertar. Ábrela un rato antes de exponer.
+- Las fotos subidas se borran en cada redespliegue. Guardarlas en un servicio externo como Cloudinary es un buen habilitador para el Sprint 3.
 
 ## Documentación
 - [Base de datos: diagrama ER y reglas](docs/base-de-datos.md)

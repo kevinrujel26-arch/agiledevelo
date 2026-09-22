@@ -1,6 +1,6 @@
 # API REST (Sprints 1 y 2)
 
-Base: `http://localhost:3000/api`. Todas las respuestas son JSON.
+Base: `http://localhost:3000/api`. Todas las respuestas son JSON. Backend en **Java 21 sin frameworks** (`com.sun.net.httpserver` del JDK).
 
 **Autenticación:** cabecera `Authorization: Bearer <token>`. El token se obtiene en `POST /auth/login`.
 
@@ -69,10 +69,22 @@ Las fechas usan el formato `AAAA-MM-DD` y los rangos son **inclusivos**: del `20
 
 ## Ejemplo con curl
 ```bash
-TOKEN=$(curl -s -X POST localhost:3000/api/auth/login \
-  -H 'Content-Type: application/json' \
-  -d '{"correo":"admin@alquiler.pe","contrasena":"Admin12345"}' | node -pe 'JSON.parse(require("fs").readFileSync(0)).token')
+# 1. Iniciar sesión y copiar el "token" de la respuesta
+curl -s -X POST localhost:3000/api/auth/login -H "Content-Type: application/json" \
+  -d '{"correo":"admin@alquiler.pe","contrasena":"Admin12345"}'
 
-curl -s localhost:3000/api/admin/maquinas -H "Authorization: Bearer $TOKEN"
-curl -s -X POST localhost:3000/api/admin/maquinas/1/fotos -H "Authorization: Bearer $TOKEN" -F "fotos=@excavadora.jpg"
+# 2. Usarlo en las rutas de administrador
+curl -s localhost:3000/api/admin/maquinas -H "Authorization: Bearer PEGA_AQUI_EL_TOKEN"
+curl -s -X POST localhost:3000/api/admin/maquinas/1/fotos -H "Authorization: Bearer PEGA_AQUI_EL_TOKEN" -F "fotos=@excavadora.jpg"
 ```
+
+## Dónde está cada ruta en el código
+Cada módulo registra sus rutas en su controlador (`backend/src/main/java/pe/upao/alquiler/...`):
+
+| Rutas | Controlador |
+|---|---|
+| `/api/auth/*` | `auth/AuthControlador.java` |
+| `/api/categorias`, `/api/admin/categorias/*` | `categorias/CategoriaControlador.java` |
+| `/api/maquinas`, `/api/admin/maquinas/*` (incluye fotos) | `maquinas/MaquinaControlador.java` |
+| `/api/maquinas/{id}/disponibilidad`, `/api/admin/maquinas/{id}/bloqueos/*` | `disponibilidad/DisponibilidadControlador.java` |
+| `/api/salud` | `Aplicacion.java` |

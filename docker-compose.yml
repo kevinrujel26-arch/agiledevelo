@@ -10,7 +10,7 @@ services:
       POSTGRES_DB: alquiler_maquinaria
       TZ: America/Lima
     ports:
-      - "5433:5432"
+      - "5433:5432"   # 5433 en tu PC para no chocar con un PostgreSQL ya instalado
     volumes:
       - datos_pg:/var/lib/postgresql/data
       - ./database/docker-init:/docker-entrypoint-initdb.d:ro
