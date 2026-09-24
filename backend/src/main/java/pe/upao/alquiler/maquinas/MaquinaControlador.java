@@ -58,12 +58,14 @@ public class MaquinaControlador {
                 s -> Respuesta.ok(Json.obj("fotos", servicio.eliminarFoto(s.id("id"), s.id("fotoId")))));
     }
 
-    /** HU-03: catálogo paginado, visible sin iniciar sesión. */
+    /** HU-03: catálogo paginado, visible sin iniciar sesión. Criterio 2: filtro por categoría y búsqueda por palabra clave. */
     private Respuesta catalogo(Solicitud s) {
         Validador v = Validador.de(s.query());
         Paginacion p = Paginacion.desde(v);
+        Long categoriaId = v.idPositivo("categoriaId", false, null);
+        String texto = v.texto("q", 0, 80, false, null);
         v.validar();
-        return Respuesta.ok(servicio.catalogo(p));
+        return Respuesta.ok(servicio.catalogo(categoriaId, texto, p));
     }
 
     private Respuesta listarAdmin(Solicitud s) {

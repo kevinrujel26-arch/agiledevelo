@@ -42,10 +42,10 @@ public class MaquinaServicio {
     // ------------------------------------------------------------------
     // Catálogo público (HU-03)
     // ------------------------------------------------------------------
-    public Map<String, Object> catalogo(Paginacion p) {
-        List<Map<String, Object>> tarjetas = maquinas.listarPublicadas(p.limite(), p.desplazamiento())
+    public Map<String, Object> catalogo(Long categoriaId, String texto, Paginacion p) {
+        List<Map<String, Object>> tarjetas = maquinas.listarPublicadas(categoriaId, texto, p.limite(), p.desplazamiento())
                 .stream().map(Maquina::tarjetaJson).toList();
-        return p.respuesta(tarjetas, maquinas.contarPublicadas());
+        return p.respuesta(tarjetas, maquinas.contarPublicadas(categoriaId, texto));
     }
 
     /** Detalle público: solo si está publicada (la URL se puede compartir, HU-04 criterio 4). */

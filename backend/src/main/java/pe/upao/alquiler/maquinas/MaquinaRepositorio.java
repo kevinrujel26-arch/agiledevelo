@@ -47,21 +47,26 @@ public class MaquinaRepositorio {
     }
 
     // ---------------- Catálogo público (HU-03) ----------------
-    public List<Maquina> listarPublicadas(int limite, long desplazamiento) {
-        return bd.consultar(SELECT_MAQUINA + "\n" + """
-                 WHERE m.estado = 'PUBLICADA'
+    /** HU-03 criterio 2: filtro opcional por categoría y búsqueda por palabra clave (nombre o marca). */
+    public List<Maquina> listarPublicadas(Long categoriaId, String texto, int limite, long desplazamiento) {
+        Filtro f = filtro("PUBLICADA", categoriaId, texto);
+        List<Object> params = new ArrayList<>(f.params());
+        params.add(limite);
+        params.add(desplazamiento);
+        return bd.consultar(SELECT_MAQUINA + f.where() + """
                  ORDER BY m.publicada_en DESC NULLS LAST, m.id DESC
-                 LIMIT ? OFFSET ?""", limite, desplazamiento).stream().map(Maquina::desde).toList();
+                 LIMIT ? OFFSET ?""", params.toArray()).stream().map(Maquina::desde).toList();
     }
 
-    public long contarPublicadas() {
-        return bd.uno("SELECT count(*) AS total FROM maquinas WHERE estado = 'PUBLICADA'").enteroOCero("total");
+    public long contarPublicadas(Long categoriaId, String texto) {
+        Filtro f = filtro("PUBLICADA", categoriaId, texto);
+        return bd.uno("SELECT count(*) AS total FROM maquinas m" + f.where(), f.params().toArray()).enteroOCero("total");
     }
 
     // ---------------- Administración (HU-08) ----------------
     /** Listado con filtros opcionales. Devuelve [filas de la página, total]. */
     public List<Maquina> listarAdmin(String estado, Long categoriaId, String texto, int limite, long desplazamiento) {
-        Filtro f = filtroAdmin(estado, categoriaId, texto);
+        Filtro f = filtro(estado, categoriaId, texto);
         List<Object> params = new ArrayList<>(f.params());
         params.add(limite);
         params.add(desplazamiento);
@@ -71,14 +76,15 @@ public class MaquinaRepositorio {
     }
 
     public long contarAdmin(String estado, Long categoriaId, String texto) {
-        Filtro f = filtroAdmin(estado, categoriaId, texto);
+        Filtro f = filtro(estado, categoriaId, texto);
         return bd.uno("SELECT count(*) AS total FROM maquinas m" + f.where(), f.params().toArray()).enteroOCero("total");
     }
 
     private record Filtro(String where, List<Object> params) {
     }
 
-    private static Filtro filtroAdmin(String estado, Long categoriaId, String texto) {
+    /** Compartido entre el catálogo público y el listado del administrador. */
+    private static Filtro filtro(String estado, Long categoriaId, String texto) {
         List<String> condiciones = new ArrayList<>();
         List<Object> params = new ArrayList<>();
         if (estado != null) {

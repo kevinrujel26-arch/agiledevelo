@@ -1,5 +1,13 @@
 export const NOMBRE_APP = 'MaquiRenta';
 
+// HU-01 criterio 5: datos de contacto visibles en la página de inicio.
+// Cambia estos valores por los reales de tu empresa antes de sustentar.
+export const CONTACTO = {
+  correo: 'contacto@maquirenta.pe',
+  telefono: '+51 999 999 999',
+  direccion: 'Trujillo, La Libertad, Perú',
+};
+
 const moneda = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' });
 export const formatearMoneda = (monto) => moneda.format(monto ?? 0);
 

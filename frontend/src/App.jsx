@@ -12,7 +12,7 @@ import AdminCategorias from './paginas/admin/AdminCategorias';
 import AdminMaquinas from './paginas/admin/AdminMaquinas';
 import AdminMaquinaForm from './paginas/admin/AdminMaquinaForm';
 import AdminDisponibilidad from './paginas/admin/AdminDisponibilidad';
-import { NOMBRE_APP } from './utils/formato';
+import { NOMBRE_APP, CONTACTO } from './utils/formato';
 import { LogoMarca } from './componentes/Ilustracion';
 
 export default function App() {
@@ -81,6 +81,15 @@ export default function App() {
               <ul>
                 <li><Link to="/login">Iniciar sesión</Link></li>
                 <li><Link to="/registro">Crear cuenta</Link></li>
+              </ul>
+            </div>
+            {/* HU-01 criterio 5: datos de contacto de la empresa */}
+            <div>
+              <h4>Contacto</h4>
+              <ul>
+                <li><a href={`mailto:${CONTACTO.correo}`}>{CONTACTO.correo}</a></li>
+                <li><a href={`tel:${CONTACTO.telefono.replace(/\s+/g, '')}`}>{CONTACTO.telefono}</a></li>
+                <li>{CONTACTO.direccion}</li>
               </ul>
             </div>
           </div>

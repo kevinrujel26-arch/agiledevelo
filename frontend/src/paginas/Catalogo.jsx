@@ -18,21 +18,35 @@ export default function Catalogo() {
   const { usuario } = useAuth();
   const [params, setParams] = useSearchParams();
   const pagina = Math.max(1, Number(params.get('pagina')) || 1);
+  const categoriaId = params.get('categoriaId') || '';
+  const q = params.get('q') || '';
+  const [busqueda, setBusqueda] = useState(q);
 
   const [resultado, setResultado] = useState(null);
   const [error, setError] = useState('');
+  const [categorias, setCategorias] = useState([]);
+
+  // HU-03 criterio 2: categorías activas para el filtro
+  useEffect(() => {
+    api.get('/categorias').then((r) => setCategorias(r.datos)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     let vigente = true;
     setError('');
     api
-      .get('/maquinas', { pagina, tamanio: TAMANIO_PAGINA })
+      .get('/maquinas', { categoriaId, q, pagina, tamanio: TAMANIO_PAGINA })
       .then((r) => vigente && setResultado(r))
       .catch((e) => vigente && setError(e.message));
     return () => {
       vigente = false;
     };
-  }, [pagina]);
+  }, [categoriaId, q, pagina]);
+
+  const actualizarFiltros = (cambios) => {
+    const nuevos = { categoriaId, q, ...cambios };
+    setParams(Object.fromEntries(Object.entries(nuevos).filter(([, v]) => v)));
+  };
 
   const ciudades = useMemo(
     () => new Set((resultado?.datos || []).map((m) => m.ubicacion.trim().toLowerCase())).size,
@@ -40,7 +54,7 @@ export default function Catalogo() {
   );
 
   const cambiarPagina = (p) => {
-    setParams({ pagina: String(p) });
+    actualizarFiltros({ pagina: p === 1 ? '' : String(p) });
     document.getElementById('equipos')?.scrollIntoView({ behavior: 'smooth' });
   };
 
@@ -148,10 +162,61 @@ export default function Catalogo() {
             )}
           </div>
 
+          {/* HU-03 criterio 2: filtrar por categoría y buscar por palabra clave */}
+          <div className="filtros">
+            <div className="pestanas" role="tablist">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={categoriaId === ''}
+                className={categoriaId === '' ? 'activa' : ''}
+                onClick={() => actualizarFiltros({ categoriaId: '', pagina: '' })}
+              >
+                Todas
+              </button>
+              {categorias.map((c) => (
+                <button
+                  type="button"
+                  role="tab"
+                  key={c.id}
+                  aria-selected={categoriaId === String(c.id)}
+                  className={categoriaId === String(c.id) ? 'activa' : ''}
+                  onClick={() => actualizarFiltros({ categoriaId: String(c.id), pagina: '' })}
+                >
+                  {c.nombre}
+                </button>
+              ))}
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                actualizarFiltros({ q: busqueda.trim(), pagina: '' });
+              }}
+            >
+              <input
+                type="search"
+                placeholder="Buscar por nombre o marca"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                aria-label="Buscar maquinaria"
+              />
+            </form>
+          </div>
+
           <Alerta>{error}</Alerta>
           {!resultado && !error && <Cargando texto="Cargando catálogo…" />}
 
-          {resultado && resultado.datos.length === 0 && (
+          {resultado && resultado.datos.length === 0 && (categoriaId || q) && (
+            <div className="vacio">
+              <h2>Sin resultados para estos filtros</h2>
+              <p className="texto-suave">Prueba con otra categoría o palabra clave.</p>
+              <button type="button" className="boton boton-secundario" onClick={() => { setBusqueda(''); setParams({}); }}>
+                Quitar filtros
+              </button>
+            </div>
+          )}
+
+          {resultado && resultado.datos.length === 0 && !categoriaId && !q && (
             <div className="vacio">
               <h2>Aún no hay máquinas publicadas</h2>
               <p className="texto-suave">Vuelve pronto: estamos preparando nuestra flota.</p>
