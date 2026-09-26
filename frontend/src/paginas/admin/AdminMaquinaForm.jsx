@@ -12,7 +12,7 @@ const VACIO = {
   categoriaId: '',
   marca: '',
   modelo: '',
-  tarifaDiaria: '',
+  tarifaHoraria: '',
   ubicacion: '',
   descripcion: '',
   enMantenimiento: false,
@@ -24,7 +24,7 @@ function validar(f) {
   if (!f.categoriaId) e.categoriaId = 'Selecciona una categoría';
   if (!f.marca.trim()) e.marca = 'La marca es obligatoria';
   if (!f.modelo.trim()) e.modelo = 'El modelo es obligatorio';
-  if (!(Number(f.tarifaDiaria) > 0)) e.tarifaDiaria = 'Ingresa una tarifa mayor a 0';
+  if (!(Number(f.tarifaHoraria) > 0)) e.tarifaHoraria = 'Ingresa una tarifa mayor a 0';
   if (!f.ubicacion.trim()) e.ubicacion = 'La ubicación es obligatoria';
   return e;
 }
@@ -69,7 +69,7 @@ export default function AdminMaquinaForm() {
       categoriaId: String(m.categoria.id),
       marca: m.marca,
       modelo: m.modelo,
-      tarifaDiaria: String(m.tarifaDiaria),
+      tarifaHoraria: String(m.tarifaHoraria),
       ubicacion: m.ubicacion,
       descripcion: m.descripcion || '',
       enMantenimiento: m.enMantenimiento,
@@ -115,7 +115,7 @@ export default function AdminMaquinaForm() {
     const cuerpo = {
       ...form,
       categoriaId: Number(form.categoriaId),
-      tarifaDiaria: Number(form.tarifaDiaria),
+      tarifaHoraria: Number(form.tarifaHoraria),
       descripcion: form.descripcion.trim() || null,
       especificaciones,
     };
@@ -256,8 +256,8 @@ export default function AdminMaquinaForm() {
           <Campo etiqueta="Modelo *" id="modelo" error={errores.modelo}>
             <input id="modelo" name="modelo" value={form.modelo} onChange={cambiar} maxLength={80} />
           </Campo>
-          <Campo etiqueta="Tarifa diaria (S/) *" id="tarifaDiaria" error={errores.tarifaDiaria}>
-            <input id="tarifaDiaria" name="tarifaDiaria" type="number" min="0.01" step="0.01" value={form.tarifaDiaria} onChange={cambiar} />
+          <Campo etiqueta="Tarifa por hora (S/) *" id="tarifaHoraria" error={errores.tarifaHoraria}>
+            <input id="tarifaHoraria" name="tarifaHoraria" type="number" min="0.01" step="0.01" value={form.tarifaHoraria} onChange={cambiar} />
           </Campo>
           <Campo etiqueta="Ubicación *" id="ubicacion" error={errores.ubicacion} ayuda="Ciudad o sede donde se recoge">
             <input id="ubicacion" name="ubicacion" value={form.ubicacion} onChange={cambiar} maxLength={160} />

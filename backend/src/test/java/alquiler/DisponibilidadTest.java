@@ -24,7 +24,7 @@ class DisponibilidadTest extends PruebaBase {
         token = tokenAdmin();
         long categoriaId = crearCategoria("Excavadoras", true);
         maquinaId = bd().uno("""
-                INSERT INTO maquinas (categoria_id, nombre, marca, modelo, tarifa_diaria, ubicacion, estado, publicada_en)
+                INSERT INTO maquinas (categoria_id, nombre, marca, modelo, tarifa_horaria, ubicacion, estado, publicada_en)
                 VALUES (?, 'Excavadora', 'CAT', '320', 1000, 'Trujillo', 'PUBLICADA', now()) RETURNING id""",
                 categoriaId).entero("id");
     }
@@ -68,8 +68,8 @@ class DisponibilidadTest extends PruebaBase {
     void noSobreReservaPagada() {
         Usuario cliente = crearCliente();
         bd().ejecutar("""
-                INSERT INTO reservas (maquina_id, cliente_id, fecha_inicio, fecha_fin, tarifa_diaria, monto_total, estado)
-                VALUES (?, ?, ?::date, ?::date, 1000, 3000, 'PAGADA')""", maquinaId, cliente.id(), dentroDe(7), dentroDe(9));
+                INSERT INTO reservas (maquina_id, cliente_id, fecha_inicio, fecha_fin, tarifa_horaria, monto_total, estado)
+                VALUES (?, ?, ?::date, (?::date + interval '1 day'), 1000, 3000, 'PAGADA')""", maquinaId, cliente.id(), dentroDe(7), dentroDe(9));
 
         Resp r = bloquear(List.of(rango(9, 12)));
         assertEquals(409, r.estado());

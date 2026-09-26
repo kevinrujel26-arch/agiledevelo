@@ -18,7 +18,7 @@ public record Maquina(
         String modelo,
         String descripcion,
         Object especificaciones,
-        BigDecimal tarifaDiaria,
+        BigDecimal tarifaHoraria,
         String ubicacion,
         EstadoMaquina estado,
         boolean enMantenimiento,
@@ -37,7 +37,7 @@ public record Maquina(
                 f.texto("modelo"),
                 f.texto("descripcion"),
                 f.json("especificaciones"),
-                f.decimal("tarifa_diaria"),
+                f.decimal("tarifa_horaria"),
                 f.texto("ubicacion"),
                 EstadoMaquina.valueOf(f.texto("estado")),
                 f.bool("en_mantenimiento"),
@@ -51,7 +51,7 @@ public record Maquina(
         return estado == EstadoMaquina.PUBLICADA;
     }
 
-    /** HU-03 criterio 2: foto, nombre, categoría y tarifa diaria. */
+    /** HU-03 criterio 2: foto, nombre, categoría y tarifa por hora. */
     public Map<String, Object> tarjetaJson() {
         return Json.obj(
                 "id", id,
@@ -59,7 +59,7 @@ public record Maquina(
                 "marca", marca,
                 "modelo", modelo,
                 "categoria", Json.obj("id", categoriaId, "nombre", categoriaNombre),
-                "tarifaDiaria", tarifaDiaria,
+                "tarifaHoraria", tarifaHoraria,
                 "ubicacion", ubicacion,
                 "enMantenimiento", enMantenimiento,
                 "fotoPrincipal", fotoPrincipal);

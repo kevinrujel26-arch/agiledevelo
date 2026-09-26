@@ -107,7 +107,7 @@ public class MaquinaControlador {
         valores.put("modelo", d.modelo());
         valores.put("descripcion", d.descripcion());
         valores.put("especificaciones", d.especificaciones());
-        valores.put("tarifaDiaria", d.tarifaDiaria());
+        valores.put("tarifaHoraria", d.tarifaHoraria());
         valores.put("ubicacion", d.ubicacion());
         valores.put("enMantenimiento", d.enMantenimiento());
         for (Map.Entry<String, String> e : MaquinaRepositorio.COLUMNAS_EDITABLES.entrySet()) {
@@ -129,8 +129,8 @@ public class MaquinaControlador {
         String descripcion = v.texto("descripcion", 0, 2000, false, null);
         if (descripcion != null && descripcion.isEmpty()) descripcion = null;
         Map<String, String> especificaciones = v.mapaDeTextos("especificaciones", 30, 60, 200);
-        BigDecimal tarifa = (t || v.tiene("tarifaDiaria"))
-                ? v.decimalPositivo("tarifaDiaria", "La tarifa diaria", true, TARIFA_MAXIMA) : null;
+        BigDecimal tarifa = (t || v.tiene("tarifaHoraria"))
+                ? v.decimalPositivo("tarifaHoraria", "La tarifa por hora", true, TARIFA_MAXIMA) : null;
         String ubicacion = (t || v.tiene("ubicacion")) ? v.texto("ubicacion", 1, 160, true, "La ubicación es obligatoria") : null;
         Boolean enMantenimiento = v.booleano("enMantenimiento", t ? Boolean.FALSE : null);
         return new DatosMaquina(categoriaId, nombre, marca, modelo, descripcion, especificaciones, tarifa, ubicacion, enMantenimiento);

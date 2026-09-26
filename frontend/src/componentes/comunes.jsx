@@ -81,7 +81,7 @@ export function FotoMaquina({ ruta, alt, className = '' }) {
   return <img src={urlArchivo(ruta)} alt={alt} className={className} loading="lazy" />;
 }
 
-/** HU-03 criterio 2: foto, nombre, categoría y tarifa diaria */
+/** HU-03 criterio 2: foto, nombre, categoría y tarifa por hora */
 export function TarjetaMaquina({ maquina }) {
   return (
     <Link to={`/maquinas/${maquina.id}`} className="tarjeta-maquina">
@@ -100,7 +100,7 @@ export function TarjetaMaquina({ maquina }) {
         </p>
         <div className="tarjeta-pie">
           <p className="tarifa">
-            {formatearMoneda(maquina.tarifaDiaria)} <span>/ día</span>
+            {formatearMoneda(maquina.tarifaHoraria)} <span>/ hora</span>
           </p>
           <span className="ver-mas" aria-hidden="true"><Icono nombre="flecha" /></span>
         </div>

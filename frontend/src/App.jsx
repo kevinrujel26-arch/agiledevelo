@@ -66,7 +66,7 @@ export default function App() {
                 {NOMBRE_APP}
               </Link>
               <p style={{ maxWidth: 320, margin: '12px 0 0' }}>
-                Alquiler de maquinaria pesada por días. Compara, revisa la disponibilidad y reserva en línea.
+                Alquiler de maquinaria pesada por horas. Compara, revisa la disponibilidad y reserva en línea.
               </p>
             </div>
             <div>

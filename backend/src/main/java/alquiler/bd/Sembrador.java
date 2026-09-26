@@ -29,20 +29,21 @@ public final class Sembrador {
                                   String ubicacion, String estado, Map<String, Object> especificaciones) {
     }
 
+    // Tarifas por hora (antes eran por día; se dividieron entre ~8 horas de jornada y se redondearon).
     private static final List<MaquinaEjemplo> MAQUINAS = List.of(
-            new MaquinaEjemplo("Excavadoras", "Excavadora hidráulica 320", "Caterpillar", "320 GC", 1450, "Trujillo", "PUBLICADA",
+            new MaquinaEjemplo("Excavadoras", "Excavadora hidráulica 320", "Caterpillar", "320 GC", 180, "Trujillo", "PUBLICADA",
                     Json.obj("Peso operativo", "22 t", "Potencia", "146 HP", "Capacidad del cucharón", "1.2 m³")),
-            new MaquinaEjemplo("Excavadoras", "Miniexcavadora 35G", "John Deere", "35G", 620, "Trujillo", "PUBLICADA",
+            new MaquinaEjemplo("Excavadoras", "Miniexcavadora 35G", "John Deere", "35G", 80, "Trujillo", "PUBLICADA",
                     Json.obj("Peso operativo", "3.6 t", "Potencia", "23 HP", "Profundidad de excavación", "3.4 m")),
-            new MaquinaEjemplo("Retroexcavadoras", "Retroexcavadora 416F2", "Caterpillar", "416F2", 780, "Chiclayo", "PUBLICADA",
+            new MaquinaEjemplo("Retroexcavadoras", "Retroexcavadora 416F2", "Caterpillar", "416F2", 100, "Chiclayo", "PUBLICADA",
                     Json.obj("Potencia", "87 HP", "Tracción", "4x4", "Capacidad del cargador", "1 m³")),
-            new MaquinaEjemplo("Cargadores frontales", "Cargador frontal 950GC", "Caterpillar", "950 GC", 1300, "Lima", "PUBLICADA",
+            new MaquinaEjemplo("Cargadores frontales", "Cargador frontal 950GC", "Caterpillar", "950 GC", 170, "Lima", "PUBLICADA",
                     Json.obj("Potencia", "225 HP", "Capacidad del cucharón", "3.1 m³")),
-            new MaquinaEjemplo("Rodillos compactadores", "Rodillo vibratorio CA2500", "Dynapac", "CA2500D", 690, "Trujillo", "PUBLICADA",
+            new MaquinaEjemplo("Rodillos compactadores", "Rodillo vibratorio CA2500", "Dynapac", "CA2500D", 90, "Trujillo", "PUBLICADA",
                     Json.obj("Peso operativo", "10.5 t", "Ancho de tambor", "2.13 m")),
-            new MaquinaEjemplo("Montacargas", "Montacargas diésel 3 t", "Toyota", "8FD30", 280, "Lima", "PUBLICADA",
+            new MaquinaEjemplo("Montacargas", "Montacargas diésel 3 t", "Toyota", "8FD30", 40, "Lima", "PUBLICADA",
                     Json.obj("Capacidad", "3000 kg", "Altura de elevación", "4.7 m", "Combustible", "Diésel")),
-            new MaquinaEjemplo("Minicargadores", "Minicargador S650", "Bobcat", "S650", 450, "Piura", "BORRADOR",
+            new MaquinaEjemplo("Minicargadores", "Minicargador S650", "Bobcat", "S650", 60, "Piura", "BORRADOR",
                     Json.obj("Potencia", "74 HP", "Carga operativa", "1250 kg")));
 
     public static void sembrar(Bd bd, Config config) {
@@ -75,7 +76,7 @@ public final class Sembrador {
             for (MaquinaEjemplo m : MAQUINAS) {
                 if (tx.uno("SELECT 1 FROM maquinas WHERE nombre = ?", m.nombre()) != null) continue;
                 tx.ejecutar("""
-                        INSERT INTO maquinas (categoria_id, nombre, marca, modelo, tarifa_diaria, ubicacion, estado,
+                        INSERT INTO maquinas (categoria_id, nombre, marca, modelo, tarifa_horaria, ubicacion, estado,
                                               especificaciones, descripcion, publicada_en, creado_por)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, CASE WHEN ?::boolean THEN now() END, ?)""",
                         idsCategoria.get(m.categoria()), m.nombre(), m.marca(), m.modelo(), m.tarifa(), m.ubicacion(),

@@ -86,7 +86,7 @@ export default function AdminMaquinas() {
                   <th aria-label="Foto" />
                   <th>Máquina</th>
                   <th>Categoría</th>
-                  <th>Tarifa diaria</th>
+                  <th>Tarifa por hora</th>
                   <th>Estado</th>
                   <th aria-label="Acciones" />
                 </tr>
@@ -103,7 +103,7 @@ export default function AdminMaquinas() {
                       {m.enMantenimiento && <span className="insignia insignia-aviso">En mantenimiento</span>}
                     </td>
                     <td>{m.categoria.nombre}</td>
-                    <td>{formatearMoneda(m.tarifaDiaria)}</td>
+                    <td>{formatearMoneda(m.tarifaHoraria)}</td>
                     <td>
                       <span className={`insignia estado-${m.estado.toLowerCase()}`}>{ETIQUETA_ESTADO[m.estado]}</span>
                     </td>

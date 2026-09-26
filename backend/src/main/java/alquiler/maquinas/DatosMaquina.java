@@ -11,7 +11,7 @@ public record DatosMaquina(
         String modelo,
         String descripcion,
         Map<String, String> especificaciones,
-        BigDecimal tarifaDiaria,
+        BigDecimal tarifaHoraria,
         String ubicacion,
         Boolean enMantenimiento) {
 }

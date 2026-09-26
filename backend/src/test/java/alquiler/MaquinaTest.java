@@ -50,7 +50,7 @@ class MaquinaTest extends PruebaBase {
         Resp r = post("/api/admin/maquinas", Json.obj("nombre", "Sin datos"), token);
         assertEquals(400, r.estado());
         List<Object> campos = r.lista("detalles").stream().map(d -> d.get("campo")).map(Object.class::cast).toList();
-        for (String campo : new String[]{"categoriaId", "marca", "modelo", "tarifaDiaria", "ubicacion"}) {
+        for (String campo : new String[]{"categoriaId", "marca", "modelo", "tarifaHoraria", "ubicacion"}) {
             assertTrue(campos.contains(campo), "falta el error de " + campo);
         }
     }
@@ -133,9 +133,9 @@ class MaquinaTest extends PruebaBase {
     @DisplayName("HU-08: se puede editar después de publicada")
     void editaPublicada() {
         long id = crearPublicada("Excavadora 320");
-        Resp r = put("/api/admin/maquinas/" + id, Json.obj("tarifaDiaria", 1600.5), token);
+        Resp r = put("/api/admin/maquinas/" + id, Json.obj("tarifaHoraria", 1600.5), token);
         assertEquals(200, r.estado());
-        assertEquals(1600.5, ((Number) r.json().get("tarifaDiaria")).doubleValue(), 0.001);
+        assertEquals(1600.5, ((Number) r.json().get("tarifaHoraria")).doubleValue(), 0.001);
         assertEquals("PUBLICADA", r.json().get("estado"));
     }
 
@@ -145,7 +145,7 @@ class MaquinaTest extends PruebaBase {
         long id = crearPublicada("Excavadora 320");
         long adminId = bd().uno("SELECT id FROM usuarios WHERE rol = 'ADMINISTRADOR'").entero("id");
         bd().ejecutar("""
-                INSERT INTO reservas (maquina_id, cliente_id, fecha_inicio, fecha_fin, tarifa_diaria, monto_total, estado)
+                INSERT INTO reservas (maquina_id, cliente_id, fecha_inicio, fecha_fin, tarifa_horaria, monto_total, estado)
                 VALUES (?, ?, '2025-01-10', '2025-01-12', 1450, 4350, 'FINALIZADA')""", id, adminId);
 
         assertEquals(200, post("/api/admin/maquinas/" + id + "/retirar", null, token).estado());
@@ -163,7 +163,7 @@ class MaquinaTest extends PruebaBase {
         Map<String, Object> tarjeta = r.lista("datos").get(0);
         assertEquals("Excavadora 320", tarjeta.get("nombre"));
         assertEquals("Excavadoras", ((Map<?, ?>) tarjeta.get("categoria")).get("nombre"));
-        assertEquals(1450L, numero(tarjeta.get("tarifaDiaria")));
+        assertEquals(1450L, numero(tarjeta.get("tarifaHoraria")));
         assertTrue(((String) tarjeta.get("fotoPrincipal")).matches("^/uploads/maquinas/.+\\.png$"));
     }
 

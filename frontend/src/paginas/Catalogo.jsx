@@ -9,8 +9,8 @@ import { Excavadora, Icono } from '../componentes/Ilustracion';
 const TAMANIO_PAGINA = 12;
 
 const PASOS = [
-  { titulo: 'Explora el catálogo', texto: 'Compara equipos, especificaciones técnicas y tarifas por día en un solo lugar.' },
-  { titulo: 'Elige tus fechas', texto: 'Revisa la disponibilidad en el calendario y reserva el rango de días que necesitas.' },
+  { titulo: 'Explora el catálogo', texto: 'Compara equipos, especificaciones técnicas y tarifas por hora en un solo lugar.' },
+  { titulo: 'Elige tus fechas', texto: 'Revisa la disponibilidad en el calendario y reserva cuando la necesites.' },
   { titulo: 'Recibe en tu obra', texto: 'Confirmamos tu reserva y coordinamos la entrega del equipo donde lo necesites.' },
 ];
 
@@ -65,7 +65,7 @@ export default function Catalogo() {
         <div className="contenedor hero-interior">
           <div>
             <span className="hero-etiqueta">
-              <span className="punto-vivo" /> Alquiler de maquinaria por días
+              <span className="punto-vivo" /> Alquiler de maquinaria por horas
             </span>
             <h1>
               Maquinaria pesada,
@@ -100,7 +100,7 @@ export default function Catalogo() {
                 <span>{ciudades === 1 ? 'ciudad' : 'ciudades'}</span>
               </div>
               <div className="estadistica">
-                <strong>1 día</strong>
+                <strong>1 hora</strong>
                 <span>alquiler mínimo</span>
               </div>
             </div>

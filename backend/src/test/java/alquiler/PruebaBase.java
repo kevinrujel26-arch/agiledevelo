@@ -203,7 +203,7 @@ public abstract class PruebaBase {
                 "nombre", "Excavadora 320",
                 "marca", "Caterpillar",
                 "modelo", "320 GC",
-                "tarifaDiaria", 1450,
+                "tarifaHoraria", 1450,
                 "ubicacion", "Trujillo",
                 "especificaciones", Json.obj("Potencia", "146 HP"));
     }

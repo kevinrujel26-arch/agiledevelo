@@ -60,7 +60,7 @@ public final class Aplicacion {
         AuthServicio authServicio = new AuthServicio(usuarios, sesiones, contrasenas, jwt, config);
         CategoriaServicio categoriaServicio = new CategoriaServicio(categorias);
         MaquinaServicio maquinaServicio = new MaquinaServicio(bd, maquinas, fotos, categorias,
-                new AlmacenFotos(config.dirSubidas), config);
+                new AlmacenFotos(config), config);
         DisponibilidadServicio disponibilidadServicio = new DisponibilidadServicio(bd, bloqueos, maquinas, config);
 
         // Rutas

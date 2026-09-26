@@ -30,7 +30,7 @@ public class MaquinaRepositorio {
         COLUMNAS_EDITABLES.put("modelo", "modelo");
         COLUMNAS_EDITABLES.put("descripcion", "descripcion");
         COLUMNAS_EDITABLES.put("especificaciones", "especificaciones");
-        COLUMNAS_EDITABLES.put("tarifaDiaria", "tarifa_diaria");
+        COLUMNAS_EDITABLES.put("tarifaHoraria", "tarifa_horaria");
         COLUMNAS_EDITABLES.put("ubicacion", "ubicacion");
         COLUMNAS_EDITABLES.put("enMantenimiento", "en_mantenimiento");
     }
@@ -109,12 +109,12 @@ public class MaquinaRepositorio {
     public long crear(DatosMaquina d, long creadoPor) {
         return bd.uno("""
                 INSERT INTO maquinas (categoria_id, nombre, marca, modelo, descripcion, especificaciones,
-                                      tarifa_diaria, ubicacion, en_mantenimiento, creado_por)
+                                      tarifa_horaria, ubicacion, en_mantenimiento, creado_por)
                 VALUES (?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?)
                 RETURNING id""",
                 d.categoriaId(), d.nombre(), d.marca(), d.modelo(), d.descripcion(),
                 d.especificaciones() == null ? Map.of() : d.especificaciones(),
-                d.tarifaDiaria(), d.ubicacion(),
+                d.tarifaHoraria(), d.ubicacion(),
                 d.enMantenimiento() != null && d.enMantenimiento(), creadoPor).entero("id");
     }
 

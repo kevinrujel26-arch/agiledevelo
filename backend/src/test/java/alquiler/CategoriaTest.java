@@ -56,7 +56,7 @@ class CategoriaTest extends PruebaBase {
     void conMaquinasNoSeElimina() {
         long id = crearCategoria("Montacargas", true);
         bd().ejecutar("""
-                INSERT INTO maquinas (categoria_id, nombre, marca, modelo, tarifa_diaria, ubicacion)
+                INSERT INTO maquinas (categoria_id, nombre, marca, modelo, tarifa_horaria, ubicacion)
                 VALUES (?, 'M1', 'Toyota', '8FD', 200, 'Lima')""", id);
         Resp r = delete("/api/admin/categorias/" + id, token);
         assertEquals(409, r.estado());

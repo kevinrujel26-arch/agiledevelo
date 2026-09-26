@@ -2,7 +2,7 @@
 import { Excavadora, Icono } from './Ilustracion';
 
 const BENEFICIOS = [
-  'Catálogo con tarifas claras por día',
+  'Catálogo con tarifas claras por hora',
   'Disponibilidad en tiempo real',
   'Reserva y sigue tus alquileres en línea',
 ];

@@ -43,6 +43,11 @@ public final class Config {
     public final int maxFotosPorMaquina = 5;
     public final int maxBytesPorFoto = 5 * 1024 * 1024;
 
+    // Cloudinary: guarda las fotos de forma permanente (Render borra el disco local en cada deploy)
+    public final String cloudinaryCloudName;
+    public final String cloudinaryApiKey;
+    public final String cloudinaryApiSecret;
+
     public final List<String> corsOrigenes;
     public final Path dirSubidas;
     public final String zonaHoraria;
@@ -72,6 +77,10 @@ public final class Config {
         this.zonaHoraria = valor("APP_TZ", "America/Lima");
         this.dirMigraciones = buscarDirMigraciones(valor("MIGRATIONS_DIR", null));
         this.migrarAlIniciar = !"false".equalsIgnoreCase(valor("MIGRAR_AL_INICIAR", "true"));
+
+        this.cloudinaryCloudName = valor("CLOUDINARY_CLOUD_NAME", null);
+        this.cloudinaryApiKey = valor("CLOUDINARY_API_KEY", null);
+        this.cloudinaryApiSecret = valor("CLOUDINARY_API_SECRET", null);
     }
 
     /** Configuración normal: variables de entorno + archivo .env */

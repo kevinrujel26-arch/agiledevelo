@@ -119,7 +119,7 @@ export default function DetalleMaquina() {
             {maquina.marca} · Modelo {maquina.modelo}
           </p>
           <p className="tarifa tarifa-grande">
-            {formatearMoneda(maquina.tarifaDiaria)} <span>/ día</span>
+            {formatearMoneda(maquina.tarifaHoraria)} <span>/ hora</span>
           </p>
 
           <div className="datos-rapidos">
@@ -129,7 +129,7 @@ export default function DetalleMaquina() {
             </div>
             <div className="dato">
               <span>Alquiler mínimo</span>
-              <strong>1 día</strong>
+              <strong>1 hora</strong>
             </div>
           </div>
 
