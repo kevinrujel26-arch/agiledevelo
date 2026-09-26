@@ -2,6 +2,8 @@
 
 Proyecto del curso **Agile Development (ISIA-109, UPAO)**. Es una plataforma web para que los clientes consulten y reserven maquinaria pesada, y para que el administrador gestione la flota.
 
+PROYECTO DE AGILE 2026
+
 | Capa | Tecnología |
 |---|---|
 | Base de datos | PostgreSQL 16 |
