@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../../api/cliente';
 import { Alerta, Cargando, FotoMaquina, Paginacion } from '../../componentes/comunes';
-import { ETIQUETA_ESTADO, formatearMoneda } from '../../utils/formato';
+import { ETIQUETA_ESTADO, formatearHoras, formatearMoneda } from '../../utils/formato';
 
 const PESTANAS = [
   ['', 'Todas'],
@@ -87,6 +87,7 @@ export default function AdminMaquinas() {
                   <th>Máquina</th>
                   <th>Categoría</th>
                   <th>Tarifa por hora</th>
+                  <th className="columna-opcional">Horas de uso</th>
                   <th>Estado</th>
                   <th aria-label="Acciones" />
                 </tr>
@@ -104,6 +105,7 @@ export default function AdminMaquinas() {
                     </td>
                     <td>{m.categoria.nombre}</td>
                     <td>{formatearMoneda(m.tarifaHoraria)}</td>
+                    <td className="columna-opcional">{formatearHoras(m.horasUso)}</td>
                     <td>
                       <span className={`insignia estado-${m.estado.toLowerCase()}`}>{ETIQUETA_ESTADO[m.estado]}</span>
                     </td>

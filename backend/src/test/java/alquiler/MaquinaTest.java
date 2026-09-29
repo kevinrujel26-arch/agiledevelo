@@ -295,6 +295,84 @@ class MaquinaTest extends PruebaBase {
         assertEquals(400, get("/api/admin/maquinas?precioMin=10&precioMax=5", token).estado());
     }
 
+    // ------------------------------------------------------------ Horas de uso (horómetro)
+    private static double horas(Object valor) {
+        return ((Number) valor).doubleValue();
+    }
+
+    /** Inserta por SQL una reserva de la máquina con la duración y el estado dados. */
+    private static void insertarReserva(long maquinaId, String inicio, String fin, String estado) {
+        long clienteId = crearCliente().id();
+        bd().ejecutar("""
+                INSERT INTO reservas (maquina_id, cliente_id, fecha_inicio, fecha_fin, tarifa_horaria, monto_total, estado)
+                VALUES (?, ?, ?::timestamptz, ?::timestamptz, 100, 1000, ?)""", maquinaId, clienteId, inicio, fin, estado);
+    }
+
+    @Test
+    @DisplayName("Horas de uso: una máquina nueva tiene 0 horas")
+    void horasUsoMaquinaNueva() {
+        long id = crearPublicada("Excavadora 320");
+        Resp admin = get("/api/admin/maquinas/" + id, token);
+        assertEquals(0.0, horas(admin.json().get("horasUso")));
+        assertEquals(0.0, horas(admin.json().get("horometroInicial")));
+        assertEquals(0.0, horas(get("/api/maquinas/" + id, null).json().get("horasUso")));
+    }
+
+    @Test
+    @DisplayName("Horas de uso: horómetro inicial + reservas FINALIZADAS (no cuentan las PAGADAS ni CANCELADAS)")
+    void horasUsoConReservas() {
+        Map<String, Object> datos = datosMaquina(categoriaId);
+        datos.put("horometroInicial", 500);
+        long id = crearMaquina(datos);
+        assertEquals(500.0, horas(get("/api/admin/maquinas/" + id, token).json().get("horasUso")));
+
+        insertarReserva(id, "2025-01-10 08:00-05", "2025-01-10 18:00-05", "FINALIZADA"); // 10 h
+        insertarReserva(id, "2025-02-01 08:00-05", "2025-02-01 12:00-05", "PAGADA");     // no cuenta
+        insertarReserva(id, "2025-03-01 08:00-05", "2025-03-01 20:00-05", "CANCELADA");  // no cuenta
+
+        Resp admin = get("/api/admin/maquinas/" + id, token);
+        assertEquals(510.0, horas(admin.json().get("horasUso")));
+        assertEquals(500.0, horas(admin.json().get("horometroInicial")));
+
+        // El listado del administrador no duplica la máquina por tener varias reservas
+        Resp lista = get("/api/admin/maquinas", token);
+        assertEquals(1L, numero(lista.objeto("paginacion").get("total")));
+        assertEquals(1, lista.lista("datos").size());
+        assertEquals(510.0, horas(lista.lista("datos").get(0).get("horasUso")));
+    }
+
+    @Test
+    @DisplayName("Horas de uso: al editar el horómetro inicial se actualiza el resultado")
+    void editarHorometro() {
+        long id = crearPublicada("Excavadora 320");
+        insertarReserva(id, "2025-01-10 08:00-05", "2025-01-10 18:00-05", "FINALIZADA");
+        Resp r = put("/api/admin/maquinas/" + id, Json.obj("horometroInicial", "1250.5"), token);
+        assertEquals(200, r.estado(), String.valueOf(r.cuerpo()));
+        assertEquals(1250.5, horas(r.json().get("horometroInicial")));
+        assertEquals(1260.5, horas(r.json().get("horasUso")));
+
+        // El público ve las horas de uso (en el detalle y en el catálogo) pero no el horómetro inicial
+        Resp publico = get("/api/maquinas/" + id, null);
+        assertEquals(1260.5, horas(publico.json().get("horasUso")));
+        assertTrue(!publico.json().containsKey("horometroInicial"));
+        assertEquals(1260.5, horas(get("/api/maquinas", null).lista("datos").get(0).get("horasUso")));
+    }
+
+    @Test
+    @DisplayName("Horas de uso: el horómetro inicial debe estar entre 0 y 999999.9")
+    void horometroInvalido() {
+        for (Object malo : new Object[]{-1, "abc", 1000000}) {
+            Map<String, Object> datos = datosMaquina(categoriaId);
+            datos.put("horometroInicial", malo);
+            Resp r = post("/api/admin/maquinas", datos, token);
+            assertEquals(400, r.estado(), String.valueOf(malo));
+            assertEquals("horometroInicial", r.lista("detalles").get(0).get("campo"));
+        }
+        Map<String, Object> datos = datosMaquina(categoriaId);
+        datos.put("horometroInicial", "999999.9");
+        assertEquals(201, post("/api/admin/maquinas", datos, token).estado());
+    }
+
     @Test
     @DisplayName("HU-03/HU-04: el detalle de una máquina publicada se abre por su URL")
     void detallePorUrl() {

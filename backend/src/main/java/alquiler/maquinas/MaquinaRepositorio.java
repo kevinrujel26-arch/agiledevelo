@@ -16,10 +16,16 @@ import java.util.Map;
 @Repository
 public class MaquinaRepositorio {
 
+    /**
+     * horas_uso = horómetro inicial + horas de las reservas FINALIZADAS (aproximación, no lectura del motor).
+     * Es una subconsulta escalar: no duplica filas de máquina ni afecta la paginación.
+     */
     private static final String SELECT_MAQUINA = """
             SELECT m.*, c.nombre AS categoria_nombre,
                    (SELECT f.ruta FROM fotos_maquina f
-                     WHERE f.maquina_id = m.id AND f.es_principal LIMIT 1) AS foto_principal
+                     WHERE f.maquina_id = m.id AND f.es_principal LIMIT 1) AS foto_principal,
+                   m.horometro_inicial + COALESCE((SELECT sum(r.horas) FROM reservas r
+                     WHERE r.maquina_id = m.id AND r.estado = 'FINALIZADA'), 0) AS horas_uso
               FROM maquinas m
               JOIN categorias c ON c.id = m.categoria_id""";
 
@@ -36,6 +42,7 @@ public class MaquinaRepositorio {
         COLUMNAS_EDITABLES.put("tarifaHoraria", "tarifa_horaria");
         COLUMNAS_EDITABLES.put("ubicacion", "ubicacion");
         COLUMNAS_EDITABLES.put("enMantenimiento", "en_mantenimiento");
+        COLUMNAS_EDITABLES.put("horometroInicial", "horometro_inicial");
     }
 
     private final Consultas bd;
@@ -130,13 +137,14 @@ public class MaquinaRepositorio {
     public long crear(DatosMaquina d, long creadoPor) {
         return bd.uno("""
                 INSERT INTO maquinas (categoria_id, nombre, marca, modelo, descripcion, especificaciones,
-                                      tarifa_horaria, ubicacion, en_mantenimiento, creado_por)
-                VALUES (?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?)
+                                      tarifa_horaria, ubicacion, en_mantenimiento, horometro_inicial, creado_por)
+                VALUES (?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?, ?)
                 RETURNING id""",
                 d.categoriaId(), d.nombre(), d.marca(), d.modelo(), d.descripcion(),
                 d.especificaciones() == null ? Map.of() : d.especificaciones(),
                 d.tarifaHoraria(), d.ubicacion(),
-                d.enMantenimiento() != null && d.enMantenimiento(), creadoPor).entero("id");
+                d.enMantenimiento() != null && d.enMantenimiento(),
+                d.horometroInicial() == null ? BigDecimal.ZERO : d.horometroInicial(), creadoPor).entero("id");
     }
 
     /** Actualiza solo las columnas recibidas (clave = columna de la BD). */

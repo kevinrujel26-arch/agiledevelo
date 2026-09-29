@@ -22,6 +22,8 @@ public record Maquina(
         String ubicacion,
         EstadoMaquina estado,
         boolean enMantenimiento,
+        BigDecimal horometroInicial,
+        BigDecimal horasUso,
         String fotoPrincipal,
         Instant publicadaEn,
         Instant creadoEn,
@@ -41,6 +43,8 @@ public record Maquina(
                 f.texto("ubicacion"),
                 EstadoMaquina.valueOf(f.texto("estado")),
                 f.bool("en_mantenimiento"),
+                f.decimal("horometro_inicial"),
+                f.decimal("horas_uso"),
                 f.texto("foto_principal"),
                 f.instante("publicada_en"),
                 f.instante("creado_en"),
@@ -62,6 +66,7 @@ public record Maquina(
                 "tarifaHoraria", tarifaHoraria,
                 "ubicacion", ubicacion,
                 "enMantenimiento", enMantenimiento,
+                "horasUso", horasUso,
                 "fotoPrincipal", fotoPrincipal);
     }
 
@@ -69,6 +74,7 @@ public record Maquina(
     public Map<String, Object> filaAdminJson() {
         Map<String, Object> json = tarjetaJson();
         json.put("estado", estado.name());
+        json.put("horometroInicial", horometroInicial);
         json.put("actualizadoEn", actualizadoEn);
         return json;
     }
@@ -83,6 +89,13 @@ public record Maquina(
         json.put("creadoEn", creadoEn);
         json.put("actualizadoEn", actualizadoEn);
         json.put("fotos", fotos);
+        return json;
+    }
+
+    /** Detalle para el administrador: además del público, el horómetro inicial que puede editar. */
+    public Map<String, Object> detalleAdminJson(List<Foto> fotos) {
+        Map<String, Object> json = detalleJson(fotos);
+        json.put("horometroInicial", horometroInicial);
         return json;
     }
 }

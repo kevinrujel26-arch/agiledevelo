@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -25,6 +26,7 @@ public class MaquinaControlador {
 
     private static final List<String> ESTADOS = List.of("BORRADOR", "PUBLICADA", "RETIRADA");
     private static final BigDecimal TARIFA_MAXIMA = new BigDecimal("99999999");
+    private static final BigDecimal HOROMETRO_MAXIMO = new BigDecimal("999999.9");
 
     private final MaquinaServicio servicio;
     private final Config config;
@@ -145,6 +147,7 @@ public class MaquinaControlador {
         valores.put("tarifaHoraria", d.tarifaHoraria());
         valores.put("ubicacion", d.ubicacion());
         valores.put("enMantenimiento", d.enMantenimiento());
+        valores.put("horometroInicial", d.horometroInicial() == null ? BigDecimal.ZERO : d.horometroInicial());
         for (Map.Entry<String, String> e : MaquinaRepositorio.COLUMNAS_EDITABLES.entrySet()) {
             if (cuerpo.containsKey(e.getKey())) columnas.put(e.getValue(), valores.get(e.getKey()));
         }
@@ -168,7 +171,11 @@ public class MaquinaControlador {
                 ? v.decimalPositivo("tarifaHoraria", "La tarifa por hora", true, TARIFA_MAXIMA) : null;
         String ubicacion = (t || v.tiene("ubicacion")) ? v.texto("ubicacion", 1, 160, true, "La ubicación es obligatoria") : null;
         Boolean enMantenimiento = v.booleano("enMantenimiento", t ? Boolean.FALSE : null);
-        return new DatosMaquina(categoriaId, nombre, marca, modelo, descripcion, especificaciones, tarifa, ubicacion, enMantenimiento);
+        // Opcional: horas que ya tenía la máquina al registrarla (si es usada). Vacío = 0.
+        BigDecimal horometroInicial = v.decimalNoNegativoOpcional("horometroInicial", "El horómetro inicial", HOROMETRO_MAXIMO);
+        if (horometroInicial != null) horometroInicial = horometroInicial.setScale(1, RoundingMode.HALF_UP);
+        return new DatosMaquina(categoriaId, nombre, marca, modelo, descripcion, especificaciones, tarifa, ubicacion,
+                enMantenimiento, horometroInicial);
     }
 
     // ------------------------------------------------------------------

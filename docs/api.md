@@ -35,7 +35,7 @@ Base: `http://localhost:3000/api`. Todas las respuestas son JSON. Backend en **J
 | Método | Ruta | Descripción |
 |---|---|---|
 | GET | `/maquinas?pagina=1&tamanio=12&categoriaId=&q=&precioMin=&precioMax=` | Máquinas publicadas, paginadas → `{ datos, paginacion }`. Todos los filtros son opcionales y se combinan |
-| GET | `/maquinas/:id` | Detalle de una máquina publicada (fotos, especificaciones) |
+| GET | `/maquinas/:id` | Detalle de una máquina publicada (fotos, especificaciones, `horasUso`) |
 | GET | `/maquinas/:id/disponibilidad?desde=&hasta=` | Fechas ocupadas (bloqueos y reservas). Por defecto, los próximos 180 días |
 | GET | `/categorias` | Categorías activas |
 
@@ -44,6 +44,8 @@ Base: `http://localhost:3000/api`. Todas las respuestas son JSON. Backend en **J
 - `q`: palabra clave en el nombre o la marca.
 - `precioMin` / `precioMax` (HU-06): rango de **tarifa por hora** en soles, decimales ≥ 0, inclusivo en ambos extremos (`precioMin=100&precioMax=150` incluye las de S/ 100 y S/ 150). Se puede enviar solo uno. Si `precioMin > precioMax` → 400 con `detalles: [{ campo: "precioMin", mensaje: "El precio mínimo no puede ser mayor que el precio máximo" }]`. Un valor negativo o que no es número → 400.
 - `paginacion.total` y `totalPaginas` cuentan solo las máquinas que cumplen los filtros.
+
+**Horas de uso (`horasUso`):** número que devuelven el catálogo, el detalle público y las rutas de administrador. Se calcula solo: `horometroInicial + suma de horas de las reservas FINALIZADAS` de la máquina. Es una **aproximación** (horas alquiladas a través del sistema), no una lectura real del motor. Las reservas `PENDIENTE_PAGO`, `PAGADA` o `CANCELADA` no suman.
 
 ## Administrador (EN-05): requiere rol ADMINISTRADOR
 
@@ -60,9 +62,9 @@ Base: `http://localhost:3000/api`. Todas las respuestas son JSON. Backend en **J
 | Método | Ruta | Descripción |
 |---|---|---|
 | GET | `/admin/maquinas?estado=&q=&categoriaId=&precioMin=&precioMax=&pagina=` | Toda la flota (mismos filtros que el catálogo, más `estado`) |
-| GET | `/admin/maquinas/:id` | Detalle con fotos |
-| POST | `/admin/maquinas` | Crea en estado BORRADOR. Cuerpo: `{ categoriaId, nombre, marca, modelo, tarifaHoraria, ubicacion, descripcion?, especificaciones?: { "Potencia": "146 HP" }, enMantenimiento? }` |
-| PUT | `/admin/maquinas/:id` | Edita cualquier campo (también si ya está publicada) |
+| GET | `/admin/maquinas/:id` | Detalle con fotos, `horasUso` y `horometroInicial` |
+| POST | `/admin/maquinas` | Crea en estado BORRADOR. Cuerpo: `{ categoriaId, nombre, marca, modelo, tarifaHoraria, ubicacion, descripcion?, especificaciones?: { "Potencia": "146 HP" }, enMantenimiento?, horometroInicial? }`. `horometroInicial`: horas que ya traía la máquina si es usada (0 a 999999.9, 1 decimal; por defecto 0) |
+| PUT | `/admin/maquinas/:id` | Edita cualquier campo (también si ya está publicada), incluido `horometroInicial` |
 | POST | `/admin/maquinas/:id/publicar` | Requiere foto principal |
 | POST | `/admin/maquinas/:id/retirar` | Sale del catálogo y conserva su historial |
 | DELETE | `/admin/maquinas/:id` | Solo borradores sin reservas |

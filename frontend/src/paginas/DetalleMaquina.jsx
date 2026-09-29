@@ -5,7 +5,7 @@ import { api } from '../api/cliente';
 import { Alerta, Cargando, FotoMaquina } from '../componentes/comunes';
 import { Icono } from '../componentes/Ilustracion';
 import Calendario from '../componentes/Calendario';
-import { formatearMoneda } from '../utils/formato';
+import { formatearHoras, formatearMoneda } from '../utils/formato';
 
 export default function DetalleMaquina() {
   const { id } = useParams();
@@ -130,6 +130,11 @@ export default function DetalleMaquina() {
             <div className="dato">
               <span>Alquiler mínimo</span>
               <strong>1 hora</strong>
+            </div>
+            <div className="dato">
+              <span>Horas de uso</span>
+              <strong>{formatearHoras(maquina.horasUso)}</strong>
+              <small className="ayuda">Horas registradas en el sistema</small>
             </div>
           </div>
 

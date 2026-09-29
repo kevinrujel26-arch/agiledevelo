@@ -11,6 +11,16 @@ export const CONTACTO = {
 const moneda = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' });
 export const formatearMoneda = (monto) => moneda.format(monto ?? 0);
 
+const numeroHoras = new Intl.NumberFormat('es-PE', { maximumFractionDigits: 1 });
+/** Horas de uso: 1250 -> '1 250 h' (separador de miles con espacio fino que no se corta) */
+export function formatearHoras(horas) {
+  const texto = numeroHoras
+    .formatToParts(Number(horas) || 0)
+    .map((p) => (p.type === 'group' ? '\u00a0' : p.value))
+    .join('');
+  return `${texto} h`;
+}
+
 /** '2026-10-05' -> '05/10/2026' (sin conversión de zona horaria) */
 export function formatearFecha(fechaTexto) {
   if (!fechaTexto) return '';

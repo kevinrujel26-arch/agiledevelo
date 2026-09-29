@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../api/cliente';
 import { Alerta, Campo, Cargando, FotoMaquina } from '../../componentes/comunes';
-import { ETIQUETA_ESTADO } from '../../utils/formato';
+import { ETIQUETA_ESTADO, formatearHoras } from '../../utils/formato';
 
 const MAX_FOTOS = 5;
 const TIPOS_PERMITIDOS = ['image/jpeg', 'image/png'];
@@ -16,6 +16,7 @@ const VACIO = {
   ubicacion: '',
   descripcion: '',
   enMantenimiento: false,
+  horometroInicial: '',
 };
 
 function validar(f) {
@@ -26,6 +27,9 @@ function validar(f) {
   if (!f.modelo.trim()) e.modelo = 'El modelo es obligatorio';
   if (!(Number(f.tarifaHoraria) > 0)) e.tarifaHoraria = 'Ingresa una tarifa mayor a 0';
   if (!f.ubicacion.trim()) e.ubicacion = 'La ubicación es obligatoria';
+  if (f.horometroInicial !== '' && !(Number(f.horometroInicial) >= 0 && Number(f.horometroInicial) <= 999999.9)) {
+    e.horometroInicial = 'Ingresa un número entre 0 y 999999.9';
+  }
   return e;
 }
 
@@ -73,6 +77,7 @@ export default function AdminMaquinaForm() {
       ubicacion: m.ubicacion,
       descripcion: m.descripcion || '',
       enMantenimiento: m.enMantenimiento,
+      horometroInicial: Number(m.horometroInicial) ? String(m.horometroInicial) : '',
     });
     const filas = Object.entries(m.especificaciones || {}).map(([clave, valor]) => ({ clave, valor }));
     setSpecs(filas.length ? filas : [{ clave: '', valor: '' }]);
@@ -116,6 +121,7 @@ export default function AdminMaquinaForm() {
       ...form,
       categoriaId: Number(form.categoriaId),
       tarifaHoraria: Number(form.tarifaHoraria),
+      horometroInicial: form.horometroInicial === '' ? 0 : Number(form.horometroInicial),
       descripcion: form.descripcion.trim() || null,
       especificaciones,
     };
@@ -261,6 +267,28 @@ export default function AdminMaquinaForm() {
           </Campo>
           <Campo etiqueta="Ubicación *" id="ubicacion" error={errores.ubicacion} ayuda="Ciudad o sede donde se recoge">
             <input id="ubicacion" name="ubicacion" value={form.ubicacion} onChange={cambiar} maxLength={160} />
+          </Campo>
+          <Campo
+            etiqueta="Horas de uso iniciales (si la máquina es usada)"
+            id="horometroInicial"
+            error={errores.horometroInicial}
+            ayuda={
+              maquina
+                ? `Horas de uso actuales: ${formatearHoras(maquina.horasUso)} (este valor + horas de reservas finalizadas)`
+                : 'Déjalo vacío si la máquina es nueva. Luego se suman solas las horas de las reservas finalizadas'
+            }
+          >
+            <input
+              id="horometroInicial"
+              name="horometroInicial"
+              type="number"
+              min="0"
+              max="999999.9"
+              step="0.1"
+              placeholder="0"
+              value={form.horometroInicial}
+              onChange={cambiar}
+            />
           </Campo>
         </div>
         <Campo etiqueta="Descripción" id="descripcion" error={errores.descripcion}>

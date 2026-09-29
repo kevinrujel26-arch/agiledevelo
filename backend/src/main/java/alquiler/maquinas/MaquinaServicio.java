@@ -69,7 +69,7 @@ public class MaquinaServicio {
     }
 
     public Map<String, Object> detalleAdmin(long id) {
-        return buscarOFallar(id).detalleJson(fotos.listar(bd, id));
+        return buscarOFallar(id).detalleAdminJson(fotos.listar(bd, id));
     }
 
     private Maquina buscarOFallar(long id) {

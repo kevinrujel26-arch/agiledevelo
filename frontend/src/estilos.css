@@ -247,6 +247,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); }
 .dato { padding: 12px 14px; border-radius: var(--radio-chico); background: rgba(0, 0, 0, 0.22); border: 1px solid var(--borde); }
 .dato span { display: block; color: var(--texto-tenue); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; }
 .dato strong { color: #fff; font-weight: 600; }
+.dato .ayuda { display: block; margin-top: 2px; font-size: 0.75rem; }
 .nota-reserva { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: var(--radio-chico); background: rgba(122, 162, 255, 0.08); border: 1px solid rgba(122, 162, 255, 0.22); color: #c4d3ff; font-size: 0.88rem; }
 .descripcion { color: var(--texto-suave); margin: 0 0 18px; }
 .specs { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
@@ -385,6 +386,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); }
   .hero { padding-top: 44px; }
   .hero-estadisticas { gap: 22px; }
   .filtros input { width: 100%; }
+  .columna-opcional { display: none; }
   .filtro-precio { width: 100%; }
   .filtro-precio label { flex: 1; }
   .filtros .filtro-precio input { width: 100%; }

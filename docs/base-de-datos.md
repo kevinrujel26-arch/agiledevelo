@@ -9,6 +9,7 @@ Motor: **PostgreSQL 14+**. Scripts en `database/migrations/` (se aplican en orde
 | `003_tarifa_y_fechas_por_hora.sql` | La tarifa pasa a ser por hora (`tarifa_horaria`) y las fechas de bloqueos/reservas pasan a `TIMESTAMPTZ` |
 | `004_quitar_rol_proveedor.sql` | Elimina el rol PROVEEDOR: solo existen CLIENTE y ADMINISTRADOR |
 | `005_telefono_usuario.sql` | Agrega `usuarios.telefono` (celular de 9 dígitos, opcional en la BD para las cuentas antiguas) |
+| `006_horometro_maquina.sql` | Agrega `maquinas.horometro_inicial` (horas de uso que ya traía la máquina, por defecto 0) |
 
 El modelo ya incluye las tablas de los Sprints 3 y 4 (reservas, pagos, reembolsos, auditoría) para que el diseño quede completo desde el inicio, aunque el código que las usa se construye más adelante.
 
@@ -62,6 +63,7 @@ erDiagram
         varchar ubicacion
         varchar estado "BORRADOR | PUBLICADA | RETIRADA"
         bool en_mantenimiento
+        numeric horometro_inicial "horas previas, >= 0"
     }
     FOTOS_MAQUINA {
         int id PK
@@ -140,6 +142,23 @@ El catálogo filtra directamente en SQL (no en memoria), sobre la misma condici�
 | Palabra clave | `lower(m.nombre) LIKE ? OR lower(m.marca) LIKE ?` |
 | Precio mínimo (HU-06) | `m.tarifa_horaria >= ?` |
 | Precio máximo (HU-06) | `m.tarifa_horaria <= ?` |
+
+## Horas de uso de una máquina (horómetro)
+
+`horasUso` no se guarda en ninguna columna: se calcula en cada consulta con una subconsulta escalar (no duplica filas ni altera la paginación):
+
+```sql
+m.horometro_inicial + COALESCE((SELECT sum(r.horas) FROM reservas r
+                                 WHERE r.maquina_id = m.id AND r.estado = 'FINALIZADA'), 0)
+```
+
+- `reservas.horas` es la columna generada de la migración 003 (horas completas de la reserva).
+- Es una **aproximación**: cuenta las horas alquiladas a través del sistema, no es una lectura real del motor. Por eso el administrador puede fijar un `horometro_inicial` (p. ej. al registrar una máquina usada).
+- Mientras no exista el flujo de reservas (Sprint 3), `horasUso = horometro_inicial`. Cuando una reserva pase a `FINALIZADA`, la cifra sube sola sin más cambios.
+
+| Regla | Cómo se garantiza |
+|---|---|
+| El horómetro inicial no es negativo | `ck_maquinas_horometro_inicial CHECK (horometro_inicial >= 0)`; el backend además limita a 999999.9 |
 
 ## Estados de una máquina
 
