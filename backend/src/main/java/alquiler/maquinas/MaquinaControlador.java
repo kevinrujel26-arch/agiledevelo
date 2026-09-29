@@ -27,6 +27,8 @@ public class MaquinaControlador {
     private static final List<String> ESTADOS = List.of("BORRADOR", "PUBLICADA", "RETIRADA");
     private static final BigDecimal TARIFA_MAXIMA = new BigDecimal("99999999");
     private static final BigDecimal HOROMETRO_MAXIMO = new BigDecimal("999999.9");
+    /** Tope razonable para la tarifa por hora de una máquina (S/). */
+    public static final BigDecimal TARIFA_MAXIMA_POR_HORA = new BigDecimal("100000");
 
     private final MaquinaServicio servicio;
     private final Config config;
@@ -161,19 +163,23 @@ public class MaquinaControlador {
     private DatosMaquina leerDatos(Validador v, boolean todosObligatorios) {
         boolean t = todosObligatorios;
         Long categoriaId = (t || v.tiene("categoriaId")) ? v.idPositivo("categoriaId", true, "Selecciona una categoría") : null;
-        String nombre = (t || v.tiene("nombre")) ? v.texto("nombre", 1, 120, true, "El nombre es obligatorio") : null;
-        String marca = (t || v.tiene("marca")) ? v.texto("marca", 1, 80, true, "La marca es obligatoria") : null;
-        String modelo = (t || v.tiene("modelo")) ? v.texto("modelo", 1, 80, true, "El modelo es obligatorio") : null;
-        String descripcion = v.texto("descripcion", 0, 2000, false, null);
-        if (descripcion != null && descripcion.isEmpty()) descripcion = null;
-        Map<String, String> especificaciones = v.mapaDeTextos("especificaciones", 30, 60, 200);
+        String nombre = (t || v.tiene("nombre")) ? v.textoMaquina("nombre", "El nombre", 2, 120, "El nombre es obligatorio") : null;
+        String marca = (t || v.tiene("marca")) ? v.textoMaquina("marca", "La marca", 1, 80, "La marca es obligatoria") : null;
+        String modelo = (t || v.tiene("modelo")) ? v.textoMaquina("modelo", "El modelo", 1, 80, "El modelo es obligatorio") : null;
+        String descripcion = v.parrafo("descripcion", "La descripción", 2000);
+        Map<String, String> especificaciones = v.especificaciones("especificaciones");
         BigDecimal tarifa = (t || v.tiene("tarifaHoraria"))
-                ? v.decimalPositivo("tarifaHoraria", "La tarifa por hora", true, TARIFA_MAXIMA) : null;
-        String ubicacion = (t || v.tiene("ubicacion")) ? v.texto("ubicacion", 1, 160, true, "La ubicación es obligatoria") : null;
+                ? v.decimal("tarifaHoraria", "La tarifa por hora", true, "La tarifa por hora es obligatoria", true,
+                        TARIFA_MAXIMA_POR_HORA, 2)
+                : null;
+        if (tarifa != null) tarifa = tarifa.setScale(2, RoundingMode.UNNECESSARY);
+        String ubicacion = (t || v.tiene("ubicacion"))
+                ? v.lineaConLetra("ubicacion", "La ubicación", 2, 160, "La ubicación es obligatoria") : null;
         Boolean enMantenimiento = v.booleano("enMantenimiento", t ? Boolean.FALSE : null);
         // Opcional: horas que ya tenía la máquina al registrarla (si es usada). Vacío = 0.
-        BigDecimal horometroInicial = v.decimalNoNegativoOpcional("horometroInicial", "El horómetro inicial", HOROMETRO_MAXIMO);
-        if (horometroInicial != null) horometroInicial = horometroInicial.setScale(1, RoundingMode.HALF_UP);
+        BigDecimal horometroInicial = v.decimal("horometroInicial", "El horómetro inicial", false, null, false,
+                HOROMETRO_MAXIMO, 1);
+        if (horometroInicial != null) horometroInicial = horometroInicial.setScale(1, RoundingMode.UNNECESSARY);
         return new DatosMaquina(categoriaId, nombre, marca, modelo, descripcion, especificaciones, tarifa, ubicacion,
                 enMantenimiento, horometroInicial);
     }

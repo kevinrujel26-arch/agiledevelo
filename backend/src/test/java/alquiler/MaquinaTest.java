@@ -373,6 +373,117 @@ class MaquinaTest extends PruebaBase {
         assertEquals(201, post("/api/admin/maquinas", datos, token).estado());
     }
 
+    // ------------------------------------------------------------ Validaciones de máquinas
+    private Resp crearCon(String campo, Object valor) {
+        Map<String, Object> datos = datosMaquina(categoriaId);
+        datos.put(campo, valor);
+        return post("/api/admin/maquinas", datos, token);
+    }
+
+    private void assertError(String campo, Object valor, String mensaje) {
+        Resp r = crearCon(campo, valor);
+        assertEquals(400, r.estado(), campo + "=" + valor);
+        assertEquals(mensaje, r.errorDe(campo), campo + "=" + valor);
+    }
+
+    @Test
+    @DisplayName("Validación: nombre, marca y modelo admiten letras, números, espacios y - . / + ( )")
+    void textosMaquinaValidos() {
+        Map<String, Object> datos = datosMaquina(categoriaId);
+        datos.put("nombre", "  Excavadora   320-D (2020) 1.5/2+ ");
+        datos.put("marca", "John Deere");
+        datos.put("modelo", "8FD30");
+        Resp r = post("/api/admin/maquinas", datos, token);
+        assertEquals(201, r.estado(), String.valueOf(r.cuerpo()));
+        assertEquals("Excavadora 320-D (2020) 1.5/2+", r.json().get("nombre"));
+    }
+
+    @Test
+    @DisplayName("Validación: nombre 2–120 y marca/modelo 1–80, sin símbolos raros y con alguna letra o número")
+    void textosMaquinaInvalidos() {
+        assertError("nombre", "Excavadora #1", "El nombre solo puede contener letras, números, espacios y los signos - . / + ( )");
+        assertError("nombre", "---", "El nombre debe contener al menos una letra o un número");
+        assertError("nombre", "E", "El nombre debe tener al menos 2 caracteres");
+        assertError("nombre", "x".repeat(121), "El nombre debe tener como máximo 120 caracteres");
+        assertError("nombre", "<script>", "El nombre no puede contener los signos < ni >");
+        assertError("marca", "   ", "La marca es obligatoria");
+        assertError("marca", "m".repeat(81), "La marca debe tener como máximo 80 caracteres");
+        assertError("modelo", "320 & GC", "El modelo solo puede contener letras, números, espacios y los signos - . / + ( )");
+        assertError("modelo", "320\tGC", "El modelo contiene caracteres no permitidos");
+    }
+
+    @Test
+    @DisplayName("Validación: la tarifa por hora es mayor que 0, con máximo 2 decimales y hasta 100000")
+    void tarifaReglas() {
+        assertError("tarifaHoraria", 0, "La tarifa por hora debe ser mayor a 0");
+        assertError("tarifaHoraria", -5, "La tarifa por hora debe ser mayor a 0");
+        assertError("tarifaHoraria", "12.345", "La tarifa por hora puede tener como máximo 2 decimales");
+        assertError("tarifaHoraria", 100000.01, "La tarifa por hora no puede ser mayor a 100000");
+        assertError("tarifaHoraria", "abc", "La tarifa por hora debe ser un número");
+        assertError("tarifaHoraria", "", "La tarifa por hora es obligatoria");
+        Resp ok = crearCon("tarifaHoraria", "99.90");
+        assertEquals(201, ok.estado(), String.valueOf(ok.cuerpo()));
+        assertEquals(99.9, ((Number) ok.json().get("tarifaHoraria")).doubleValue(), 0.001);
+        assertEquals(201, crearCon("tarifaHoraria", 100000).estado());
+    }
+
+    @Test
+    @DisplayName("Validación: ubicación 2–160 con al menos una letra; descripción hasta 2000 y sin HTML")
+    void ubicacionYDescripcion() {
+        assertError("ubicacion", "L", "La ubicación debe tener al menos 2 caracteres");
+        assertError("ubicacion", "123", "La ubicación debe contener al menos una letra");
+        assertError("ubicacion", "u".repeat(161), "La ubicación debe tener como máximo 160 caracteres");
+        assertError("descripcion", "d".repeat(2001), "La descripción debe tener como máximo 2000 caracteres");
+        assertError("descripcion", "Buena <script>alert(1)</script>", "La descripción no puede contener los signos < ni >");
+        Resp ok = crearCon("descripcion", "  Línea 1\nLínea 2  ");
+        assertEquals(201, ok.estado(), String.valueOf(ok.cuerpo()));
+        long id = numero(ok.json().get("id"));
+        assertEquals("Línea 1\nLínea 2", get("/api/admin/maquinas/" + id, token).json().get("descripcion"));
+    }
+
+    @Test
+    @DisplayName("Validación: el horómetro inicial admite como máximo 1 decimal")
+    void horometroDecimales() {
+        assertError("horometroInicial", "12.35", "El horómetro inicial puede tener como máximo 1 decimal");
+        assertError("horometroInicial", -1, "El horómetro inicial no puede ser negativo");
+        assertError("horometroInicial", 1000000, "El horómetro inicial no puede ser mayor a 999999.9");
+        assertEquals(201, crearCon("horometroInicial", 12.5).estado());
+    }
+
+    @Test
+    @DisplayName("Validación: especificaciones con máximo 30 pares, nombre ≤ 60, valor ≤ 200, sin vacíos ni repetidos")
+    void especificacionesReglas() {
+        Map<String, Object> muchas = new java.util.LinkedHashMap<>();
+        for (int i = 1; i <= 31; i++) muchas.put("Dato " + i, "x");
+        assertError("especificaciones", muchas, "Puedes agregar como máximo 30 especificaciones");
+        assertError("especificaciones", Json.obj(" ", "146 HP"), "Cada especificación necesita un nombre");
+        assertError("especificaciones", Json.obj("Potencia", "146 HP", "potencia ", "150 HP"),
+                "La especificación \"potencia\" está repetida");
+        assertError("especificaciones", Json.obj("n".repeat(61), "1"),
+                "El nombre de una especificación debe tener como máximo 60 caracteres");
+        assertError("especificaciones", Json.obj("Potencia", "v".repeat(201)),
+                "El valor de \"Potencia\" debe tener como máximo 200 caracteres");
+        assertError("especificaciones", Json.obj("Potencia", "<b>146</b>"),
+                "Las especificaciones no pueden contener los signos < ni >");
+        Resp ok = crearCon("especificaciones", Json.obj("  Capacidad  del cucharón ", " 1.2 m³ "));
+        assertEquals(201, ok.estado(), String.valueOf(ok.cuerpo()));
+        long id = numero(ok.json().get("id"));
+        assertEquals(Map.of("Capacidad del cucharón", "1.2 m³"), get("/api/admin/maquinas/" + id, token).json().get("especificaciones"));
+    }
+
+    @Test
+    @DisplayName("Validación: una máquina antigua con datos fuera de las reglas se edita sin tocar esos campos")
+    void maquinaAntiguaSeEdita() {
+        long id = bd().uno("""
+                INSERT INTO maquinas (categoria_id, nombre, marca, modelo, tarifa_horaria, ubicacion)
+                VALUES (?, 'Máquina #1 & Co', 'Marca*', '320', 150, '1') RETURNING id""", categoriaId).entero("id");
+        Resp r = put("/api/admin/maquinas/" + id, Json.obj("tarifaHoraria", 175), token);
+        assertEquals(200, r.estado(), String.valueOf(r.cuerpo()));
+        assertEquals("Máquina #1 & Co", r.json().get("nombre"));
+        // Si se envía el campo, sí se aplica la regla nueva
+        assertEquals(400, put("/api/admin/maquinas/" + id, Json.obj("nombre", "Máquina #1 & Co"), token).estado());
+    }
+
     @Test
     @DisplayName("HU-03/HU-04: el detalle de una máquina publicada se abre por su URL")
     void detallePorUrl() {

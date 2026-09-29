@@ -155,6 +155,8 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); }
 .especificaciones { border: 1px dashed var(--borde-fuerte); border-radius: var(--radio-chico); padding: 14px 16px 16px; margin: 0 0 18px; }
 .especificaciones legend { font-weight: 600; padding: 0 6px; font-size: 0.92rem; }
 .fila-spec, .fila-rango { display: flex; gap: 8px; margin-bottom: 8px; align-items: flex-end; }
+.mensaje-fila { display: block; margin: -4px 0 10px; }
+.campo-error .fila-spec input, .campo-error .fila-rango input { border-color: var(--error); }
 .fila-rango label { display: flex; flex-direction: column; gap: 5px; font-size: 0.87rem; font-weight: 500; }
 .subtitulo { font-size: 1.12rem; margin: 0 0 14px; }
 

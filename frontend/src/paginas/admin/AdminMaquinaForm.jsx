@@ -4,9 +4,23 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../api/cliente';
 import { Alerta, Campo, Cargando, FotoMaquina } from '../../componentes/comunes';
 import { ETIQUETA_ESTADO, formatearHoras } from '../../utils/formato';
+import {
+  MAX_FOTOS,
+  MAX_MB_FOTO,
+  erroresEspecificaciones,
+  especificacionesComoObjeto,
+  limpiarDecimal,
+  validarDescripcionMaquina,
+  validarFotos,
+  validarHorometro,
+  validarMarca,
+  validarModelo,
+  validarNombreMaquina,
+  validarTarifa,
+  validarUbicacion,
+} from '../../utils/validaciones';
+import { useValidacion } from '../../utils/useValidacion';
 
-const MAX_FOTOS = 5;
-const TIPOS_PERMITIDOS = ['image/jpeg', 'image/png'];
 const VACIO = {
   nombre: '',
   categoriaId: '',
@@ -18,20 +32,19 @@ const VACIO = {
   enMantenimiento: false,
   horometroInicial: '',
 };
+const FILA_VACIA = { clave: '', valor: '' };
+const CAMPOS_DECIMALES = ['tarifaHoraria', 'horometroInicial'];
 
-function validar(f) {
-  const e = {};
-  if (!f.nombre.trim()) e.nombre = 'El nombre es obligatorio';
-  if (!f.categoriaId) e.categoriaId = 'Selecciona una categoría';
-  if (!f.marca.trim()) e.marca = 'La marca es obligatoria';
-  if (!f.modelo.trim()) e.modelo = 'El modelo es obligatorio';
-  if (!(Number(f.tarifaHoraria) > 0)) e.tarifaHoraria = 'Ingresa una tarifa mayor a 0';
-  if (!f.ubicacion.trim()) e.ubicacion = 'La ubicación es obligatoria';
-  if (f.horometroInicial !== '' && !(Number(f.horometroInicial) >= 0 && Number(f.horometroInicial) <= 999999.9)) {
-    e.horometroInicial = 'Ingresa un número entre 0 y 999999.9';
-  }
-  return e;
-}
+const REGLAS = {
+  categoriaId: (v) => (v ? '' : 'Selecciona una categoría'),
+  nombre: validarNombreMaquina,
+  marca: validarMarca,
+  modelo: validarModelo,
+  tarifaHoraria: validarTarifa,
+  ubicacion: validarUbicacion,
+  horometroInicial: validarHorometro,
+  descripcion: validarDescripcionMaquina,
+};
 
 export default function AdminMaquinaForm() {
   const { id } = useParams();
@@ -43,11 +56,28 @@ export default function AdminMaquinaForm() {
   const [categorias, setCategorias] = useState([]);
   const [maquina, setMaquina] = useState(null);
   const [form, setForm] = useState(VACIO);
-  const [specs, setSpecs] = useState([{ clave: '', valor: '' }]);
-  const [errores, setErrores] = useState({});
+  // Valores con los que se cargó la máquina: al editar solo se validan y envían los campos que cambian,
+  // así una máquina antigua con datos fuera de las reglas actuales se puede seguir editando
+  const [original, setOriginal] = useState(null);
+  const [specs, setSpecs] = useState([FILA_VACIA]);
+  const [specsOriginales, setSpecsOriginales] = useState('{}');
   const [error, setError] = useState('');
+  const [errorFotos, setErrorFotos] = useState('');
   const [exito, setExito] = useState(state?.mensaje || '');
   const [ocupado, setOcupado] = useState(false);
+
+  const reglas = Object.fromEntries(
+    Object.entries(REGLAS).map(([campo, regla]) => [
+      campo,
+      (valor, datos) => (original && valor === original[campo] ? '' : regla(valor, datos)),
+    ])
+  );
+  const v = useValidacion(reglas, form);
+
+  const especificaciones = especificacionesComoObjeto(specs);
+  const specsCambiaron = JSON.stringify(especificaciones) !== specsOriginales;
+  const erroresSpecs = original && !specsCambiaron ? { porFila: [], general: '', hayErrores: false } : erroresEspecificaciones(specs);
+  const hayErrores = v.hayErrores || erroresSpecs.hayErrores;
 
   useEffect(() => {
     api.get('/admin/categorias').then((r) => setCategorias(r.datos)).catch((e) => setError(e.message));
@@ -56,19 +86,22 @@ export default function AdminMaquinaForm() {
   useEffect(() => {
     if (esNueva) {
       setMaquina(null);
+      setOriginal(null);
       setForm(VACIO);
-      setSpecs([{ clave: '', valor: '' }]);
+      setSpecs([FILA_VACIA]);
+      setSpecsOriginales('{}');
+      v.reiniciar();
       return;
     }
     api
       .get(`/admin/maquinas/${id}`)
       .then(cargarEnFormulario)
       .catch((e) => setError(e.message));
+    // v.reiniciar solo cambia estado interno del hook
   }, [id, esNueva]);
 
   function cargarEnFormulario(m) {
-    setMaquina(m);
-    setForm({
+    const datos = {
       nombre: m.nombre,
       categoriaId: String(m.categoria.id),
       marca: m.marca,
@@ -78,18 +111,29 @@ export default function AdminMaquinaForm() {
       descripcion: m.descripcion || '',
       enMantenimiento: m.enMantenimiento,
       horometroInicial: Number(m.horometroInicial) ? String(m.horometroInicial) : '',
-    });
+    };
+    setMaquina(m);
+    setForm(datos);
+    setOriginal(datos);
     const filas = Object.entries(m.especificaciones || {}).map(([clave, valor]) => ({ clave, valor }));
-    setSpecs(filas.length ? filas : [{ clave: '', valor: '' }]);
+    setSpecs(filas.length ? filas : [FILA_VACIA]);
+    setSpecsOriginales(JSON.stringify(especificacionesComoObjeto(filas)));
+    v.reiniciar();
   }
 
   const cambiar = (e) => {
     const { name, value, type, checked } = e.target;
-    setForm({ ...form, [name]: type === 'checkbox' ? checked : value });
-    setErrores({ ...errores, [name]: undefined });
+    const valor = type === 'checkbox' ? checked : CAMPOS_DECIMALES.includes(name) ? limpiarDecimal(value) : value;
+    setForm({ ...form, [name]: valor });
+    v.editado(name);
   };
+  const alSalir = (e) => v.tocar(e.target.name);
 
-  const cambiarSpec = (i, campo, valor) => setSpecs(specs.map((s, j) => (j === i ? { ...s, [campo]: valor } : s)));
+  const cambiarSpecs = (nuevas) => {
+    setSpecs(nuevas);
+    v.editado('especificaciones'); // olvida el error del servidor en las especificaciones
+  };
+  const cambiarSpec = (i, campo, valor) => cambiarSpecs(specs.map((s, j) => (j === i ? { ...s, [campo]: valor } : s)));
 
   async function accion(fn, mensajeExito) {
     setError('');
@@ -101,7 +145,7 @@ export default function AdminMaquinaForm() {
       return r;
     } catch (e) {
       setError(e.message);
-      if (e.porCampo) setErrores(e.porCampo);
+      v.setErroresServidor(e.porCampo || {});
       return null;
     } finally {
       setOcupado(false);
@@ -110,35 +154,38 @@ export default function AdminMaquinaForm() {
 
   async function guardar(e) {
     e.preventDefault();
-    const encontrados = validar(form);
-    setErrores(encontrados);
-    if (Object.keys(encontrados).length) return;
+    if (hayErrores) return v.tocarTodos();
 
-    const especificaciones = Object.fromEntries(
-      specs.filter((s) => s.clave.trim()).map((s) => [s.clave.trim(), s.valor.trim()])
-    );
-    const cuerpo = {
+    const completo = {
       ...form,
       categoriaId: Number(form.categoriaId),
-      tarifaHoraria: Number(form.tarifaHoraria),
-      horometroInicial: form.horometroInicial === '' ? 0 : Number(form.horometroInicial),
+      tarifaHoraria: form.tarifaHoraria.trim(),
+      horometroInicial: form.horometroInicial.trim() || 0,
       descripcion: form.descripcion.trim() || null,
       especificaciones,
     };
 
     if (esNueva) {
-      const creada = await accion(() => api.post('/admin/maquinas', cuerpo));
+      const creada = await accion(() => api.post('/admin/maquinas', completo));
       if (creada) {
-        setExito('Máquina guardada como borrador. Ahora sube sus fotos para poder publicarla');
         navegar(`/admin/maquinas/${creada.id}`, {
           replace: true,
           state: { mensaje: 'Máquina guardada como borrador. Ahora sube sus fotos para poder publicarla' },
         });
       }
-    } else {
-      const actualizada = await accion(() => api.put(`/admin/maquinas/${id}`, cuerpo), 'Cambios guardados');
-      if (actualizada) cargarEnFormulario(actualizada);
+      return;
     }
+
+    // Edición: solo lo que cambió
+    const cuerpo = Object.fromEntries(Object.keys(VACIO).filter((c) => form[c] !== original[c]).map((c) => [c, completo[c]]));
+    if (specsCambiaron) cuerpo.especificaciones = especificaciones;
+    if (!Object.keys(cuerpo).length) {
+      setError('');
+      setExito('No hay cambios para guardar');
+      return;
+    }
+    const actualizada = await accion(() => api.put(`/admin/maquinas/${id}`, cuerpo), 'Cambios guardados');
+    if (actualizada) cargarEnFormulario(actualizada);
   }
 
   async function subirFotos(e) {
@@ -146,16 +193,10 @@ export default function AdminMaquinaForm() {
     e.target.value = '';
     if (!archivos.length) return;
 
-    const disponibles = MAX_FOTOS - maquina.fotos.length;
-    if (archivos.length > disponibles) {
-      setError(disponibles > 0 ? `Solo puedes subir ${disponibles} foto(s) más (máximo ${MAX_FOTOS})` : `Ya tiene el máximo de ${MAX_FOTOS} fotos`);
-      return;
-    }
-    const invalida = archivos.find((a) => !TIPOS_PERMITIDOS.includes(a.type));
-    if (invalida) {
-      setError(`"${invalida.name}" no es JPG ni PNG`);
-      return;
-    }
+    // Se avisa al elegir el archivo, antes de subir nada
+    const mensaje = validarFotos(archivos, maquina.fotos.length);
+    setErrorFotos(mensaje);
+    if (mensaje) return;
 
     const datos = new FormData();
     archivos.forEach((a) => datos.append('fotos', a));
@@ -171,7 +212,10 @@ export default function AdminMaquinaForm() {
   async function eliminarFoto(fotoId) {
     if (!window.confirm('¿Eliminar esta foto?')) return;
     const r = await accion(() => api.delete(`/admin/maquinas/${id}/fotos/${fotoId}`), 'Foto eliminada');
-    if (r) setMaquina({ ...maquina, fotos: r.fotos });
+    if (r) {
+      setMaquina({ ...maquina, fotos: r.fotos });
+      setErrorFotos('');
+    }
   }
 
   async function cambiarPublicacion(tipo) {
@@ -193,6 +237,7 @@ export default function AdminMaquinaForm() {
 
   const categoriasSeleccionables = categorias.filter((c) => c.activa || String(c.id) === form.categoriaId);
   const tienePrincipal = maquina?.fotos.some((f) => f.esPrincipal);
+  const errorSpecsGeneral = erroresSpecs.general || v.errorDe('especificaciones');
 
   return (
     <>
@@ -243,11 +288,11 @@ export default function AdminMaquinaForm() {
       <form className="panel" onSubmit={guardar} noValidate>
         <h2 className="subtitulo">Datos de la máquina</h2>
         <div className="rejilla-form">
-          <Campo etiqueta="Nombre *" id="nombre" error={errores.nombre}>
-            <input id="nombre" name="nombre" value={form.nombre} onChange={cambiar} maxLength={120} />
+          <Campo etiqueta="Nombre *" id="nombre" error={v.errorDe('nombre')} ayuda="Letras, números, espacios y - . / + ( )">
+            <input id="nombre" name="nombre" value={form.nombre} onChange={cambiar} onBlur={alSalir} />
           </Campo>
-          <Campo etiqueta="Categoría *" id="categoriaId" error={errores.categoriaId}>
-            <select id="categoriaId" name="categoriaId" value={form.categoriaId} onChange={cambiar}>
+          <Campo etiqueta="Categoría *" id="categoriaId" error={v.errorDe('categoriaId')}>
+            <select id="categoriaId" name="categoriaId" value={form.categoriaId} onChange={cambiar} onBlur={alSalir}>
               <option value="">Selecciona…</option>
               {categoriasSeleccionables.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -256,57 +301,72 @@ export default function AdminMaquinaForm() {
               ))}
             </select>
           </Campo>
-          <Campo etiqueta="Marca *" id="marca" error={errores.marca}>
-            <input id="marca" name="marca" value={form.marca} onChange={cambiar} maxLength={80} />
+          <Campo etiqueta="Marca *" id="marca" error={v.errorDe('marca')}>
+            <input id="marca" name="marca" value={form.marca} onChange={cambiar} onBlur={alSalir} />
           </Campo>
-          <Campo etiqueta="Modelo *" id="modelo" error={errores.modelo}>
-            <input id="modelo" name="modelo" value={form.modelo} onChange={cambiar} maxLength={80} />
+          <Campo etiqueta="Modelo *" id="modelo" error={v.errorDe('modelo')}>
+            <input id="modelo" name="modelo" value={form.modelo} onChange={cambiar} onBlur={alSalir} />
           </Campo>
-          <Campo etiqueta="Tarifa por hora (S/) *" id="tarifaHoraria" error={errores.tarifaHoraria}>
-            <input id="tarifaHoraria" name="tarifaHoraria" type="number" min="0.01" step="0.01" value={form.tarifaHoraria} onChange={cambiar} />
+          <Campo etiqueta="Tarifa por hora (S/) *" id="tarifaHoraria" error={v.errorDe('tarifaHoraria')} ayuda="Mayor que 0, hasta 2 decimales">
+            <input
+              id="tarifaHoraria"
+              name="tarifaHoraria"
+              inputMode="decimal"
+              placeholder="0.00"
+              value={form.tarifaHoraria}
+              onChange={cambiar}
+              onBlur={alSalir}
+            />
           </Campo>
-          <Campo etiqueta="Ubicación *" id="ubicacion" error={errores.ubicacion} ayuda="Ciudad o sede donde se recoge">
-            <input id="ubicacion" name="ubicacion" value={form.ubicacion} onChange={cambiar} maxLength={160} />
+          <Campo etiqueta="Ubicación *" id="ubicacion" error={v.errorDe('ubicacion')} ayuda="Ciudad o sede donde se recoge">
+            <input id="ubicacion" name="ubicacion" value={form.ubicacion} onChange={cambiar} onBlur={alSalir} />
           </Campo>
           <Campo
-            etiqueta="Horas de uso iniciales (si la máquina es usada)"
+            etiqueta="Horómetro inicial (horas de uso si la máquina es usada)"
             id="horometroInicial"
-            error={errores.horometroInicial}
+            error={v.errorDe('horometroInicial')}
             ayuda={
               maquina
                 ? `Horas de uso actuales: ${formatearHoras(maquina.horasUso)} (este valor + horas de reservas finalizadas)`
-                : 'Déjalo vacío si la máquina es nueva. Luego se suman solas las horas de las reservas finalizadas'
+                : 'Entre 0 y 999999.9, con 1 decimal como máximo. Déjalo vacío si la máquina es nueva'
             }
           >
             <input
               id="horometroInicial"
               name="horometroInicial"
-              type="number"
-              min="0"
-              max="999999.9"
-              step="0.1"
+              inputMode="decimal"
               placeholder="0"
               value={form.horometroInicial}
               onChange={cambiar}
+              onBlur={alSalir}
             />
           </Campo>
         </div>
-        <Campo etiqueta="Descripción" id="descripcion" error={errores.descripcion}>
-          <textarea id="descripcion" name="descripcion" rows={3} value={form.descripcion} onChange={cambiar} maxLength={2000} />
+        <Campo etiqueta="Descripción" id="descripcion" error={v.errorDe('descripcion')} ayuda="Hasta 2000 caracteres">
+          <textarea id="descripcion" name="descripcion" rows={3} value={form.descripcion} onChange={cambiar} onBlur={alSalir} />
         </Campo>
 
-        <fieldset className="especificaciones">
+        <fieldset className="especificaciones" aria-describedby={errorSpecsGeneral ? 'especificaciones-mensaje' : undefined}>
           <legend>Especificaciones técnicas</legend>
-          {specs.map((s, i) => (
-            <div className="fila-spec" key={i}>
-              <input placeholder="Ej. Potencia" value={s.clave} onChange={(e) => cambiarSpec(i, 'clave', e.target.value)} maxLength={60} aria-label="Nombre de la especificación" />
-              <input placeholder="Ej. 146 HP" value={s.valor} onChange={(e) => cambiarSpec(i, 'valor', e.target.value)} maxLength={200} aria-label="Valor" />
-              <button type="button" className="boton boton-secundario boton-chico" onClick={() => setSpecs(specs.length > 1 ? specs.filter((_, j) => j !== i) : [{ clave: '', valor: '' }])} aria-label="Quitar">
-                ×
-              </button>
-            </div>
-          ))}
-          <button type="button" className="boton boton-secundario boton-chico" onClick={() => setSpecs([...specs, { clave: '', valor: '' }])}>
+          {specs.map((s, i) => {
+            const errorFila = erroresSpecs.porFila[i];
+            const idMensaje = `spec-${i}-mensaje`;
+            const aria = { 'aria-invalid': Boolean(errorFila), 'aria-describedby': errorFila ? idMensaje : undefined };
+            return (
+              <div key={i} className={errorFila ? 'campo-error' : ''}>
+                <div className="fila-spec">
+                  <input placeholder="Ej. Potencia" value={s.clave} onChange={(e) => cambiarSpec(i, 'clave', e.target.value)} aria-label="Nombre de la especificación" {...aria} />
+                  <input placeholder="Ej. 146 HP" value={s.valor} onChange={(e) => cambiarSpec(i, 'valor', e.target.value)} aria-label="Valor" {...aria} />
+                  <button type="button" className="boton boton-secundario boton-chico" onClick={() => cambiarSpecs(specs.length > 1 ? specs.filter((_, j) => j !== i) : [FILA_VACIA])} aria-label="Quitar">
+                    ×
+                  </button>
+                </div>
+                {errorFila && <small className="mensaje-error mensaje-fila" id={idMensaje}>{errorFila}</small>}
+              </div>
+            );
+          })}
+          {errorSpecsGeneral && <p className="mensaje-error" id="especificaciones-mensaje">{errorSpecsGeneral}</p>}
+          <button type="button" className="boton boton-secundario boton-chico" onClick={() => cambiarSpecs([...specs, FILA_VACIA])} disabled={specs.length >= 30}>
             + Agregar especificación
           </button>
         </fieldset>
@@ -317,7 +377,7 @@ export default function AdminMaquinaForm() {
         </label>
 
         <div className="acciones-form">
-          <button type="submit" className="boton boton-primario" disabled={ocupado}>
+          <button type="submit" className="boton boton-primario" disabled={ocupado || hayErrores}>
             {esNueva ? 'Guardar como borrador' : 'Guardar cambios'}
           </button>
         </div>
@@ -332,7 +392,10 @@ export default function AdminMaquinaForm() {
           <p className="texto-suave">Guarda la máquina primero para poder subir sus fotos.</p>
         ) : (
           <>
-            <p className="texto-suave">JPG o PNG, hasta 5 MB cada una. La foto marcada con ★ es la principal del catálogo.</p>
+            <p className="texto-suave">
+              JPG o PNG, hasta {MAX_MB_FOTO} MB cada una. La foto marcada con ★ es la principal del catálogo.
+            </p>
+            {errorFotos && <p className="mensaje-error" role="alert">{errorFotos}</p>}
             <div className="rejilla-fotos">
               {maquina.fotos.map((f) => (
                 <div key={f.id} className={`foto-admin ${f.esPrincipal ? 'principal' : ''}`}>

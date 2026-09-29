@@ -7,10 +7,12 @@ import java.math.RoundingMode;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -40,6 +42,9 @@ public final class Validador {
     private static final Pattern NOMBRE_PERSONA = Pattern.compile("^[\\p{L}\\p{M}'’ -]+$");
     private static final Pattern NOMBRE_CATEGORIA = Pattern.compile("^[\\p{L}\\p{M}0-9 -]+$");
     private static final Pattern MARCAS = Pattern.compile("\\p{M}+");
+    private static final Pattern TEXTO_MAQUINA = Pattern.compile("^[\\p{L}\\p{M}0-9 ./+()-]+$");
+    private static final Pattern LETRA_O_NUMERO = Pattern.compile("[\\p{L}0-9]");
+    private static final Pattern DECIMAL = Pattern.compile("^-?\\d+(\\.\\d+)?$");
     private static final String OBLIGATORIO = "Este campo es obligatorio";
     private static final String TIPO_INVALIDO = "Tipo de dato inválido";
 
@@ -151,6 +156,35 @@ public final class Validador {
         }
         if (!LETRA.matcher(t).find()) {
             error(campo, "El nombre debe contener al menos una letra");
+            return null;
+        }
+        return t;
+    }
+
+    /**
+     * Nombre, marca o modelo de una máquina: letras, números, espacios y los signos - . / + ( ),
+     * con al menos una letra o un número.
+     */
+    public String textoMaquina(String campo, String etiqueta, int min, int max, String mensajeObligatorio) {
+        String t = linea(campo, etiqueta, min, max, true, mensajeObligatorio);
+        if (t == null) return null;
+        if (!TEXTO_MAQUINA.matcher(t).matches()) {
+            error(campo, etiqueta + " solo puede contener letras, números, espacios y los signos - . / + ( )");
+            return null;
+        }
+        if (!LETRA_O_NUMERO.matcher(t).find()) {
+            error(campo, etiqueta + " debe contener al menos una letra o un número");
+            return null;
+        }
+        return t;
+    }
+
+    /** Texto de una línea obligatorio que debe tener al menos una letra (p. ej. la ubicación). */
+    public String lineaConLetra(String campo, String etiqueta, int min, int max, String mensajeObligatorio) {
+        String t = linea(campo, etiqueta, min, max, true, mensajeObligatorio);
+        if (t == null) return null;
+        if (!LETRA.matcher(t).find()) {
+            error(campo, etiqueta + " debe contener al menos una letra");
             return null;
         }
         return t;
@@ -352,33 +386,42 @@ public final class Validador {
         return n.intValue();
     }
 
-    /** Decimal mayor a 0, redondeado a 2 decimales (montos en soles). */
-    public BigDecimal decimalPositivo(String campo, String etiqueta, boolean obligatorio, BigDecimal maximo) {
+    /**
+     * Número decimal (acepta número JSON o texto como "150.50"). Devuelve null si no vino o si hay error.
+     *
+     * @param etiqueta     sujeto de los mensajes, p. ej. "La tarifa por hora" o "El precio mínimo"
+     * @param mayorQueCero true exige {@code > 0}; false admite 0 pero no negativos
+     * @param maxDecimales cantidad máxima de decimales (sin contar ceros finales: "150.00" tiene 0)
+     */
+    public BigDecimal decimal(String campo, String etiqueta, boolean obligatorio, String mensajeObligatorio,
+                              boolean mayorQueCero, BigDecimal maximo, int maxDecimales) {
         Object v = datos.get(campo);
         if (v == null || (v instanceof String s && s.isBlank())) {
-            if (obligatorio) error(campo, etiqueta + " debe ser un número");
+            if (obligatorio) error(campo, mensajeObligatorio);
             return null;
         }
-        BigDecimal d;
-        try {
-            d = v instanceof BigDecimal b ? b : new BigDecimal(v.toString().trim());
-        } catch (NumberFormatException e) {
-            error(campo, etiqueta + " debe ser un número");
+        BigDecimal d = aDecimal(v);
+        String mensaje = null;
+        if (d == null) mensaje = etiqueta + " debe ser un número";
+        else if (mayorQueCero && d.signum() <= 0) mensaje = etiqueta + " debe ser mayor a 0";
+        else if (d.signum() < 0) mensaje = etiqueta + " no puede ser negativo";
+        else if (Math.max(d.stripTrailingZeros().scale(), 0) > maxDecimales) {
+            mensaje = etiqueta + " puede tener como máximo " + maxDecimales + (maxDecimales == 1 ? " decimal" : " decimales");
+        } else if (maximo != null && d.compareTo(maximo) > 0) {
+            mensaje = etiqueta + " no puede ser mayor a " + maximo.toPlainString();
+        }
+        if (mensaje != null) {
+            error(campo, mensaje);
             return null;
         }
-        if (v instanceof Boolean) {
-            error(campo, etiqueta + " debe ser un número");
-            return null;
-        }
-        if (d.signum() <= 0) {
-            error(campo, etiqueta + " debe ser mayor a 0");
-            return null;
-        }
-        if (maximo != null && d.compareTo(maximo) > 0) {
-            error(campo, etiqueta + " es demasiado alta");
-            return null;
-        }
-        return d.setScale(2, RoundingMode.HALF_UP);
+        return d;
+    }
+
+    private static BigDecimal aDecimal(Object v) {
+        if (v instanceof BigDecimal b) return b;
+        if (v instanceof Long || v instanceof Integer) return new BigDecimal(v.toString());
+        if (v instanceof String s && DECIMAL.matcher(s.strip()).matches()) return new BigDecimal(s.strip());
+        return null;
     }
 
     /** Decimal opcional mayor o igual a 0 (filtros de precio). Si no viene, devuelve null. */
@@ -418,35 +461,44 @@ public final class Validador {
     // ------------------------------------------------------------------
     // Estructuras
     // ------------------------------------------------------------------
-    /** Objeto { "clave": "valor" } de textos (especificaciones técnicas). */
-    public Map<String, String> mapaDeTextos(String campo, int maxEntradas, int maxClave, int maxValor) {
+    /**
+     * Especificaciones técnicas { "Potencia": "146 HP" }: máximo 30 pares, nombre de 1 a 60 caracteres
+     * y valor hasta 200, sin nombres vacíos ni repetidos (sin distinguir mayúsculas ni tildes).
+     * Todos los errores se registran en el campo "especificaciones".
+     */
+    public Map<String, String> especificaciones(String campo) {
         Object v = datos.get(campo);
         if (v == null) return null;
         if (!(v instanceof Map<?, ?> mapa)) {
             error(campo, TIPO_INVALIDO);
             return null;
         }
-        if (mapa.size() > maxEntradas) {
-            error(campo, "Máximo " + maxEntradas + " elementos");
+        if (mapa.size() > 30) {
+            error(campo, "Puedes agregar como máximo 30 especificaciones");
             return null;
         }
         Map<String, String> resultado = new LinkedHashMap<>();
+        Set<String> vistas = new HashSet<>();
         for (Map.Entry<?, ?> e : mapa.entrySet()) {
-            String clave = String.valueOf(e.getKey()).trim();
             if (!(e.getValue() instanceof String valorTexto)) {
-                error(campo + "." + clave, TIPO_INVALIDO);
+                error(campo, TIPO_INVALIDO);
                 continue;
             }
-            String valor = valorTexto.trim();
-            if (clave.isEmpty() || clave.length() > maxClave) {
-                error(campo, "Cada nombre debe tener entre 1 y " + maxClave + " caracteres");
+            String claveTexto = String.valueOf(e.getKey());
+            String nombre = ESPACIOS.matcher(claveTexto.strip()).replaceAll(" ");
+            String valor = ESPACIOS.matcher(valorTexto.strip()).replaceAll(" ");
+            String mensaje = null;
+            if (nombre.isEmpty()) mensaje = "Cada especificación necesita un nombre";
+            else if (CONTROL.matcher(claveTexto + valorTexto).find()) mensaje = "Las especificaciones contienen caracteres no permitidos";
+            else if (HTML.matcher(claveTexto + valorTexto).find()) mensaje = "Las especificaciones no pueden contener los signos < ni >";
+            else if (nombre.length() > 60) mensaje = "El nombre de una especificación debe tener como máximo 60 caracteres";
+            else if (valor.length() > 200) mensaje = "El valor de \"" + nombre + "\" debe tener como máximo 200 caracteres";
+            else if (!vistas.add(clave(nombre))) mensaje = "La especificación \"" + nombre + "\" está repetida";
+            if (mensaje != null) {
+                error(campo, mensaje);
                 continue;
             }
-            if (valor.length() > maxValor) {
-                error(campo + "." + clave, "Debe tener como máximo " + maxValor + " caracteres");
-                continue;
-            }
-            resultado.put(clave, valor);
+            resultado.put(nombre, valor);
         }
         return resultado;
     }

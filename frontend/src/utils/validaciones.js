@@ -149,6 +149,137 @@ export function validarNombreCategoria(valor, existentes = [], excluirId = null)
 
 export const validarDescripcionCategoria = (valor) => validarLinea(valor, { etiqueta: 'La descripción', max: 255 });
 
+// ------------------------------------------------------------------ Números
+
+/**
+ * Deja solo dígitos y un punto decimal (la coma se toma como punto). Se usa en los campos
+ * de montos para bloquear letras y signos mientras se escribe.
+ */
+export function limpiarDecimal(valor) {
+  const t = (valor || '').replace(/,/g, '.').replace(/[^0-9.]/g, '');
+  const punto = t.indexOf('.');
+  return punto === -1 ? t : t.slice(0, punto + 1) + t.slice(punto + 1).replace(/\./g, '');
+}
+
+/** Número decimal, igual que Validador.decimal: formato, signo, decimales y máximo, en ese orden */
+export function validarDecimal(valor, { etiqueta, obligatorio, mayorQueCero, maximo, maxDecimales }) {
+  const t = String(valor ?? '').trim();
+  if (!t) return obligatorio || '';
+  if (!/^-?\d+(\.\d+)?$/.test(t)) return `${etiqueta} debe ser un número`;
+  const n = Number(t);
+  if (mayorQueCero && n <= 0) return `${etiqueta} debe ser mayor a 0`;
+  if (n < 0) return `${etiqueta} no puede ser negativo`;
+  const decimales = (t.split('.')[1] || '').replace(/0+$/, '').length;
+  if (decimales > maxDecimales) {
+    return `${etiqueta} puede tener como máximo ${maxDecimales} ${maxDecimales === 1 ? 'decimal' : 'decimales'}`;
+  }
+  if (maximo != null && n > maximo) return `${etiqueta} no puede ser mayor a ${maximo}`;
+  return '';
+}
+
+// ------------------------------------------------------------------ Máquinas
+
+const TEXTO_MAQUINA = /^[\p{L}\p{M}0-9 ./+()-]+$/u;
+const LETRA_O_NUMERO = /[\p{L}0-9]/u;
+export const TARIFA_MAXIMA = 100000;
+export const HOROMETRO_MAXIMO = 999999.9;
+
+/** Nombre, marca o modelo: letras, números, espacios y - . / + ( ), con alguna letra o número */
+function validarTextoMaquina(valor, etiqueta, min, max, obligatorio) {
+  const base = validarLinea(valor, { etiqueta, min, max, obligatorio });
+  if (base) return base;
+  const t = normalizarTexto(valor);
+  if (!TEXTO_MAQUINA.test(t)) return `${etiqueta} solo puede contener letras, números, espacios y los signos - . / + ( )`;
+  if (!LETRA_O_NUMERO.test(t)) return `${etiqueta} debe contener al menos una letra o un número`;
+  return '';
+}
+
+export const validarNombreMaquina = (v) => validarTextoMaquina(v, 'El nombre', 2, 120, 'El nombre es obligatorio');
+export const validarMarca = (v) => validarTextoMaquina(v, 'La marca', 1, 80, 'La marca es obligatoria');
+export const validarModelo = (v) => validarTextoMaquina(v, 'El modelo', 1, 80, 'El modelo es obligatorio');
+
+export function validarUbicacion(valor) {
+  const base = validarLinea(valor, { etiqueta: 'La ubicación', min: 2, max: 160, obligatorio: 'La ubicación es obligatoria' });
+  if (base) return base;
+  return LETRA.test(valor) ? '' : 'La ubicación debe contener al menos una letra';
+}
+
+/** Texto de varias líneas y opcional (descripciones): conserva los saltos de línea */
+export function validarParrafo(valor, etiqueta, max) {
+  const v = valor || '';
+  if (!v.trim()) return '';
+  const inseguro = errorTextoSeguro(v, etiqueta, true);
+  if (inseguro) return inseguro;
+  return v.trim().length > max ? `${etiqueta} debe tener como máximo ${max} caracteres` : '';
+}
+
+export const validarDescripcionMaquina = (v) => validarParrafo(v, 'La descripción', 2000);
+
+export const validarTarifa = (v) =>
+  validarDecimal(v, {
+    etiqueta: 'La tarifa por hora',
+    obligatorio: 'La tarifa por hora es obligatoria',
+    mayorQueCero: true,
+    maximo: TARIFA_MAXIMA,
+    maxDecimales: 2,
+  });
+
+export const validarHorometro = (v) =>
+  validarDecimal(v, { etiqueta: 'El horómetro inicial', maximo: HOROMETRO_MAXIMO, maxDecimales: 1 });
+
+/** Filas de especificaciones que tienen algo escrito (las vacías se ignoran) */
+const filasUsadas = (filas) => filas.filter((f) => f.clave.trim() || f.valor.trim());
+
+/**
+ * Especificaciones técnicas, como Validador.especificaciones: máximo 30, nombre ≤ 60, valor ≤ 200,
+ * sin nombres vacíos ni repetidos (sin distinguir mayúsculas ni tildes).
+ * Devuelve el error de cada fila (en el mismo orden) y uno general.
+ */
+export function erroresEspecificaciones(filas) {
+  const vistas = new Set();
+  const porFila = filas.map((f) => {
+    if (!f.clave.trim() && !f.valor.trim()) return '';
+    const nombre = normalizarTexto(f.clave);
+    const valor = normalizarTexto(f.valor);
+    if (!nombre) return 'Cada especificación necesita un nombre';
+    if (CONTROL.test(f.clave + f.valor)) return 'Las especificaciones contienen caracteres no permitidos';
+    if (HTML.test(f.clave + f.valor)) return 'Las especificaciones no pueden contener los signos < ni >';
+    if (nombre.length > 60) return 'El nombre de una especificación debe tener como máximo 60 caracteres';
+    if (valor.length > 200) return `El valor de "${nombre}" debe tener como máximo 200 caracteres`;
+    const clave = claveTexto(nombre);
+    if (vistas.has(clave)) return `La especificación "${nombre}" está repetida`;
+    vistas.add(clave);
+    return '';
+  });
+  const general = filasUsadas(filas).length > 30 ? 'Puedes agregar como máximo 30 especificaciones' : '';
+  return { porFila, general, hayErrores: Boolean(general) || porFila.some(Boolean) };
+}
+
+/** Filas -> objeto { nombre: valor } con los textos ya normalizados, como lo guarda el backend */
+export const especificacionesComoObjeto = (filas) =>
+  Object.fromEntries(filasUsadas(filas).map((f) => [normalizarTexto(f.clave), normalizarTexto(f.valor)]));
+
+// ------------------------------------------------------------------ Fotos
+
+export const MAX_FOTOS = 5;
+export const MAX_MB_FOTO = 5;
+const TIPOS_FOTO = ['image/jpeg', 'image/png'];
+
+/** Revisa las fotos elegidas antes de subirlas, con los mismos mensajes del backend */
+export function validarFotos(archivos, yaSubidas) {
+  const disponibles = MAX_FOTOS - yaSubidas;
+  if (archivos.length > disponibles) {
+    return disponibles > 0
+      ? `La máquina ya tiene ${yaSubidas} foto(s). Solo puedes subir ${disponibles} más (máximo ${MAX_FOTOS})`
+      : `La máquina ya tiene el máximo de ${MAX_FOTOS} fotos`;
+  }
+  for (const a of archivos) {
+    if (!TIPOS_FOTO.includes(a.type)) return `Solo se permiten fotos en formato JPG o PNG ("${a.name}")`;
+    if (a.size > MAX_MB_FOTO * 1024 * 1024) return `Cada foto puede pesar como máximo ${MAX_MB_FOTO} MB ("${a.name}")`;
+  }
+  return '';
+}
+
 // ------------------------------------------------------------------ Utilidades
 
 /** Aplica { campo: regla } a los datos y devuelve solo los campos con error */
