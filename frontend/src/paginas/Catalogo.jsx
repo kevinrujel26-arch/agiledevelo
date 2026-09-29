@@ -5,6 +5,7 @@ import { api } from '../api/cliente';
 import { useAuth, panelSegunRol } from '../contexto/AuthContext';
 import { Alerta, Cargando, Paginacion, TarjetaMaquina } from '../componentes/comunes';
 import { Excavadora, Icono } from '../componentes/Ilustracion';
+import { BUSQUEDA_MAX, erroresPrecio, limpiarDecimal, normalizarTexto, sinPuntoFinal, validarBusqueda } from '../utils/validaciones';
 
 const TAMANIO_PAGINA = 12;
 const ESPERA_BUSQUEDA_MS = 400; // espera tras dejar de escribir antes de buscar (texto y precio)
@@ -29,7 +30,10 @@ export default function Catalogo() {
   const [entradaMax, setEntradaMax] = useState(precioMax);
   // Últimos valores que este componente llevó a la URL, para distinguirlos de cambios externos
   const enviadoRef = useRef(null);
-  const rangoInvalido = entradaMin !== '' && entradaMax !== '' && Number(entradaMin) > Number(entradaMax);
+  // Validación en vivo: lo que no es válido no se aplica (se mantiene lo último válido de la URL)
+  const errorBusqueda = validarBusqueda(busqueda);
+  const errPrecio = erroresPrecio(entradaMin, entradaMax);
+  const precioInvalido = Object.keys(errPrecio).length > 0;
   const hayFiltros = Boolean(categoriaId || q || precioMin || precioMax);
 
   const [resultado, setResultado] = useState(null);
@@ -60,10 +64,10 @@ export default function Catalogo() {
 
   // Búsqueda y rango de precio que corresponden a lo escrito en los campos
   const objetivo = {
-    q: busqueda.trim(),
+    q: errorBusqueda ? q : normalizarTexto(busqueda),
     // HU-06: un rango inválido no se aplica; se mantiene el último válido
-    precioMin: rangoInvalido ? precioMin : entradaMin,
-    precioMax: rangoInvalido ? precioMax : entradaMax,
+    precioMin: precioInvalido ? precioMin : sinPuntoFinal(entradaMin),
+    precioMax: precioInvalido ? precioMax : sinPuntoFinal(entradaMax),
   };
   const pendiente = objetivo.q !== q || objetivo.precioMin !== precioMin || objetivo.precioMax !== precioMax;
 
@@ -249,36 +253,35 @@ export default function Catalogo() {
                 type="search"
                 placeholder="Buscar por nombre o marca"
                 value={busqueda}
+                maxLength={BUSQUEDA_MAX}
                 onChange={(e) => setBusqueda(e.target.value)}
                 aria-label="Buscar maquinaria"
+                aria-invalid={Boolean(errorBusqueda)}
+                aria-describedby={errorBusqueda ? 'busqueda-mensaje' : undefined}
               />
             </form>
-            {/* HU-06: rango de precio por hora */}
-            <div className={`filtro-precio ${rangoInvalido ? 'campo-error' : ''}`}>
+            {/* HU-06: rango de precio por hora. Solo admite dígitos y un punto decimal */}
+            <div className={`filtro-precio ${precioInvalido ? 'campo-error' : ''}`}>
               <label>
                 <span>Precio mín. (S/ por hora)</span>
                 <input
-                  type="number"
-                  min="0"
-                  step="any"
                   inputMode="decimal"
                   placeholder="0"
                   value={entradaMin}
-                  onChange={(e) => setEntradaMin(e.target.value)}
-                  aria-invalid={rangoInvalido}
+                  onChange={(e) => setEntradaMin(limpiarDecimal(e.target.value))}
+                  aria-invalid={Boolean(errPrecio.precioMin)}
+                  aria-describedby={errPrecio.precioMin ? 'precio-min-mensaje' : undefined}
                 />
               </label>
               <label>
                 <span>Precio máx.</span>
                 <input
-                  type="number"
-                  min="0"
-                  step="any"
                   inputMode="decimal"
                   placeholder="Sin límite"
                   value={entradaMax}
-                  onChange={(e) => setEntradaMax(e.target.value)}
-                  aria-invalid={rangoInvalido}
+                  onChange={(e) => setEntradaMax(limpiarDecimal(e.target.value))}
+                  aria-invalid={Boolean(errPrecio.precioMax)}
+                  aria-describedby={errPrecio.precioMax ? 'precio-max-mensaje' : undefined}
                 />
               </label>
               {(entradaMin || entradaMax) && (
@@ -288,7 +291,9 @@ export default function Catalogo() {
               )}
             </div>
           </div>
-          {rangoInvalido && <p className="mensaje-error">El precio mínimo no puede ser mayor que el máximo.</p>}
+          {errorBusqueda && <p className="mensaje-error" id="busqueda-mensaje">{errorBusqueda}</p>}
+          {errPrecio.precioMin && <p className="mensaje-error" id="precio-min-mensaje">{errPrecio.precioMin}</p>}
+          {errPrecio.precioMax && <p className="mensaje-error" id="precio-max-mensaje">{errPrecio.precioMax}</p>}
 
           <Alerta>{error}</Alerta>
           {!resultado && !error && <Cargando texto="Cargando catálogo…" />}

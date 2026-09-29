@@ -10,6 +10,7 @@ import {
   erroresEspecificaciones,
   especificacionesComoObjeto,
   limpiarDecimal,
+  sinPuntoFinal,
   validarDescripcionMaquina,
   validarFotos,
   validarHorometro,
@@ -159,8 +160,8 @@ export default function AdminMaquinaForm() {
     const completo = {
       ...form,
       categoriaId: Number(form.categoriaId),
-      tarifaHoraria: form.tarifaHoraria.trim(),
-      horometroInicial: form.horometroInicial.trim() || 0,
+      tarifaHoraria: sinPuntoFinal(form.tarifaHoraria),
+      horometroInicial: sinPuntoFinal(form.horometroInicial) || 0,
       descripcion: form.descripcion.trim() || null,
       especificaciones,
     };

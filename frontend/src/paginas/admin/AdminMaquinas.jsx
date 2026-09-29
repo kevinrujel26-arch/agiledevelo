@@ -4,6 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../../api/cliente';
 import { Alerta, Cargando, FotoMaquina, Paginacion } from '../../componentes/comunes';
 import { ETIQUETA_ESTADO, formatearHoras, formatearMoneda } from '../../utils/formato';
+import { BUSQUEDA_MAX, normalizarTexto, validarBusqueda } from '../../utils/validaciones';
 
 const PESTANAS = [
   ['', 'Todas'],
@@ -45,16 +46,17 @@ export default function AdminMaquinas() {
   };
 
   // Lleva la búsqueda a la URL (vuelve a la página 1)
+  const errorBusqueda = validarBusqueda(busqueda);
   const aplicarBusqueda = () => {
-    const texto = busqueda.trim();
-    if (texto === q) return;
+    const texto = normalizarTexto(busqueda);
+    if (errorBusqueda || texto === q) return;
     enviadoRef.current = texto;
     actualizarFiltros({ q: texto, pagina: '' });
   };
 
   // Busca al dejar de escribir; cada tecla reinicia la espera
   useEffect(() => {
-    if (busqueda.trim() === q) return undefined;
+    if (errorBusqueda || normalizarTexto(busqueda) === q) return undefined;
     const temporizador = setTimeout(aplicarBusqueda, ESPERA_BUSQUEDA_MS);
     return () => clearTimeout(temporizador);
   }, [busqueda, q, estado]);
@@ -95,9 +97,19 @@ export default function AdminMaquinas() {
             aplicarBusqueda(); // Enter busca sin esperar
           }}
         >
-          <input type="search" placeholder="Buscar por nombre o marca" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} aria-label="Buscar" />
+          <input
+            type="search"
+            placeholder="Buscar por nombre o marca"
+            value={busqueda}
+            maxLength={BUSQUEDA_MAX}
+            onChange={(e) => setBusqueda(e.target.value)}
+            aria-label="Buscar"
+            aria-invalid={Boolean(errorBusqueda)}
+            aria-describedby={errorBusqueda ? 'busqueda-mensaje' : undefined}
+          />
         </form>
       </div>
+      {errorBusqueda && <p className="mensaje-error" id="busqueda-mensaje">{errorBusqueda}</p>}
 
       {!resultado ? (
         <Cargando />

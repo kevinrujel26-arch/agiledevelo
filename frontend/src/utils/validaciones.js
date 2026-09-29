@@ -161,9 +161,15 @@ export function limpiarDecimal(valor) {
   return punto === -1 ? t : t.slice(0, punto + 1) + t.slice(punto + 1).replace(/\./g, '');
 }
 
-/** Número decimal, igual que Validador.decimal: formato, signo, decimales y máximo, en ese orden */
+/** Quita el punto final que queda mientras se escribe ('12.' -> '12'); así se envía al servidor */
+export const sinPuntoFinal = (valor) => String(valor ?? '').trim().replace(/\.$/, '');
+
+/**
+ * Número decimal, igual que Validador.decimal: formato, signo, decimales y máximo, en ese orden.
+ * Un punto final ('12.') se toma como número a medio escribir, no como error.
+ */
 export function validarDecimal(valor, { etiqueta, obligatorio, mayorQueCero, maximo, maxDecimales }) {
-  const t = String(valor ?? '').trim();
+  const t = sinPuntoFinal(valor);
   if (!t) return obligatorio || '';
   if (!/^-?\d+(\.\d+)?$/.test(t)) return `${etiqueta} debe ser un número`;
   const n = Number(t);
@@ -327,6 +333,25 @@ export function erroresRango({ fechaInicio, fechaFin }, hoy) {
 }
 
 export const validarMotivo = (v) => validarLinea(v, { etiqueta: 'El motivo', max: 160 });
+
+// ------------------------------------------------------------------ Catálogo y filtros
+
+export const BUSQUEDA_MAX = 80;
+
+export const validarBusqueda = (v) => validarLinea(v, { etiqueta: 'La búsqueda', max: BUSQUEDA_MAX });
+
+/** Precios del filtro: números ≥ 0 con máximo 2 decimales, y el mínimo no mayor que el máximo */
+export function erroresPrecio(precioMin, precioMax) {
+  const e = {};
+  const min = validarDecimal(precioMin, { etiqueta: 'El precio mínimo', maximo: TARIFA_MAXIMA, maxDecimales: 2 });
+  const max = validarDecimal(precioMax, { etiqueta: 'El precio máximo', maximo: TARIFA_MAXIMA, maxDecimales: 2 });
+  if (min) e.precioMin = min;
+  if (max) e.precioMax = max;
+  if (!min && !max && precioMin !== '' && precioMax !== '' && Number(precioMin) > Number(precioMax)) {
+    e.precioMin = 'El precio mínimo no puede ser mayor que el precio máximo';
+  }
+  return e;
+}
 
 // ------------------------------------------------------------------ Utilidades
 

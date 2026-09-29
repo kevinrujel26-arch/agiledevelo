@@ -254,6 +254,30 @@ class MaquinaTest extends PruebaBase {
     }
 
     @Test
+    @DisplayName("Validación: la búsqueda tiene hasta 80 caracteres, se recorta y no admite < >")
+    void busquedaReglas() {
+        crearPublicada("Cargador frontal");
+        Resp larga = get("/api/maquinas?q=" + "a".repeat(81), null);
+        assertEquals(400, larga.estado());
+        assertEquals("La búsqueda debe tener como máximo 80 caracteres", larga.errorDe("q"));
+        assertEquals(200, get("/api/maquinas?q=" + "a".repeat(80), null).estado());
+        assertEquals(1, get("/api/maquinas?q=%20%20cargador%20%20", null).lista("datos").size());
+        Resp html = get("/api/maquinas?q=%3Cscript%3E", null);
+        assertEquals("La búsqueda no puede contener los signos < ni >", html.errorDe("q"));
+        assertEquals(400, get("/api/admin/maquinas?q=" + "a".repeat(81), token).estado());
+    }
+
+    @Test
+    @DisplayName("Validación: los precios del filtro son números ≥ 0 con máximo 2 decimales")
+    void preciosFiltroReglas() {
+        assertEquals("El precio mínimo puede tener como máximo 2 decimales", get("/api/maquinas?precioMin=10.555", null).errorDe("precioMin"));
+        assertEquals("El precio máximo debe ser un número", get("/api/maquinas?precioMax=1e3", null).errorDe("precioMax"));
+        assertEquals("El precio mínimo no puede ser negativo", get("/api/maquinas?precioMin=-1", null).errorDe("precioMin"));
+        assertEquals("El precio máximo no puede ser mayor a 100000", get("/api/maquinas?precioMax=100001", null).errorDe("precioMax"));
+        assertEquals(200, get("/api/maquinas?precioMin=0&precioMax=10.50", null).estado());
+    }
+
+    @Test
     @DisplayName("HU-06: el rango de precio se combina con la categoría y la búsqueda")
     void combinaConCategoriaYBusqueda() {
         long[] m = crearRangoDePrecios();

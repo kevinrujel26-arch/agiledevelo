@@ -25,7 +25,7 @@ import java.util.Map;
 public class MaquinaControlador {
 
     private static final List<String> ESTADOS = List.of("BORRADOR", "PUBLICADA", "RETIRADA");
-    private static final BigDecimal TARIFA_MAXIMA = new BigDecimal("99999999");
+
     private static final BigDecimal HOROMETRO_MAXIMO = new BigDecimal("999999.9");
     /** Tope razonable para la tarifa por hora de una máquina (S/). */
     public static final BigDecimal TARIFA_MAXIMA_POR_HORA = new BigDecimal("100000");
@@ -104,9 +104,9 @@ public class MaquinaControlador {
     /** Filtros comunes del catálogo y del listado del administrador: categoría, texto y rango de precio (HU-06). */
     private static MaquinaRepositorio.Filtros leerFiltros(Validador v, String estado) {
         Long categoriaId = v.idPositivo("categoriaId", false, null);
-        String texto = v.texto("q", 0, 80, false, null);
-        BigDecimal precioMin = v.decimalNoNegativoOpcional("precioMin", "El precio mínimo", TARIFA_MAXIMA);
-        BigDecimal precioMax = v.decimalNoNegativoOpcional("precioMax", "El precio máximo", TARIFA_MAXIMA);
+        String texto = v.linea("q", "La búsqueda", 0, 80, false, null);
+        BigDecimal precioMin = v.decimal("precioMin", "El precio mínimo", false, null, false, TARIFA_MAXIMA_POR_HORA, 2);
+        BigDecimal precioMax = v.decimal("precioMax", "El precio máximo", false, null, false, TARIFA_MAXIMA_POR_HORA, 2);
         if (precioMin != null && precioMax != null && precioMin.compareTo(precioMax) > 0) {
             v.error("precioMin", "El precio mínimo no puede ser mayor que el precio máximo");
         }
