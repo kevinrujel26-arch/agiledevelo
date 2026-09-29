@@ -25,6 +25,7 @@ public final class Validador {
 
     private static final Pattern CORREO =
             Pattern.compile("^[A-Za-z0-9._%+'-]+@[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*\\.[A-Za-z]{2,}$");
+    private static final Pattern CELULAR = Pattern.compile("^9\\d{8}$");
     private static final Pattern ENTERO = Pattern.compile("^-?\\d{1,18}$");
     private static final String OBLIGATORIO = "Este campo es obligatorio";
     private static final String TIPO_INVALIDO = "Tipo de dato inválido";
@@ -133,6 +134,31 @@ public final class Validador {
             return null;
         }
         return c;
+    }
+
+    /**
+     * Celular peruano: 9 dígitos que empiezan con 9. Acepta espacios, guiones
+     * y el prefijo +51 o 51 (ej. "+51 987-654-321") y lo devuelve normalizado
+     * con solo los 9 dígitos ("987654321").
+     */
+    public String celular(String campo, boolean obligatorio) {
+        Object v = datos.get(campo);
+        if (v == null || (v instanceof String s && s.isBlank())) {
+            if (obligatorio) error(campo, "El celular es obligatorio");
+            return null;
+        }
+        if (!(v instanceof String s)) {
+            error(campo, TIPO_INVALIDO);
+            return null;
+        }
+        String numero = s.replaceAll("[\\s-]", "");
+        if (numero.startsWith("+51")) numero = numero.substring(3);
+        else if (numero.startsWith("51") && numero.length() == 11) numero = numero.substring(2);
+        if (!CELULAR.matcher(numero).matches()) {
+            error(campo, "Ingresa un celular válido de 9 dígitos que empiece con 9");
+            return null;
+        }
+        return numero;
     }
 
     /** Valor de una lista fija de opciones. */

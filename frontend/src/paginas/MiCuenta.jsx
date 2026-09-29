@@ -1,6 +1,7 @@
 // Panel del cliente (HU-02: destino tras iniciar sesión con rol Cliente)
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexto/AuthContext';
+import { formatearCelular } from '../utils/formato';
 
 export default function MiCuenta() {
   const { usuario } = useAuth();
@@ -9,6 +10,9 @@ export default function MiCuenta() {
       <div className="panel">
         <h1>Hola, {usuario.nombre.split(' ')[0]} 👋</h1>
         <p className="texto-suave">{usuario.correo}</p>
+        <p className="texto-suave">
+          Celular: {usuario.telefono ? formatearCelular(usuario.telefono) : 'sin registrar'}
+        </p>
         <div className="tarjetas-accion">
           <Link to="/" className="tarjeta-accion">
             <strong>Explorar catálogo</strong>

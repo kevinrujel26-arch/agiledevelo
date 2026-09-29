@@ -36,3 +36,22 @@ export const ETIQUETA_ESTADO = {
 };
 
 export const CORREO_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+/**
+ * Celular peruano (HU-02): deja solo los 9 dígitos. Acepta espacios, guiones
+ * y el prefijo +51 o 51, igual que el backend. '+51 987-654-321' -> '987654321'
+ */
+export function normalizarCelular(texto) {
+  let n = (texto || '').replace(/[\s-]/g, '');
+  if (n.startsWith('+51')) n = n.slice(3);
+  else if (n.startsWith('51') && n.length === 11) n = n.slice(2);
+  return n;
+}
+
+export const CELULAR_VALIDO = /^9\d{8}$/;
+
+/** '987654321' -> '987 654 321' */
+export function formatearCelular(numero) {
+  if (!numero) return '';
+  return numero.replace(/^(\d{3})(\d{3})(\d{3})$/, '$1 $2 $3');
+}

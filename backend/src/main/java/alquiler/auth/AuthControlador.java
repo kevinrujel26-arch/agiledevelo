@@ -29,12 +29,13 @@ public class AuthControlador {
         Validador v = Validador.de(s.json());
         String nombre = v.texto("nombre", 1, 120, true, "El nombre es obligatorio");
         String correo = v.correo("correo");
+        String telefono = v.celular("telefono", true);
         String contrasena = v.textoExacto("contrasena", 8, 72,
                 "La contraseña debe tener al menos 8 caracteres",
                 "La contraseña debe tener como máximo 72 caracteres");
         v.validar();
 
-        Map<String, Object> usuario = servicio.registrarCliente(nombre, correo, contrasena);
+        Map<String, Object> usuario = servicio.registrarCliente(nombre, correo, telefono, contrasena);
         return Respuesta.creado(Json.obj(
                 "mensaje", "¡Registro exitoso! Ya puedes iniciar sesión", // HU-01 criterio 6
                 "usuario", usuario));

@@ -39,16 +39,17 @@ public class AuthServicio {
     }
 
     public static Map<String, Object> usuarioJson(Fila u) {
-        return Json.obj("id", u.entero("id"), "nombre", u.texto("nombre"), "correo", u.texto("correo"), "rol", u.texto("rol"));
+        return Json.obj("id", u.entero("id"), "nombre", u.texto("nombre"), "correo", u.texto("correo"),
+                "telefono", u.texto("telefono"), "rol", u.texto("rol"));
     }
 
     /** HU-01: el rol siempre es CLIENTE (criterio 5), aunque envíen otro. */
-    public Map<String, Object> registrarCliente(String nombre, String correo, String contrasena) {
+    public Map<String, Object> registrarCliente(String nombre, String correo, String telefono, String contrasena) {
         if (usuarios.existeCorreo(correo)) {
             throw ErrorApp.conflicto("Ya existe una cuenta registrada con ese correo");
         }
         String hash = contrasenas.cifrar(contrasena);
-        return usuarioJson(usuarios.crear(nombre, correo, hash, Rol.CLIENTE.name()));
+        return usuarioJson(usuarios.crear(nombre, correo, telefono, hash, Rol.CLIENTE.name()));
     }
 
     public Map<String, Object> iniciarSesion(String correo, String contrasena, boolean recordarme,

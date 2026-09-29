@@ -203,8 +203,8 @@ public abstract class PruebaBase {
         String clave = "Clave12345";
         String hash = new Contrasenas(1000).cifrar(clave);
         long id = bd().uno("""
-                INSERT INTO usuarios (nombre, correo, contrasena_hash, rol, activo)
-                VALUES (?, ?, ?, ?, ?) RETURNING id""", "Usuario " + contador, correo, hash, rol, activo).entero("id");
+                INSERT INTO usuarios (nombre, correo, telefono, contrasena_hash, rol, activo)
+                VALUES (?, ?, ?, ?, ?, ?) RETURNING id""", "Usuario " + contador, correo, "987654321", hash, rol, activo).entero("id");
         return new Usuario(id, correo, clave);
     }
 

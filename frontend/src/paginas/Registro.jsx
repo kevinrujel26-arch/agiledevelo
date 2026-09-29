@@ -3,14 +3,18 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/cliente';
 import { Alerta, Campo } from '../componentes/comunes';
-import { CORREO_VALIDO } from '../utils/formato';
+import { CELULAR_VALIDO, CORREO_VALIDO, normalizarCelular } from '../utils/formato';
 import PantallaAuth from '../componentes/PantallaAuth';
 
-function validar({ nombre, correo, contrasena, confirmar }) {
+function validar({ nombre, correo, telefono, contrasena, confirmar }) {
   const e = {};
   if (!nombre.trim()) e.nombre = 'El nombre es obligatorio';
   if (!correo.trim()) e.correo = 'El correo es obligatorio';
   else if (!CORREO_VALIDO.test(correo.trim())) e.correo = 'El correo no tiene un formato válido';
+  if (!telefono.trim()) e.telefono = 'El celular es obligatorio';
+  else if (!CELULAR_VALIDO.test(normalizarCelular(telefono))) {
+    e.telefono = 'Ingresa un celular válido de 9 dígitos que empiece con 9';
+  }
   if (!contrasena) e.contrasena = 'La contraseña es obligatoria';
   else if (contrasena.length < 8) e.contrasena = 'La contraseña debe tener al menos 8 caracteres';
   if (confirmar !== contrasena) e.confirmar = 'Las contraseñas no coinciden';
@@ -19,7 +23,7 @@ function validar({ nombre, correo, contrasena, confirmar }) {
 
 export default function Registro() {
   const navegar = useNavigate();
-  const [datos, setDatos] = useState({ nombre: '', correo: '', contrasena: '', confirmar: '' });
+  const [datos, setDatos] = useState({ nombre: '', correo: '', telefono: '', contrasena: '', confirmar: '' });
   const [errores, setErrores] = useState({});
   const [errorGeneral, setErrorGeneral] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -41,6 +45,7 @@ export default function Registro() {
       const r = await api.post('/auth/registro', {
         nombre: datos.nombre,
         correo: datos.correo,
+        telefono: datos.telefono,
         contrasena: datos.contrasena,
       });
       // HU-01 criterio 6: mensaje de confirmación
@@ -62,6 +67,19 @@ export default function Registro() {
         </Campo>
         <Campo etiqueta="Correo electrónico" id="correo" error={errores.correo}>
           <input id="correo" name="correo" type="email" placeholder="tu@correo.com" value={datos.correo} onChange={cambiar} autoComplete="email" />
+        </Campo>
+        <Campo etiqueta="Celular" id="telefono" error={errores.telefono} ayuda="9 dígitos, empieza con 9">
+          <input
+            id="telefono"
+            name="telefono"
+            type="tel"
+            inputMode="tel"
+            placeholder="987 654 321"
+            maxLength={16}
+            value={datos.telefono}
+            onChange={cambiar}
+            autoComplete="tel-national"
+          />
         </Campo>
         <Campo etiqueta="Contraseña" id="contrasena" error={errores.contrasena} ayuda="Mínimo 8 caracteres">
           <input id="contrasena" name="contrasena" type="password" placeholder="••••••••" value={datos.contrasena} onChange={cambiar} autoComplete="new-password" />

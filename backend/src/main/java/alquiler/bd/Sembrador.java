@@ -51,16 +51,18 @@ public final class Sembrador {
         String correoAdmin = config.valor("ADMIN_CORREO", "admin@alquiler.pe").toLowerCase();
         String claveAdmin = config.valor("ADMIN_CONTRASENA", "Admin12345");
         String nombreAdmin = config.valor("ADMIN_NOMBRE", "Administrador");
+        String telefonoAdmin = config.valor("ADMIN_TELEFONO", "987654321");
 
         bd.transaccion(tx -> {
             // Administrador (si ya existe, se le asegura el rol y la contraseña del .env)
             long adminId = tx.uno("""
-                    INSERT INTO usuarios (nombre, correo, contrasena_hash, rol)
-                    VALUES (?, ?, ?, 'ADMINISTRADOR')
+                    INSERT INTO usuarios (nombre, correo, telefono, contrasena_hash, rol)
+                    VALUES (?, ?, ?, ?, 'ADMINISTRADOR')
                     ON CONFLICT (correo) DO UPDATE
                        SET rol = 'ADMINISTRADOR', contrasena_hash = EXCLUDED.contrasena_hash,
+                           telefono = EXCLUDED.telefono,
                            intentos_fallidos = 0, bloqueado_hasta = NULL
-                    RETURNING id""", nombreAdmin, correoAdmin, contrasenas.cifrar(claveAdmin)).entero("id");
+                    RETURNING id""", nombreAdmin, correoAdmin, telefonoAdmin, contrasenas.cifrar(claveAdmin)).entero("id");
             System.out.println("[OK] Administrador: " + correoAdmin);
 
             Map<String, Long> idsCategoria = new HashMap<>();

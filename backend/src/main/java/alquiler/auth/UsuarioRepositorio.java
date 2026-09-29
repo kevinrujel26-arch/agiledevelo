@@ -18,11 +18,12 @@ public class UsuarioRepositorio {
         return bd.uno("SELECT 1 FROM usuarios WHERE correo = ?", correo) != null;
     }
 
-    public Fila crear(String nombre, String correo, String hash, String rol) {
+    /** El teléfono llega ya normalizado (9 dígitos). */
+    public Fila crear(String nombre, String correo, String telefono, String hash, String rol) {
         return bd.uno("""
-                INSERT INTO usuarios (nombre, correo, contrasena_hash, rol)
-                VALUES (?, ?, ?, ?)
-                RETURNING id, nombre, correo, rol""", nombre, correo, hash, rol);
+                INSERT INTO usuarios (nombre, correo, telefono, contrasena_hash, rol)
+                VALUES (?, ?, ?, ?, ?)
+                RETURNING id, nombre, correo, telefono, rol""", nombre, correo, telefono, hash, rol);
     }
 
     public Fila buscarPorCorreo(String correo) {

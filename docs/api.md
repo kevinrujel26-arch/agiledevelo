@@ -21,10 +21,14 @@ Base: `http://localhost:3000/api`. Todas las respuestas son JSON. Backend en **J
 
 | Método | Ruta | Acceso | Descripción |
 |---|---|---|---|
-| POST | `/auth/registro` | Público | `{ nombre, correo, contrasena }` → 201 `{ mensaje, usuario }`. El rol siempre es CLIENTE |
+| POST | `/auth/registro` | Público | `{ nombre, correo, telefono, contrasena }` → 201 `{ mensaje, usuario }`. El rol siempre es CLIENTE. `telefono` es obligatorio (ver abajo) |
 | POST | `/auth/login` | Público | `{ correo, contrasena, recordarme? }` → `{ token, expiraEn, usuario }` |
 | POST | `/auth/logout` | Con sesión | Invalida el token → 204 |
 | GET | `/auth/yo` | Con sesión | `{ usuario }` |
+
+`usuario` (en registro, login y `/auth/yo`): `{ id, nombre, correo, telefono, rol }`. `telefono` puede ser `null` en cuentas creadas antes de que se pidiera el celular.
+
+**Celular (`telefono`, HU-02):** celular peruano de 9 dígitos que empieza con 9. Se aceptan espacios, guiones y el prefijo `+51` o `51` (ej. `"+51 987-654-321"`), y se guarda normalizado (`"987654321"`). Si falta o es inválido → 400 con `detalles: [{ campo: "telefono", mensaje: "Ingresa un celular válido de 9 dígitos que empiece con 9" }]` (o `"El celular es obligatorio"` si no se envía).
 
 ## Catálogo público (HU-03, HU-14, HU-09)
 

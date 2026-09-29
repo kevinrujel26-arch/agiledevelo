@@ -11,6 +11,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -18,7 +19,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AuthTest extends PruebaBase {
 
     private static Map<String, Object> registroValido() {
-        return Json.obj("nombre", "Ana Torres", "correo", "Ana@Correo.com", "contrasena", "secreta123");
+        return Json.obj("nombre", "Ana Torres", "correo", "Ana@Correo.com", "telefono", "987654321",
+                "contrasena", "secreta123");
     }
 
     // ------------------------------------------------------------ HU-01
@@ -68,13 +70,83 @@ class AuthTest extends PruebaBase {
     }
 
     @Test
-    @DisplayName("HU-01: nombre, correo y contraseña son obligatorios")
+    @DisplayName("HU-01: nombre, correo, celular y contraseña son obligatorios")
     void camposObligatorios() {
-        for (String campo : new String[]{"nombre", "correo", "contrasena"}) {
+        for (String campo : new String[]{"nombre", "correo", "telefono", "contrasena"}) {
             Map<String, Object> datos = registroValido();
             datos.remove(campo);
             assertEquals(400, post("/api/auth/registro", datos, null).estado(), "sin " + campo);
         }
+    }
+
+    // ------------------------------------------------------------ HU-02 (v7): celular
+    @Test
+    @DisplayName("HU-02: registrarse sin celular responde 400 con el detalle del campo")
+    void registroSinTelefono() {
+        Map<String, Object> datos = registroValido();
+        datos.remove("telefono");
+        Resp r = post("/api/auth/registro", datos, null);
+        assertEquals(400, r.estado());
+        assertEquals("telefono", r.lista("detalles").get(0).get("campo"));
+        assertEquals(0L, bd().uno("SELECT count(*) AS n FROM usuarios").entero("n"));
+    }
+
+    @Test
+    @DisplayName("HU-02: un celular inválido responde 400")
+    void telefonoInvalido() {
+        for (String malo : new String[]{"887654321", "98765432", "9876543210", "98765432a", "+52 987654321"}) {
+            Map<String, Object> datos = registroValido();
+            datos.put("telefono", malo);
+            Resp r = post("/api/auth/registro", datos, null);
+            assertEquals(400, r.estado(), malo);
+            assertEquals("telefono", r.lista("detalles").get(0).get("campo"), malo);
+            assertEquals("Ingresa un celular válido de 9 dígitos que empiece con 9",
+                    r.lista("detalles").get(0).get("mensaje"), malo);
+        }
+    }
+
+    @Test
+    @DisplayName("HU-02: el celular se guarda normalizado y lo devuelven el registro, el login y /yo")
+    void telefonoNormalizado() {
+        Map<String, Object> datos = registroValido();
+        datos.put("telefono", "+51 987-654-321");
+        Resp r = post("/api/auth/registro", datos, null);
+        assertEquals(201, r.estado());
+        assertEquals("987654321", r.objeto("usuario").get("telefono"));
+        assertEquals("987654321", bd().uno("SELECT telefono FROM usuarios").texto("telefono"));
+
+        Resp login = post("/api/auth/login", Json.obj("correo", "ana@correo.com", "contrasena", "secreta123"), null);
+        assertEquals("987654321", login.objeto("usuario").get("telefono"));
+        Resp yo = get("/api/auth/yo", (String) login.json().get("token"));
+        assertEquals("987654321", yo.objeto("usuario").get("telefono"));
+    }
+
+    @Test
+    @DisplayName("HU-02: también acepta el prefijo 51 sin '+'")
+    void telefonoConPrefijo51() {
+        Map<String, Object> datos = registroValido();
+        datos.put("telefono", "51 912 345 678");
+        assertEquals("912345678", post("/api/auth/registro", datos, null).objeto("usuario").get("telefono"));
+    }
+
+    @Test
+    @DisplayName("HU-02: un usuario antiguo sin celular sigue pudiendo iniciar sesión (telefono = null)")
+    void usuarioSinTelefono() {
+        Usuario u = crearCliente();
+        bd().ejecutar("UPDATE usuarios SET telefono = NULL WHERE id = ?", u.id());
+        Resp yo = get("/api/auth/yo", token(u, false));
+        assertEquals(200, yo.estado());
+        assertTrue(yo.objeto("usuario").containsKey("telefono"));
+        assertNull(yo.objeto("usuario").get("telefono"));
+    }
+
+    @Test
+    @DisplayName("HU-02: la BD rechaza un celular mal formado")
+    void bdRechazaTelefonoInvalido() {
+        Usuario u = crearCliente();
+        ErrorBd e = assertThrows(ErrorBd.class,
+                () -> bd().ejecutar("UPDATE usuarios SET telefono = '12345' WHERE id = ?", u.id()));
+        assertEquals("ck_usuarios_telefono", e.getRestriccion());
     }
 
     // ------------------------------------------------------------ Roles (EN-05)

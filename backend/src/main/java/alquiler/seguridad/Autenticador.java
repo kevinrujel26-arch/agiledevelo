@@ -46,7 +46,7 @@ public class Autenticador {
 
         Fila s = bd.uno("""
                 SELECT s.id, s.recordarme, s.ultima_actividad, s.expira_en, s.revocada_en,
-                       u.id AS usuario_id, u.nombre, u.correo, u.rol, u.activo
+                       u.id AS usuario_id, u.nombre, u.correo, u.telefono, u.rol, u.activo
                   FROM sesiones s
                   JOIN usuarios u ON u.id = s.usuario_id
                  WHERE s.id = ?::uuid""", sid);
@@ -72,7 +72,7 @@ public class Autenticador {
         }
 
         return new UsuarioSesion(
-                s.entero("usuario_id"), s.texto("nombre"), s.texto("correo"),
+                s.entero("usuario_id"), s.texto("nombre"), s.texto("correo"), s.texto("telefono"),
                 Rol.valueOf(s.texto("rol")), sid);
     }
 
