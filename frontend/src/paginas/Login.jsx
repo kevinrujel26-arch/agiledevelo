@@ -4,7 +4,8 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, panelSegunRol } from '../contexto/AuthContext';
 import { Alerta, Campo } from '../componentes/comunes';
 import PantallaAuth from '../componentes/PantallaAuth';
-import { leerCampos, validarCampos, validarContrasenaIngreso, validarCorreo } from '../utils/validaciones';
+import { leerCampos, validarContrasenaIngreso, validarCorreo } from '../utils/validaciones';
+import { useValidacion } from '../utils/useValidacion';
 
 // Solo se valida el formato; si el correo existe o la contraseña es correcta lo responde el servidor
 const REGLAS = { correo: validarCorreo, contrasena: validarContrasenaIngreso };
@@ -17,8 +18,11 @@ export default function Login() {
 
   const formulario = useRef(null);
   const [datos, setDatos] = useState({ correo: state?.correo || '', contrasena: '' });
-  // Un campo se valida en vivo desde que se escribe en él o se sale de él
-  const [tocados, setTocados] = useState({ correo: Boolean(state?.correo) });
+  const { hayErrores, errorDe, esValido, tocar, editado, tocarTodos, setErroresServidor } = useValidacion(
+    REGLAS,
+    datos,
+    { correo: Boolean(state?.correo) }
+  );
   const [recordarme, setRecordarme] = useState(false);
   const [error, setError] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -29,16 +33,11 @@ export default function Login() {
       ? state.desde
       : panelSegunRol(u);
 
-  const errores = validarCampos(REGLAS, datos);
-  const hayErrores = Object.keys(errores).length > 0;
-  const errorDe = (campo) => (tocados[campo] ? errores[campo] : '');
-  const esValido = (campo) => Boolean(tocados[campo]) && !errores[campo];
-
-  const tocar = (e) => setTocados((t) => ({ ...t, [e.target.name]: true }));
+  const alSalir = (e) => tocar(e.target.name);
   const cambiar = (e) => {
     const { name, value } = e.target;
     setDatos((d) => ({ ...d, [name]: value }));
-    setTocados((t) => ({ ...t, [name]: true }));
+    editado(name);
   };
 
   // Recoge lo que el navegador autocompletó sin avisar con onChange
@@ -47,7 +46,7 @@ export default function Login() {
     const cambiados = Object.keys(leidos).filter((c) => leidos[c] && leidos[c] !== datos[c]);
     if (!cambiados.length) return;
     setDatos((d) => ({ ...d, ...Object.fromEntries(cambiados.map((c) => [c, leidos[c]])) }));
-    setTocados((t) => ({ ...t, ...Object.fromEntries(cambiados.map((c) => [c, true])) }));
+    tocar(...cambiados);
   };
 
   if (usuario) return <Navigate to={destinoPara(usuario)} replace />;
@@ -55,7 +54,7 @@ export default function Login() {
   async function enviar(e) {
     e.preventDefault();
     if (hayErrores) {
-      setTocados({ correo: true, contrasena: true });
+      tocarTodos();
       return;
     }
     setEnviando(true);
@@ -65,6 +64,7 @@ export default function Login() {
       const u = await iniciarSesion({ correo: datos.correo, contrasena: datos.contrasena, recordarme });
       navegar(destinoPara(u), { replace: true });
     } catch (err) {
+      setErroresServidor(err.porCampo || {});
       setError(err.message);
     } finally {
       setEnviando(false);
@@ -91,7 +91,7 @@ export default function Login() {
             placeholder="tu@correo.com"
             value={datos.correo}
             onChange={cambiar}
-            onBlur={tocar}
+            onBlur={alSalir}
             autoComplete="email"
           />
         </Campo>
@@ -103,7 +103,7 @@ export default function Login() {
             placeholder="••••••••"
             value={datos.contrasena}
             onChange={cambiar}
-            onBlur={tocar}
+            onBlur={alSalir}
             autoComplete="current-password"
           />
         </Campo>

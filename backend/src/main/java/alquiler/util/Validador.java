@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -27,6 +28,15 @@ public final class Validador {
             Pattern.compile("^[A-Za-z0-9._%+'-]+@[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*\\.[A-Za-z]{2,}$");
     private static final Pattern CELULAR = Pattern.compile("^9\\d{8}$");
     private static final Pattern ENTERO = Pattern.compile("^-?\\d{1,18}$");
+    // Reglas de texto compartidas con el frontend (frontend/src/utils/validaciones.js)
+    private static final Pattern CONTROL = Pattern.compile("\\p{Cc}");
+    private static final Pattern SALTOS = Pattern.compile("[\\n\\r\\t]");
+    private static final Pattern HTML = Pattern.compile("[<>]");
+    private static final Pattern ESPACIOS = Pattern.compile("\\s+", Pattern.UNICODE_CHARACTER_CLASS);
+    private static final Pattern ESPACIO = Pattern.compile("\\s", Pattern.UNICODE_CHARACTER_CLASS);
+    private static final Pattern LETRA = Pattern.compile("\\p{L}");
+    private static final Pattern NUMERO = Pattern.compile("[0-9]");
+    private static final Pattern NOMBRE_PERSONA = Pattern.compile("^[\\p{L}\\p{M}'’ -]+$");
     private static final String OBLIGATORIO = "Este campo es obligatorio";
     private static final String TIPO_INVALIDO = "Tipo de dato inválido";
 
@@ -74,6 +84,107 @@ public final class Validador {
     // ------------------------------------------------------------------
     // Textos
     // ------------------------------------------------------------------
+    /**
+     * Texto de una línea (nombres, marcas, motivos...). Rechaza caracteres de control y los
+     * signos {@code < >}, recorta los extremos y colapsa los espacios repetidos antes de medirlo.
+     * Si no es obligatorio y viene vacío (o solo con espacios), devuelve null.
+     *
+     * @param etiqueta sujeto de los mensajes, p. ej. "El nombre" o "La marca"
+     */
+    public String linea(String campo, String etiqueta, int min, int max, boolean obligatorio, String mensajeObligatorio) {
+        String s = textoCrudo(campo);
+        if (s == null || s.isBlank()) {
+            if (obligatorio && !errorDeTipo(campo)) error(campo, mensajeObligatorio != null ? mensajeObligatorio : OBLIGATORIO);
+            return null;
+        }
+        if (!textoSeguro(campo, etiqueta, s, false)) return null;
+        String t = ESPACIOS.matcher(s.strip()).replaceAll(" ");
+        if (t.length() < min) {
+            error(campo, etiqueta + " debe tener al menos " + min + " caracteres");
+            return null;
+        }
+        if (t.length() > max) {
+            error(campo, etiqueta + " debe tener como máximo " + max + " caracteres");
+            return null;
+        }
+        return t;
+    }
+
+    /** Texto de varias líneas (descripciones): como {@link #linea}, pero conserva los saltos de línea y es opcional. */
+    public String parrafo(String campo, String etiqueta, int max) {
+        String s = textoCrudo(campo);
+        if (s == null || s.isBlank()) return null;
+        if (!textoSeguro(campo, etiqueta, s, true)) return null;
+        String t = s.strip();
+        if (t.length() > max) {
+            error(campo, etiqueta + " debe tener como máximo " + max + " caracteres");
+            return null;
+        }
+        return t;
+    }
+
+    /** Nombre de una persona: letras (con tildes, ñ, ü), espacios, apóstrofo y guion; 2 a 120 caracteres. */
+    public String nombrePersona(String campo) {
+        String t = linea(campo, "El nombre", 2, 120, true, "El nombre es obligatorio");
+        if (t == null) return null;
+        if (!NOMBRE_PERSONA.matcher(t).matches()) {
+            error(campo, "El nombre solo puede contener letras, espacios, apóstrofos y guiones");
+            return null;
+        }
+        if (!LETRA.matcher(t).find()) {
+            error(campo, "El nombre debe contener al menos una letra");
+            return null;
+        }
+        return t;
+    }
+
+    /** Contraseña nueva: 8 a 72 caracteres, al menos una letra y un número, sin espacios en los extremos. */
+    public String contrasenaNueva(String campo) {
+        String s = textoCrudo(campo);
+        if (s == null || s.isEmpty()) {
+            if (!errorDeTipo(campo)) error(campo, "La contraseña es obligatoria");
+            return null;
+        }
+        String mensaje = null;
+        if (!s.equals(s.strip())) mensaje = "La contraseña no puede empezar ni terminar con espacios";
+        else if (s.length() < 8) mensaje = "La contraseña debe tener al menos 8 caracteres";
+        else if (s.length() > 72) mensaje = "La contraseña debe tener como máximo 72 caracteres";
+        else if (!LETRA.matcher(s).find()) mensaje = "La contraseña debe tener al menos una letra";
+        else if (!NUMERO.matcher(s).find()) mensaje = "La contraseña debe tener al menos un número";
+        if (mensaje != null) {
+            error(campo, mensaje);
+            return null;
+        }
+        return s;
+    }
+
+    /** El valor si es texto; si viene otro tipo registra el error y devuelve null. */
+    private String textoCrudo(String campo) {
+        Object v = datos.get(campo);
+        if (v == null || v instanceof String) return (String) v;
+        error(campo, TIPO_INVALIDO);
+        return null;
+    }
+
+    private boolean errorDeTipo(String campo) {
+        Object v = datos.get(campo);
+        return v != null && !(v instanceof String);
+    }
+
+    /** Rechaza caracteres de control y etiquetas HTML (signos < y >). */
+    private boolean textoSeguro(String campo, String etiqueta, String s, boolean permiteSaltos) {
+        String revisar = permiteSaltos ? SALTOS.matcher(s).replaceAll("") : s;
+        if (CONTROL.matcher(revisar).find()) {
+            error(campo, etiqueta + " contiene caracteres no permitidos");
+            return false;
+        }
+        if (HTML.matcher(s).find()) {
+            error(campo, etiqueta + " no puede contener los signos < ni >");
+            return false;
+        }
+        return true;
+    }
+
     /** Texto recortado (trim). Si no es obligatorio y no viene, devuelve null. */
     public String texto(String campo, int min, int max, boolean obligatorio, String mensajeObligatorio) {
         Object v = datos.get(campo);
@@ -102,38 +213,23 @@ public final class Validador {
         return t;
     }
 
-    /** Texto sin recortar (contraseñas). */
-    public String textoExacto(String campo, int min, int max, String mensajeMin, String mensajeMax) {
-        Object v = datos.get(campo);
-        if (v == null) {
-            error(campo, OBLIGATORIO);
-            return null;
-        }
-        if (!(v instanceof String s)) {
-            error(campo, TIPO_INVALIDO);
-            return null;
-        }
-        if (s.length() < min) {
-            error(campo, mensajeMin);
-            return null;
-        }
-        if (s.length() > max) {
-            error(campo, mensajeMax);
-            return null;
-        }
-        return s;
-    }
-
-    /** Correo obligatorio, en minúsculas y con formato válido. */
+    /** Correo obligatorio, sin espacios, hasta 160 caracteres y con formato válido. Se devuelve en minúsculas. */
     public String correo(String campo) {
-        String c = texto(campo, 1, 160, true, OBLIGATORIO);
-        if (c == null) return null;
-        c = c.toLowerCase();
-        if (!CORREO.matcher(c).matches()) {
-            error(campo, "El correo no tiene un formato válido");
+        String s = textoCrudo(campo);
+        if (s == null || s.isBlank()) {
+            if (!errorDeTipo(campo)) error(campo, "El correo es obligatorio");
             return null;
         }
-        return c;
+        String c = s.strip();
+        String mensaje = null;
+        if (ESPACIO.matcher(c).find()) mensaje = "El correo no puede contener espacios";
+        else if (c.length() > 160) mensaje = "El correo debe tener como máximo 160 caracteres";
+        else if (!CORREO.matcher(c).matches()) mensaje = "El correo no tiene un formato válido";
+        if (mensaje != null) {
+            error(campo, mensaje);
+            return null;
+        }
+        return c.toLowerCase(Locale.ROOT);
     }
 
     /**

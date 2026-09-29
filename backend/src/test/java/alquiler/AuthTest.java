@@ -149,6 +149,95 @@ class AuthTest extends PruebaBase {
         assertEquals("ck_usuarios_telefono", e.getRestriccion());
     }
 
+    // ------------------------------------------------------------ Validaciones del registro
+    private Resp registrarCon(String campo, Object valor) {
+        Map<String, Object> datos = registroValido();
+        datos.put(campo, valor);
+        return post("/api/auth/registro", datos, null);
+    }
+
+    @Test
+    @DisplayName("Validación: el nombre acepta tildes, ñ, apóstrofo y guion; recorta y colapsa espacios")
+    void nombreValido() {
+        Resp r = registrarCon("nombre", "  José   María O'Connor-Pérez  ");
+        assertEquals(201, r.estado(), String.valueOf(r.cuerpo()));
+        assertEquals("José María O'Connor-Pérez", r.objeto("usuario").get("nombre"));
+        assertEquals(201, post("/api/auth/registro", Json.obj("nombre", "Íñigo Güemes", "correo", "inigo@correo.pe",
+                "telefono", "912345678", "contrasena", "secreta123"), null).estado());
+    }
+
+    @Test
+    @DisplayName("Validación: el nombre rechaza números, símbolos, HTML, control y largos fuera de 2–120")
+    void nombreInvalido() {
+        Map<String, String> casos = Map.of(
+                "745865258482", "El nombre solo puede contener letras, espacios, apóstrofos y guiones",
+                "Ana123", "El nombre solo puede contener letras, espacios, apóstrofos y guiones",
+                "@@@", "El nombre solo puede contener letras, espacios, apóstrofos y guiones",
+                "'-'", "El nombre debe contener al menos una letra",
+                "A", "El nombre debe tener al menos 2 caracteres",
+                "a".repeat(121), "El nombre debe tener como máximo 120 caracteres",
+                "   ", "El nombre es obligatorio",
+                "Ana <script>", "El nombre no puede contener los signos < ni >",
+                "Ana\u0007Torres", "El nombre contiene caracteres no permitidos");
+        casos.forEach((malo, mensaje) -> {
+            Resp r = registrarCon("nombre", malo);
+            assertEquals(400, r.estado(), malo);
+            assertEquals(mensaje, r.errorDe("nombre"), malo);
+        });
+        assertEquals(0L, bd().uno("SELECT count(*) AS n FROM usuarios").entero("n"));
+    }
+
+    @Test
+    @DisplayName("Validación: el correo no admite espacios, dominios sin punto ni más de 160 caracteres")
+    void correoReglas() {
+        assertEquals("El correo no tiene un formato válido", registrarCon("correo", "a@b").errorDe("correo"));
+        assertEquals("El correo no puede contener espacios", registrarCon("correo", "ana torres@correo.com").errorDe("correo"));
+        assertEquals("El correo debe tener como máximo 160 caracteres",
+                registrarCon("correo", "a".repeat(150) + "@correo.com").errorDe("correo"));
+        assertEquals("El correo es obligatorio", registrarCon("correo", "   ").errorDe("correo"));
+        Resp ok = registrarCon("correo", "  Ana.Torres@Correo.PE ");
+        assertEquals(201, ok.estado());
+        assertEquals("ana.torres@correo.pe", ok.objeto("usuario").get("correo"));
+    }
+
+    @Test
+    @DisplayName("Validación: la contraseña exige 8–72 caracteres, una letra, un número y sin espacios en los extremos")
+    void contrasenaReglas() {
+        Map<String, String> casos = Map.of(
+                "abcdefgh", "La contraseña debe tener al menos un número",
+                "12345678", "La contraseña debe tener al menos una letra",
+                " clave123", "La contraseña no puede empezar ni terminar con espacios",
+                "clave123 ", "La contraseña no puede empezar ni terminar con espacios",
+                "clave12", "La contraseña debe tener al menos 8 caracteres",
+                "a1".repeat(37), "La contraseña debe tener como máximo 72 caracteres",
+                "", "La contraseña es obligatoria");
+        casos.forEach((mala, mensaje) -> assertEquals(mensaje, registrarCon("contrasena", mala).errorDe("contrasena"), mala));
+        assertEquals(201, registrarCon("contrasena", "mi clave 123").estado());
+    }
+
+    @Test
+    @DisplayName("Validación: el login solo revisa el formato (correo válido y contraseña no vacía)")
+    void loginSoloFormato() {
+        Resp correoMalo = post("/api/auth/login", Json.obj("correo", "ana@", "contrasena", "x"), null);
+        assertEquals(400, correoMalo.estado());
+        assertEquals("El correo no tiene un formato válido", correoMalo.errorDe("correo"));
+        Resp sinClave = post("/api/auth/login", Json.obj("correo", "ana@correo.pe", "contrasena", "   "), null);
+        assertEquals(400, sinClave.estado());
+        assertEquals("Ingresa tu contraseña", sinClave.errorDe("contrasena"));
+    }
+
+    @Test
+    @DisplayName("Validación: un usuario antiguo con nombre y contraseña fuera de las reglas nuevas sigue entrando")
+    void usuarioAntiguoSigueEntrando() {
+        bd().ejecutar("""
+                INSERT INTO usuarios (nombre, correo, telefono, contrasena_hash, rol)
+                VALUES ('@@ 745865258482', 'antiguo@prueba.pe', '987654321', ?, 'CLIENTE')""",
+                new alquiler.seguridad.Contrasenas(1000).cifrar("corta"));
+        Resp r = post("/api/auth/login", Json.obj("correo", "antiguo@prueba.pe", "contrasena", "corta"), null);
+        assertEquals(200, r.estado(), String.valueOf(r.cuerpo()));
+        assertEquals("@@ 745865258482", r.objeto("usuario").get("nombre"));
+    }
+
     // ------------------------------------------------------------ Roles (EN-05)
     @Test
     @DisplayName("EN-05: la BD solo admite los roles CLIENTE y ADMINISTRADOR (no existe PROVEEDOR)")

@@ -101,6 +101,16 @@ public abstract class PruebaBase {
             return cuerpo instanceof Map<?, ?> m ? (String) m.get("error") : null;
         }
 
+        /** Mensaje del primer detalle de ese campo, o null si el campo no tiene error. */
+        public String errorDe(String campo) {
+            if (!(cuerpo instanceof Map<?, ?> m) || !(m.get("detalles") instanceof List<?> detalles)) return null;
+            return detalles.stream()
+                    .map(d -> (Map<?, ?>) d)
+                    .filter(d -> campo.equals(d.get("campo")))
+                    .map(d -> (String) d.get("mensaje"))
+                    .findFirst().orElse(null);
+        }
+
         @SuppressWarnings("unchecked")
         public List<Map<String, Object>> lista(String campo) {
             return (List<Map<String, Object>>) json().get(campo);

@@ -27,12 +27,10 @@ public class AuthControlador {
     public ResponseEntity<Object> registro(HttpServletRequest peticion) {
         Solicitud s = Solicitud.de(peticion);
         Validador v = Validador.de(s.json());
-        String nombre = v.texto("nombre", 1, 120, true, "El nombre es obligatorio");
+        String nombre = v.nombrePersona("nombre");
         String correo = v.correo("correo");
         String telefono = v.celular("telefono", true);
-        String contrasena = v.textoExacto("contrasena", 8, 72,
-                "La contraseña debe tener al menos 8 caracteres",
-                "La contraseña debe tener como máximo 72 caracteres");
+        String contrasena = v.contrasenaNueva("contrasena");
         v.validar();
 
         Map<String, Object> usuario = servicio.registrarCliente(nombre, correo, telefono, contrasena);

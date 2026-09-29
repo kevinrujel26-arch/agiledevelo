@@ -6,13 +6,13 @@ import { Alerta, Campo } from '../componentes/comunes';
 import {
   leerCampos,
   requisitosContrasena,
-  validarCampos,
   validarCelular,
   validarConfirmacion,
   validarContrasenaNueva,
   validarCorreo,
   validarNombre,
 } from '../utils/validaciones';
+import { useValidacion } from '../utils/useValidacion';
 import PantallaAuth from '../componentes/PantallaAuth';
 
 const REGLAS = {
@@ -42,24 +42,18 @@ export default function Registro() {
   const navegar = useNavigate();
   const formulario = useRef(null);
   const [datos, setDatos] = useState({ nombre: '', correo: '', telefono: '', contrasena: '', confirmar: '' });
-  // Un campo se valida en vivo desde que se escribe en él o se sale de él
-  const [tocados, setTocados] = useState({});
-  const [erroresServidor, setErroresServidor] = useState({});
+  const { hayErrores, tocados, errorDe, esValido, tocar, editado, tocarTodos, setErroresServidor } = useValidacion(
+    REGLAS,
+    datos
+  );
   const [errorGeneral, setErrorGeneral] = useState('');
   const [enviando, setEnviando] = useState(false);
 
-  const errores = validarCampos(REGLAS, datos);
-  const hayErrores = Object.keys(errores).length > 0;
-  // El error del servidor se muestra hasta que el usuario vuelve a editar ese campo
-  const errorDe = (campo) => erroresServidor[campo] || (tocados[campo] ? errores[campo] : '');
-  const esValido = (campo) => Boolean(tocados[campo]) && !errorDe(campo);
-
-  const tocar = (e) => setTocados((t) => ({ ...t, [e.target.name]: true }));
+  const alSalir = (e) => tocar(e.target.name);
   const cambiar = (e) => {
     const { name, value } = e.target;
     setDatos((d) => ({ ...d, [name]: value }));
-    setTocados((t) => ({ ...t, [name]: true }));
-    setErroresServidor((errs) => ({ ...errs, [name]: undefined }));
+    editado(name);
   };
 
   // Recoge lo que el navegador autocompletó sin avisar con onChange
@@ -68,14 +62,14 @@ export default function Registro() {
     const cambiados = Object.keys(leidos).filter((c) => leidos[c] && leidos[c] !== datos[c]);
     if (!cambiados.length) return;
     setDatos((d) => ({ ...d, ...Object.fromEntries(cambiados.map((c) => [c, leidos[c]])) }));
-    setTocados((t) => ({ ...t, ...Object.fromEntries(cambiados.map((c) => [c, true])) }));
+    tocar(...cambiados);
   };
 
   async function enviar(e) {
     e.preventDefault();
     setErrorGeneral('');
     if (hayErrores) {
-      setTocados(Object.fromEntries(CAMPOS.map((c) => [c, true])));
+      tocarTodos();
       return;
     }
 
@@ -114,7 +108,7 @@ export default function Registro() {
             placeholder="Ana Torres"
             value={datos.nombre}
             onChange={cambiar}
-            onBlur={tocar}
+            onBlur={alSalir}
             autoComplete="name"
           />
         </Campo>
@@ -126,7 +120,7 @@ export default function Registro() {
             placeholder="tu@correo.com"
             value={datos.correo}
             onChange={cambiar}
-            onBlur={tocar}
+            onBlur={alSalir}
             autoComplete="email"
           />
         </Campo>
@@ -146,7 +140,7 @@ export default function Registro() {
             maxLength={16}
             value={datos.telefono}
             onChange={cambiar}
-            onBlur={tocar}
+            onBlur={alSalir}
             autoComplete="tel-national"
           />
         </Campo>
@@ -165,7 +159,7 @@ export default function Registro() {
             placeholder="••••••••"
             value={datos.contrasena}
             onChange={cambiar}
-            onBlur={tocar}
+            onBlur={alSalir}
             autoComplete="new-password"
           />
         </Campo>
@@ -177,7 +171,7 @@ export default function Registro() {
             placeholder="••••••••"
             value={datos.confirmar}
             onChange={cambiar}
-            onBlur={tocar}
+            onBlur={alSalir}
             autoComplete="new-password"
           />
         </Campo>
