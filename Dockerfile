@@ -9,7 +9,7 @@ RUN mvn -B -q -f backend/pom.xml dependency:go-offline
 COPY backend/src backend/src
 RUN mvn -B -q -f backend/pom.xml package -DskipTests
 
-# 2) Imagen final: solo el JRE y el .jar
+# 2) Imagen final: solo el JRE y el .jar (Spring Boot). SerialGC y C1 reducen memoria y arranque en el plan gratis de Render.
 FROM eclipse-temurin:21-jre
 WORKDIR /app/backend
 COPY --from=compilacion /app/backend/target/alquiler-backend.jar app.jar
@@ -17,4 +17,4 @@ COPY database /app/database
 ENV APP_ENV=production
 EXPOSE 3000
 # Render define la variable PORT; la API la usa automáticamente
-CMD ["java", "-XX:MaxRAMPercentage=75", "-jar", "app.jar"]
+CMD ["java", "-XX:MaxRAMPercentage=75", "-XX:+UseSerialGC", "-XX:TieredStopAtLevel=1", "-jar", "app.jar"]

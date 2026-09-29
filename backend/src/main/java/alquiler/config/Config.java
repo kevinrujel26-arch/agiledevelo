@@ -92,6 +92,19 @@ public final class Config {
         });
     }
 
+    /**
+     * Configuración leída a través de Spring: primero lo que Spring conoce
+     * (variables de entorno, propiedades del sistema, propiedades de las
+     * pruebas) y, si falta, el archivo backend/.env.
+     */
+    public static Config desde(Function<String, String> primero) {
+        Map<String, String> archivoEnv = leerArchivoEnv(Path.of(".env"));
+        return new Config(clave -> {
+            String v = primero.apply(clave);
+            return v != null ? v : archivoEnv.get(clave);
+        });
+    }
+
     /** Para las pruebas: igual que cargar(), pero con APP_ENV=test y valores extra. */
     public static Config paraPruebas(Map<String, String> extra) {
         Map<String, String> archivoEnv = leerArchivoEnv(Path.of(".env"));

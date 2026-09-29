@@ -1,5 +1,6 @@
 package alquiler.maquinas;
 
+import org.springframework.stereotype.Service;
 import alquiler.bd.Bd;
 import alquiler.bd.Fila;
 import alquiler.categorias.CategoriaRepositorio;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 /** HU-03 Ver catálogo · HU-04 Ver detalle (base) · HU-08 Registrar y publicar máquina */
+@Service
 public class MaquinaServicio {
 
     /** Archivo recibido del formulario, ya validado en tipo y tamaño. */

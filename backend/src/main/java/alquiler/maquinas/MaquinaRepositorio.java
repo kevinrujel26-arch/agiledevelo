@@ -1,5 +1,6 @@
 package alquiler.maquinas;
 
+import org.springframework.stereotype.Repository;
 import alquiler.bd.Consultas;
 import alquiler.bd.Fila;
 import alquiler.modelo.EstadoMaquina;
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 /** Acceso a la tabla "maquinas" (HU-03, HU-08). */
+@Repository
 public class MaquinaRepositorio {
 
     private static final String SELECT_MAQUINA = """

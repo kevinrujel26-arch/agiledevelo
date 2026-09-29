@@ -1,9 +1,11 @@
 package alquiler.auth;
 
+import org.springframework.stereotype.Repository;
 import alquiler.bd.Consultas;
 import alquiler.bd.Fila;
 
 /** Acceso a la tabla "usuarios" (HU-01, HU-02). */
+@Repository
 public class UsuarioRepositorio {
 
     private final Consultas bd;

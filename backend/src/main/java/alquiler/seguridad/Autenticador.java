@@ -1,5 +1,6 @@
 package alquiler.seguridad;
 
+import org.springframework.stereotype.Component;
 import alquiler.bd.Bd;
 import alquiler.bd.Fila;
 import alquiler.config.Config;
@@ -16,6 +17,7 @@ import java.util.Map;
  * seguir vigente en la tabla "sesiones" (no cerrada, no vencida, sin
  * exceso de inactividad) y el usuario debe estar activo.
  */
+@Component
 public class Autenticador {
 
     /** Solo se actualiza ultima_actividad si pasó más de 1 minuto (evita escribir en cada petición). */

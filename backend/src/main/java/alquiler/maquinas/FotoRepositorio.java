@@ -1,5 +1,6 @@
 package alquiler.maquinas;
 
+import org.springframework.stereotype.Repository;
 import alquiler.bd.Consultas;
 import alquiler.bd.Fila;
 import alquiler.modelo.Foto;
@@ -10,6 +11,7 @@ import java.util.List;
  * Acceso a la tabla "fotos_maquina" (HU-08). Los métodos reciben las
  * {@link Consultas} para poder usarse dentro de una transacción.
  */
+@Repository
 public class FotoRepositorio {
 
     public List<Foto> listar(Consultas bd, long maquinaId) {

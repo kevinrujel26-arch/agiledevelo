@@ -1,17 +1,23 @@
 package alquiler.http;
 
-/** Respuesta HTTP: código de estado + cuerpo que se convertirá a JSON. */
-public record Respuesta(int estado, Object cuerpo) {
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
-    public static Respuesta ok(Object cuerpo) {
-        return new Respuesta(200, cuerpo);
+/** Atajos para armar la respuesta HTTP de un controlador. */
+public final class Respuesta {
+
+    private Respuesta() {
     }
 
-    public static Respuesta creado(Object cuerpo) {
-        return new Respuesta(201, cuerpo);
+    public static ResponseEntity<Object> ok(Object cuerpo) {
+        return ResponseEntity.ok(cuerpo);
     }
 
-    public static Respuesta sinContenido() {
-        return new Respuesta(204, null);
+    public static ResponseEntity<Object> creado(Object cuerpo) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(cuerpo);
+    }
+
+    public static ResponseEntity<Object> sinContenido() {
+        return ResponseEntity.noContent().build();
     }
 }

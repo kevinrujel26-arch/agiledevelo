@@ -1,5 +1,6 @@
 package alquiler.auth;
 
+import org.springframework.stereotype.Service;
 import alquiler.bd.Fila;
 import alquiler.config.Config;
 import alquiler.json.Json;
@@ -13,6 +14,7 @@ import java.time.Instant;
 import java.util.Map;
 
 /** HU-01 Registrar cliente · HU-02 Iniciar y cerrar sesión · EN-03 Autenticación base */
+@Service
 public class AuthServicio {
 
     /** HU-02 criterio 2: el mismo mensaje si el correo no existe o la contraseña es incorrecta. */

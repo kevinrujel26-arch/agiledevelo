@@ -4,9 +4,12 @@ import alquiler.bd.Bd;
 import alquiler.bd.Migraciones;
 import alquiler.bd.Sembrador;
 import alquiler.config.Config;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;
 
 /**
- * Punto de entrada.
+ * Punto de entrada (Spring Boot).
  *
  * <pre>
  *   java -jar alquiler-backend.jar             arranca la API (aplica migraciones pendientes)
@@ -14,13 +17,15 @@ import alquiler.config.Config;
  *   java -jar alquiler-backend.jar sembrar     carga admin, categorías y máquinas de ejemplo
  *   java -jar alquiler-backend.jar reiniciar   BORRA todo, migra y siembra (solo desarrollo)
  * </pre>
+ *
+ * Los comandos migrar / sembrar / reiniciar no levantan Spring: solo usan la BD.
  */
-public final class App {
+// Se excluye el usuario en memoria que Spring Security crea por defecto: aquí los
+// usuarios viven en la tabla "usuarios" y el login lo hace AuthServicio.
+@SpringBootApplication(exclude = UserDetailsServiceAutoConfiguration.class)
+public class App {
 
-    private App() {
-    }
-
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         Config config;
         try {
             config = Config.cargar();
@@ -52,24 +57,11 @@ public final class App {
                     Sembrador.sembrar(bd, config);
                 }
             }
-            case "servidor" -> iniciarServidor(config);
+            case "servidor" -> SpringApplication.run(App.class, args);
             default -> {
-                System.err.println("Comando desconocido: " + comando + " (usa: migrar, sembrar, reiniciar)");
+                System.err.println("Comando desconocido: " + comando + ". Usa: servidor | migrar | sembrar | reiniciar");
                 System.exit(1);
             }
         }
-    }
-
-    private static void iniciarServidor(Config config) throws Exception {
-        Aplicacion app = new Aplicacion(config);
-        if (config.migrarAlIniciar) {
-            Migraciones.migrar(app.bd(), config.dirMigraciones, false, false);
-        }
-        app.iniciar(config.puerto);
-        System.out.println("API escuchando en http://localhost:" + config.puerto + " (" + config.entorno + ")");
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("Deteniendo la API...");
-            app.detener();
-        }));
     }
 }

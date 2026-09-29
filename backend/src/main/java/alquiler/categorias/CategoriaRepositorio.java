@@ -1,5 +1,6 @@
 package alquiler.categorias;
 
+import org.springframework.stereotype.Repository;
 import alquiler.bd.Consultas;
 import alquiler.bd.Fila;
 import alquiler.modelo.Categoria;
@@ -7,6 +8,7 @@ import alquiler.modelo.Categoria;
 import java.util.List;
 
 /** Acceso a la tabla "categorias" (HU-14). */
+@Repository
 public class CategoriaRepositorio {
 
     private final Consultas bd;

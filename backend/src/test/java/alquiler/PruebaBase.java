@@ -1,7 +1,11 @@
 package alquiler;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import alquiler.bd.Bd;
 import alquiler.bd.Migraciones;
 import alquiler.config.Config;
@@ -21,34 +25,59 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Base de las pruebas de integración: levanta la API real en un puerto libre
- * contra la BD de pruebas (DATABASE_URL_TEST), que se recrea al empezar y se
- * vacía antes de cada prueba.
+ * Base de las pruebas de integración: levanta la API real de Spring Boot en un
+ * puerto libre contra la BD de pruebas (DATABASE_URL_TEST), que se recrea al
+ * empezar y se vacía antes de cada prueba.
+ *
+ * Las fotos se guardan en una carpeta temporal (no en Cloudinary), así las
+ * pruebas no necesitan internet ni credenciales.
  */
+@SpringBootTest(
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = {"APP_ENV=test", "MIGRAR_AL_INICIAR=false"})
 public abstract class PruebaBase {
 
-    private static Aplicacion app;
-    private static String base;
     private static final HttpClient CLIENTE = HttpClient.newHttpClient();
+    private static final Path SUBIDAS = crearCarpetaTemporal();
+    private static boolean esquemaCreado = false;
+    private static Bd bdActual;
+    private static String base;
     private static int contador = 0;
 
     /** PNG y JPG mínimos con la firma correcta de cada formato. */
     protected static final byte[] PNG = {(byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0};
     protected static final byte[] JPG = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0, 0, 0x10, 0x4A, 0x46};
 
-    @BeforeAll
-    static synchronized void iniciarApi() throws Exception {
-        if (app != null) return;
-        Path subidas = Files.createTempDirectory("alquiler-pruebas");
-        Config config = Config.paraPruebas(Map.of("UPLOAD_DIR", subidas.toString()));
-        app = new Aplicacion(config);
-        Migraciones.migrar(app.bd(), config.dirMigraciones, true, true);
-        app.iniciar(0);
-        base = "http://localhost:" + app.puerto();
+    @Autowired
+    private Bd bdInyectada;
+    @Autowired
+    private Config configInyectada;
+    @LocalServerPort
+    private int puertoLocal;
+
+    private static Path crearCarpetaTemporal() {
+        try {
+            return Files.createTempDirectory("alquiler-pruebas");
+        } catch (java.io.IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    @DynamicPropertySource
+    static void propiedades(DynamicPropertyRegistry registro) {
+        registro.add("UPLOAD_DIR", SUBIDAS::toString);
     }
 
     @BeforeEach
-    void limpiarBd() {
+    void prepararBd() {
+        bdActual = bdInyectada;
+        base = "http://localhost:" + puertoLocal;
+        synchronized (PruebaBase.class) {
+            if (!esquemaCreado) {
+                Migraciones.migrar(bdInyectada, configInyectada.dirMigraciones, true, true);
+                esquemaCreado = true;
+            }
+        }
         bd().ejecutar("""
                 TRUNCATE auditoria, solicitudes_reembolso, pagos, reservas, bloqueos_disponibilidad,
                          fotos_maquina, maquinas, categorias, sesiones, usuarios
@@ -56,7 +85,7 @@ public abstract class PruebaBase {
     }
 
     protected static Bd bd() {
-        return app.bd();
+        return bdActual;
     }
 
     // ------------------------------------------------------------------

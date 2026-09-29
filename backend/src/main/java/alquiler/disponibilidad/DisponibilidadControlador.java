@@ -1,7 +1,6 @@
 package alquiler.disponibilidad;
 
 import alquiler.config.Config;
-import alquiler.http.Enrutador;
 import alquiler.http.Respuesta;
 import alquiler.http.Solicitud;
 import alquiler.json.Json;
@@ -9,14 +8,16 @@ import alquiler.util.ErrorApp;
 import alquiler.util.Fechas;
 import alquiler.util.Validador;
 
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static alquiler.http.Enrutador.Acceso.ADMINISTRADOR;
-import static alquiler.http.Enrutador.Acceso.PUBLICO;
 
 /** Rutas de disponibilidad (HU-09). */
+@RestController
 public class DisponibilidadControlador {
 
     private static final int DIAS_POR_DEFECTO = 180;
@@ -30,22 +31,24 @@ public class DisponibilidadControlador {
         this.config = config;
     }
 
-    public void registrar(Enrutador r) {
-        r.get("/api/maquinas/{id}/disponibilidad", PUBLICO, this::ocupacion);
+    @GetMapping("/api/admin/maquinas/{id}/bloqueos")
+    public ResponseEntity<Object> listarBloqueos(HttpServletRequest peticion) {
+        Solicitud s = Solicitud.de(peticion);
+        boolean pasados = "true".equals(s.query().get("incluirPasados"));
+        return Respuesta.ok(Json.obj("datos", servicio.listar(s.id("id"), pasados)));
+    }
 
-        r.get("/api/admin/maquinas/{id}/bloqueos", ADMINISTRADOR, s -> {
-            boolean pasados = "true".equals(s.query().get("incluirPasados"));
-            return Respuesta.ok(Json.obj("datos", servicio.listar(s.id("id"), pasados)));
-        });
-        r.post("/api/admin/maquinas/{id}/bloqueos", ADMINISTRADOR, this::bloquear);
-        r.delete("/api/admin/maquinas/{id}/bloqueos/{bloqueoId}", ADMINISTRADOR, s -> {
-            servicio.desbloquear(s.id("id"), s.id("bloqueoId"));
-            return Respuesta.sinContenido();
-        });
+    @DeleteMapping("/api/admin/maquinas/{id}/bloqueos/{bloqueoId}")
+    public ResponseEntity<Object> desbloquear(HttpServletRequest peticion) {
+        Solicitud s = Solicitud.de(peticion);
+        servicio.desbloquear(s.id("id"), s.id("bloqueoId"));
+        return Respuesta.sinContenido();
     }
 
     /** ?desde=&hasta= (por defecto: hoy + 180 días) */
-    private Respuesta ocupacion(Solicitud s) {
+    @GetMapping("/api/maquinas/{id}/disponibilidad")
+    public ResponseEntity<Object> ocupacion(HttpServletRequest peticion) {
+        Solicitud s = Solicitud.de(peticion);
         long id = s.id("id");
         Validador v = Validador.de(s.query());
         String desde = v.fecha("desde", false);
@@ -61,7 +64,9 @@ public class DisponibilidadControlador {
     }
 
     /** { "rangos": [{ "fechaInicio": "2026-10-01", "fechaFin": "2026-10-03" }], "motivo": "..." } */
-    private Respuesta bloquear(Solicitud s) {
+    @PostMapping("/api/admin/maquinas/{id}/bloqueos")
+    public ResponseEntity<Object> bloquear(HttpServletRequest peticion) {
+        Solicitud s = Solicitud.de(peticion);
         long id = s.id("id");
         Validador v = Validador.de(s.json());
         List<Map<String, Object>> lista = v.listaDeObjetos("rangos", 1, 20, "Agrega al menos un rango de fechas");

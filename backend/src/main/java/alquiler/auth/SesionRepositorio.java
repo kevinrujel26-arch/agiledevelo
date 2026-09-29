@@ -1,10 +1,12 @@
 package alquiler.auth;
 
+import org.springframework.stereotype.Repository;
 import alquiler.bd.Consultas;
 
 import java.time.Instant;
 
 /** Acceso a la tabla "sesiones" (HU-02: cerrar sesión, expiración, recordarme). */
+@Repository
 public class SesionRepositorio {
 
     private final Consultas bd;

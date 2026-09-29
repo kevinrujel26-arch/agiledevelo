@@ -1,7 +1,6 @@
 package alquiler.maquinas;
 
 import alquiler.config.Config;
-import alquiler.http.Enrutador;
 import alquiler.http.Multipart;
 import alquiler.http.Respuesta;
 import alquiler.http.Solicitud;
@@ -10,16 +9,18 @@ import alquiler.util.ErrorApp;
 import alquiler.util.Paginacion;
 import alquiler.util.Validador;
 
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static alquiler.http.Enrutador.Acceso.ADMINISTRADOR;
-import static alquiler.http.Enrutador.Acceso.PUBLICO;
 
 /** Rutas /api/maquinas (público) y /api/admin/maquinas (HU-03, HU-08). */
+@RestController
 public class MaquinaControlador {
 
     private static final List<String> ESTADOS = List.of("BORRADOR", "PUBLICADA", "RETIRADA");
@@ -33,33 +34,48 @@ public class MaquinaControlador {
         this.config = config;
     }
 
-    public void registrar(Enrutador r) {
-        // Público
-        r.get("/api/maquinas", PUBLICO, this::catalogo);
-        r.get("/api/maquinas/{id}", PUBLICO, s -> Respuesta.ok(servicio.detallePublico(s.id("id"))));
+    @GetMapping("/api/maquinas/{id}")
+    public ResponseEntity<Object> detallePublico(HttpServletRequest peticion) {
+        return Respuesta.ok(servicio.detallePublico(Solicitud.de(peticion).id("id")));
+    }
 
-        // Administrador
-        r.get("/api/admin/maquinas", ADMINISTRADOR, this::listarAdmin);
-        r.get("/api/admin/maquinas/{id}", ADMINISTRADOR, s -> Respuesta.ok(servicio.detalleAdmin(s.id("id"))));
-        r.post("/api/admin/maquinas", ADMINISTRADOR, this::crear);
-        r.put("/api/admin/maquinas/{id}", ADMINISTRADOR, this::actualizar);
-        r.post("/api/admin/maquinas/{id}/publicar", ADMINISTRADOR, s -> Respuesta.ok(servicio.publicar(s.id("id"))));
-        r.post("/api/admin/maquinas/{id}/retirar", ADMINISTRADOR, s -> Respuesta.ok(servicio.retirar(s.id("id"))));
-        r.delete("/api/admin/maquinas/{id}", ADMINISTRADOR, s -> {
-            servicio.eliminar(s.id("id"));
-            return Respuesta.sinContenido();
-        });
+    @GetMapping("/api/admin/maquinas/{id}")
+    public ResponseEntity<Object> detalleAdmin(HttpServletRequest peticion) {
+        return Respuesta.ok(servicio.detalleAdmin(Solicitud.de(peticion).id("id")));
+    }
 
-        // Fotos
-        r.post("/api/admin/maquinas/{id}/fotos", ADMINISTRADOR, this::subirFotos);
-        r.patch("/api/admin/maquinas/{id}/fotos/{fotoId}/principal", ADMINISTRADOR,
-                s -> Respuesta.ok(Json.obj("fotos", servicio.marcarPrincipal(s.id("id"), s.id("fotoId")))));
-        r.delete("/api/admin/maquinas/{id}/fotos/{fotoId}", ADMINISTRADOR,
-                s -> Respuesta.ok(Json.obj("fotos", servicio.eliminarFoto(s.id("id"), s.id("fotoId")))));
+    @PostMapping("/api/admin/maquinas/{id}/publicar")
+    public ResponseEntity<Object> publicar(HttpServletRequest peticion) {
+        return Respuesta.ok(servicio.publicar(Solicitud.de(peticion).id("id")));
+    }
+
+    @PostMapping("/api/admin/maquinas/{id}/retirar")
+    public ResponseEntity<Object> retirar(HttpServletRequest peticion) {
+        return Respuesta.ok(servicio.retirar(Solicitud.de(peticion).id("id")));
+    }
+
+    @DeleteMapping("/api/admin/maquinas/{id}")
+    public ResponseEntity<Object> eliminar(HttpServletRequest peticion) {
+        servicio.eliminar(Solicitud.de(peticion).id("id"));
+        return Respuesta.sinContenido();
+    }
+
+    @PatchMapping("/api/admin/maquinas/{id}/fotos/{fotoId}/principal")
+    public ResponseEntity<Object> marcarPrincipal(HttpServletRequest peticion) {
+        Solicitud s = Solicitud.de(peticion);
+        return Respuesta.ok(Json.obj("fotos", servicio.marcarPrincipal(s.id("id"), s.id("fotoId"))));
+    }
+
+    @DeleteMapping("/api/admin/maquinas/{id}/fotos/{fotoId}")
+    public ResponseEntity<Object> eliminarFoto(HttpServletRequest peticion) {
+        Solicitud s = Solicitud.de(peticion);
+        return Respuesta.ok(Json.obj("fotos", servicio.eliminarFoto(s.id("id"), s.id("fotoId"))));
     }
 
     /** HU-03: catálogo paginado, visible sin iniciar sesión. Criterio 2: filtro por categoría y búsqueda por palabra clave. */
-    private Respuesta catalogo(Solicitud s) {
+    @GetMapping("/api/maquinas")
+    public ResponseEntity<Object> catalogo(HttpServletRequest peticion) {
+        Solicitud s = Solicitud.de(peticion);
         Validador v = Validador.de(s.query());
         Paginacion p = Paginacion.desde(v);
         Long categoriaId = v.idPositivo("categoriaId", false, null);
@@ -68,7 +84,9 @@ public class MaquinaControlador {
         return Respuesta.ok(servicio.catalogo(categoriaId, texto, p));
     }
 
-    private Respuesta listarAdmin(Solicitud s) {
+    @GetMapping("/api/admin/maquinas")
+    public ResponseEntity<Object> listarAdmin(HttpServletRequest peticion) {
+        Solicitud s = Solicitud.de(peticion);
         Validador v = Validador.de(s.query());
         Paginacion p = Paginacion.desde(v);
         String estado = v.opcion("estado", ESTADOS, false);
@@ -81,14 +99,18 @@ public class MaquinaControlador {
     // ------------------------------------------------------------------
     // Crear y editar (HU-08 criterio 1)
     // ------------------------------------------------------------------
-    private Respuesta crear(Solicitud s) {
+    @PostMapping("/api/admin/maquinas")
+    public ResponseEntity<Object> crear(HttpServletRequest peticion) {
+        Solicitud s = Solicitud.de(peticion);
         Validador v = Validador.de(s.json());
         DatosMaquina d = leerDatos(v, true);
         v.validar();
         return Respuesta.creado(servicio.crear(d, s.usuario().id()));
     }
 
-    private Respuesta actualizar(Solicitud s) {
+    @PutMapping("/api/admin/maquinas/{id}")
+    public ResponseEntity<Object> actualizar(HttpServletRequest peticion) {
+        Solicitud s = Solicitud.de(peticion);
         long id = s.id("id");
         Map<String, Object> cuerpo = s.json();
         boolean algunCampo = MaquinaRepositorio.COLUMNAS_EDITABLES.keySet().stream().anyMatch(cuerpo::containsKey);
@@ -139,7 +161,9 @@ public class MaquinaControlador {
     // ------------------------------------------------------------------
     // Fotos: multipart/form-data con el campo "fotos" (1 a 5 archivos)
     // ------------------------------------------------------------------
-    private Respuesta subirFotos(Solicitud s) {
+    @PostMapping("/api/admin/maquinas/{id}/fotos")
+    public ResponseEntity<Object> subirFotos(HttpServletRequest peticion) {
+        Solicitud s = Solicitud.de(peticion);
         long id = s.id("id");
         String tipo = s.cabecera("Content-Type");
         if (!Multipart.esMultipart(tipo)) throw ErrorApp.solicitudInvalida("Envía las fotos en el campo \"fotos\"");

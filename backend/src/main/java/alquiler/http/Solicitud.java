@@ -1,9 +1,12 @@
 package alquiler.http;
 
-import com.sun.net.httpserver.HttpExchange;
 import alquiler.json.Json;
 import alquiler.seguridad.UsuarioSesion;
 import alquiler.util.ErrorApp;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.servlet.HandlerMapping;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,39 +17,32 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** Datos de una petición HTTP entrante. */
+/**
+ * Datos de una petición HTTP entrante: un envoltorio pequeño sobre
+ * {@link HttpServletRequest} con las mismas ayudas que tenía la versión sin frameworks.
+ */
 public final class Solicitud {
 
     /** Tamaño máximo de un cuerpo JSON. */
     public static final int LIMITE_JSON = 100 * 1024;
 
-    private final HttpExchange intercambio;
+    private final HttpServletRequest peticion;
     private final Map<String, String> params;
     private final Map<String, String> query;
     private byte[] cuerpo;
-    private UsuarioSesion usuario;
 
-    public Solicitud(HttpExchange intercambio, Map<String, String> params) {
-        this.intercambio = intercambio;
-        this.params = params == null ? Map.of() : params;
-        this.query = leerQuery(intercambio.getRequestURI().getRawQuery());
+    private Solicitud(HttpServletRequest peticion) {
+        this.peticion = peticion;
+        this.params = leerParametrosDeRuta(peticion);
+        this.query = leerQuery(peticion.getQueryString());
     }
 
-    public String metodo() {
-        return intercambio.getRequestMethod();
-    }
-
-    public String ruta() {
-        return intercambio.getRequestURI().getPath();
+    public static Solicitud de(HttpServletRequest peticion) {
+        return new Solicitud(peticion);
     }
 
     public String cabecera(String nombre) {
-        return intercambio.getRequestHeaders().getFirst(nombre);
-    }
-
-    /** Parámetros de la ruta, p. ej. {id} en /api/maquinas/{id} */
-    public Map<String, String> params() {
-        return params;
+        return peticion.getHeader(nombre);
     }
 
     /** Parámetros de la URL después de "?" */
@@ -54,7 +50,7 @@ public final class Solicitud {
         return query;
     }
 
-    /** Parámetro numérico de la ruta; responde 400 si no es un entero positivo. */
+    /** Parámetro numérico de la ruta, p. ej. {id} en /api/maquinas/{id}; responde 400 si no es un entero positivo. */
     public long id(String nombre) {
         String v = params.get(nombre);
         try {
@@ -69,15 +65,13 @@ public final class Solicitud {
     public String ip() {
         String reenviada = cabecera("X-Forwarded-For");
         if (reenviada != null && !reenviada.isBlank()) return reenviada.split(",")[0].trim();
-        return intercambio.getRemoteAddress().getAddress().getHostAddress();
+        return peticion.getRemoteAddr();
     }
 
+    /** El usuario que Spring Security dejó autenticado (null en rutas públicas). */
     public UsuarioSesion usuario() {
-        return usuario;
-    }
-
-    void setUsuario(UsuarioSesion usuario) {
-        this.usuario = usuario;
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.getPrincipal() instanceof UsuarioSesion u ? u : null;
     }
 
     // ------------------------------------------------------------------
@@ -86,15 +80,9 @@ public final class Solicitud {
     /** Lee el cuerpo completo; responde 413 si supera el límite. */
     public byte[] cuerpo(int limiteBytes) {
         if (cuerpo != null) return cuerpo;
-        String largo = cabecera("Content-Length");
-        if (largo != null) {
-            try {
-                if (Long.parseLong(largo.trim()) > limiteBytes) throw ErrorApp.demasiadoGrande();
-            } catch (NumberFormatException ignorado) {
-                // se valida al leer
-            }
-        }
-        try (InputStream in = intercambio.getRequestBody()) {
+        long largo = peticion.getContentLengthLong();
+        if (largo > limiteBytes) throw ErrorApp.demasiadoGrande();
+        try (InputStream in = peticion.getInputStream()) {
             byte[] leido = in.readNBytes(limiteBytes + 1);
             if (leido.length > limiteBytes) throw ErrorApp.demasiadoGrande();
             cuerpo = leido;
@@ -122,6 +110,13 @@ public final class Solicitud {
             throw ErrorApp.solicitudInvalida("Se esperaba un objeto JSON");
         }
         return (Map<String, Object>) valor;
+    }
+
+    // ------------------------------------------------------------------
+    @SuppressWarnings("unchecked")
+    private static Map<String, String> leerParametrosDeRuta(HttpServletRequest peticion) {
+        Object variables = peticion.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE);
+        return variables instanceof Map<?, ?> m ? (Map<String, String>) m : Map.of();
     }
 
     private static Map<String, String> leerQuery(String raw) {

@@ -1,5 +1,6 @@
 package alquiler.disponibilidad;
 
+import org.springframework.stereotype.Repository;
 import alquiler.bd.Consultas;
 import alquiler.bd.Fila;
 import alquiler.modelo.Bloqueo;
@@ -17,6 +18,7 @@ import java.util.List;
  * ::date / +interval '1 day' al entrar y al salir, y nada fuera de esta
  * clase se entera del cambio.
  */
+@Repository
 public class BloqueoRepositorio {
 
     public List<Bloqueo> listar(Consultas bd, long maquinaId, boolean incluirPasados, String hoy) {

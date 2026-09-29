@@ -1,5 +1,6 @@
 package alquiler.disponibilidad;
 
+import org.springframework.stereotype.Service;
 import alquiler.bd.Bd;
 import alquiler.bd.Fila;
 import alquiler.config.Config;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 /** HU-09 Gestionar disponibilidad (bloqueo de fechas) */
+@Service
 public class DisponibilidadServicio {
 
     private final Bd bd;

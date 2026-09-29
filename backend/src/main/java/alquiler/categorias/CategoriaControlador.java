@@ -1,18 +1,19 @@
 package alquiler.categorias;
 
-import alquiler.http.Enrutador;
 import alquiler.http.Respuesta;
 import alquiler.http.Solicitud;
 import alquiler.json.Json;
 import alquiler.util.ErrorApp;
 import alquiler.util.Validador;
 
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
-import static alquiler.http.Enrutador.Acceso.ADMINISTRADOR;
-import static alquiler.http.Enrutador.Acceso.PUBLICO;
 
 /** Rutas /api/categorias (público) y /api/admin/categorias (HU-14). */
+@RestController
 public class CategoriaControlador {
 
     private final CategoriaServicio servicio;
@@ -21,17 +22,19 @@ public class CategoriaControlador {
         this.servicio = servicio;
     }
 
-    public void registrar(Enrutador r) {
-        r.get("/api/categorias", PUBLICO, s -> Respuesta.ok(Json.obj("datos", servicio.listarActivas())));
-
-        r.get("/api/admin/categorias", ADMINISTRADOR, s -> Respuesta.ok(Json.obj("datos", servicio.listarTodas())));
-        r.post("/api/admin/categorias", ADMINISTRADOR, this::crear);
-        r.put("/api/admin/categorias/{id}", ADMINISTRADOR, this::actualizar);
-        r.patch("/api/admin/categorias/{id}/estado", ADMINISTRADOR, this::cambiarEstado);
-        r.delete("/api/admin/categorias/{id}", ADMINISTRADOR, this::eliminar);
+    @GetMapping("/api/categorias")
+    public ResponseEntity<Object> listarActivas() {
+        return Respuesta.ok(Json.obj("datos", servicio.listarActivas()));
     }
 
-    private Respuesta crear(Solicitud s) {
+    @GetMapping("/api/admin/categorias")
+    public ResponseEntity<Object> listarTodas() {
+        return Respuesta.ok(Json.obj("datos", servicio.listarTodas()));
+    }
+
+    @PostMapping("/api/admin/categorias")
+    public ResponseEntity<Object> crear(HttpServletRequest peticion) {
+        Solicitud s = Solicitud.de(peticion);
         Validador v = Validador.de(s.json());
         String nombre = v.texto("nombre", 1, 80, true, "El nombre es obligatorio");
         String descripcion = v.texto("descripcion", 0, 255, false, null);
@@ -39,7 +42,9 @@ public class CategoriaControlador {
         return Respuesta.creado(servicio.crear(nombre, descripcion));
     }
 
-    private Respuesta actualizar(Solicitud s) {
+    @PutMapping("/api/admin/categorias/{id}")
+    public ResponseEntity<Object> actualizar(HttpServletRequest peticion) {
+        Solicitud s = Solicitud.de(peticion);
         long id = s.id("id");
         Map<String, Object> cuerpo = s.json();
         if (!cuerpo.containsKey("nombre") && !cuerpo.containsKey("descripcion")) {
@@ -52,7 +57,9 @@ public class CategoriaControlador {
         return Respuesta.ok(servicio.actualizar(id, nombre, v.tiene("descripcion"), descripcion));
     }
 
-    private Respuesta cambiarEstado(Solicitud s) {
+    @PatchMapping("/api/admin/categorias/{id}/estado")
+    public ResponseEntity<Object> cambiarEstado(HttpServletRequest peticion) {
+        Solicitud s = Solicitud.de(peticion);
         long id = s.id("id");
         Map<String, Object> cuerpo = s.json();
         if (!(cuerpo.get("activa") instanceof Boolean activa)) {
@@ -61,7 +68,9 @@ public class CategoriaControlador {
         return Respuesta.ok(servicio.cambiarEstado(id, activa));
     }
 
-    private Respuesta eliminar(Solicitud s) {
+    @DeleteMapping("/api/admin/categorias/{id}")
+    public ResponseEntity<Object> eliminar(HttpServletRequest peticion) {
+        Solicitud s = Solicitud.de(peticion);
         servicio.eliminar(s.id("id"));
         return Respuesta.sinContenido();
     }

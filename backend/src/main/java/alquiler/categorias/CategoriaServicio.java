@@ -1,11 +1,13 @@
 package alquiler.categorias;
 
+import org.springframework.stereotype.Service;
 import alquiler.modelo.Categoria;
 import alquiler.util.ErrorApp;
 
 import java.util.List;
 
 /** HU-14 Gestionar categorías de maquinaria */
+@Service
 public class CategoriaServicio {
 
     private static final String NO_EXISTE = "La categoría no existe";
