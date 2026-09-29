@@ -1,3 +1,4 @@
+import { cloneElement, isValidElement } from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexto/AuthContext';
 import { urlArchivo } from '../api/cliente';
@@ -109,13 +110,33 @@ export function TarjetaMaquina({ maquina }) {
   );
 }
 
-export function Campo({ etiqueta, error, ayuda, children, id }) {
+/**
+ * Campo de formulario con etiqueta, ayuda y mensaje de error.
+ * Con `valido` muestra una marca verde. Si el hijo es el control con el mismo `id`,
+ * recibe aria-invalid y aria-describedby apuntando a la ayuda y al mensaje.
+ * `mantenerAyuda` deja la ayuda visible aunque haya error (p. ej. requisitos de contraseña).
+ */
+export function Campo({ etiqueta, error, ayuda, valido, mantenerAyuda, children, id }) {
+  const verAyuda = ayuda && (mantenerAyuda || !error);
+  const idAyuda = `${id}-ayuda`;
+  const idMensaje = `${id}-mensaje`;
+  const describe = [verAyuda && idAyuda, (error || valido) && idMensaje].filter(Boolean).join(' ');
+  const control =
+    isValidElement(children) && children.props.id === id
+      ? cloneElement(children, { 'aria-invalid': Boolean(error), 'aria-describedby': describe || undefined })
+      : children;
+  const estado = error ? 'campo-error' : valido ? 'campo-valido' : '';
   return (
-    <div className={`campo ${error ? 'campo-error' : ''}`}>
+    <div className={`campo ${estado}`}>
       <label htmlFor={id}>{etiqueta}</label>
-      {children}
-      {ayuda && !error && <small className="ayuda">{ayuda}</small>}
-      {error && <small className="mensaje-error">{error}</small>}
+      {control}
+      {verAyuda && (typeof ayuda === 'string' ? <small className="ayuda" id={idAyuda}>{ayuda}</small> : <div id={idAyuda}>{ayuda}</div>)}
+      {error && <small className="mensaje-error" id={idMensaje}>{error}</small>}
+      {!error && valido && (
+        <small className="mensaje-exito" id={idMensaje}>
+          <Icono nombre="check" tamanio={15} /> Correcto
+        </small>
+      )}
     </div>
   );
 }

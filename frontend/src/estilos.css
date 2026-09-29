@@ -134,6 +134,13 @@ select option { background: var(--superficie-2); color: var(--texto); }
 input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); }
 .campo-error input, .campo-error select { border-color: var(--error); }
 .mensaje-error { color: var(--error); font-weight: 400; font-size: 0.85rem; }
+.campo-valido input { border-color: rgba(61, 220, 151, 0.55); }
+.mensaje-exito { display: flex; align-items: center; gap: 5px; color: var(--exito); font-weight: 400; font-size: 0.85rem; }
+.requisitos { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-weight: 400; font-size: 0.85rem; color: var(--texto-tenue); }
+.requisitos li { display: flex; align-items: center; gap: 6px; }
+.requisitos .cumple { color: var(--exito); }
+.requisitos .falta { color: var(--error); }
+.solo-lector { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .ayuda { color: var(--texto-tenue); font-weight: 400; font-size: 0.85rem; }
 .casilla { display: flex; align-items: center; gap: 10px; margin: 4px 0 18px; cursor: pointer; color: var(--texto-suave); font-size: 0.93rem; }
 .casilla input { width: 18px; height: 18px; accent-color: var(--naranja); }

@@ -1,17 +1,24 @@
 // HU-02 Iniciar sesión
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, panelSegunRol } from '../contexto/AuthContext';
 import { Alerta, Campo } from '../componentes/comunes';
 import PantallaAuth from '../componentes/PantallaAuth';
+import { leerCampos, validarCampos, validarContrasenaIngreso, validarCorreo } from '../utils/validaciones';
+
+// Solo se valida el formato; si el correo existe o la contraseña es correcta lo responde el servidor
+const REGLAS = { correo: validarCorreo, contrasena: validarContrasenaIngreso };
+const CAMPOS = Object.keys(REGLAS);
 
 export default function Login() {
   const { usuario, iniciarSesion, avisoSesion, limpiarAviso } = useAuth();
   const navegar = useNavigate();
   const { state } = useLocation();
 
-  const [correo, setCorreo] = useState(state?.correo || '');
-  const [contrasena, setContrasena] = useState('');
+  const formulario = useRef(null);
+  const [datos, setDatos] = useState({ correo: state?.correo || '', contrasena: '' });
+  // Un campo se valida en vivo desde que se escribe en él o se sale de él
+  const [tocados, setTocados] = useState({ correo: Boolean(state?.correo) });
   const [recordarme, setRecordarme] = useState(false);
   const [error, setError] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -22,19 +29,40 @@ export default function Login() {
       ? state.desde
       : panelSegunRol(u);
 
+  const errores = validarCampos(REGLAS, datos);
+  const hayErrores = Object.keys(errores).length > 0;
+  const errorDe = (campo) => (tocados[campo] ? errores[campo] : '');
+  const esValido = (campo) => Boolean(tocados[campo]) && !errores[campo];
+
+  const tocar = (e) => setTocados((t) => ({ ...t, [e.target.name]: true }));
+  const cambiar = (e) => {
+    const { name, value } = e.target;
+    setDatos((d) => ({ ...d, [name]: value }));
+    setTocados((t) => ({ ...t, [name]: true }));
+  };
+
+  // Recoge lo que el navegador autocompletó sin avisar con onChange
+  const sincronizarAutocompletado = () => {
+    const leidos = leerCampos(formulario.current, CAMPOS);
+    const cambiados = Object.keys(leidos).filter((c) => leidos[c] && leidos[c] !== datos[c]);
+    if (!cambiados.length) return;
+    setDatos((d) => ({ ...d, ...Object.fromEntries(cambiados.map((c) => [c, leidos[c]])) }));
+    setTocados((t) => ({ ...t, ...Object.fromEntries(cambiados.map((c) => [c, true])) }));
+  };
+
   if (usuario) return <Navigate to={destinoPara(usuario)} replace />;
 
   async function enviar(e) {
     e.preventDefault();
-    if (!correo.trim() || !contrasena) {
-      setError('Ingresa tu correo y contraseña');
+    if (hayErrores) {
+      setTocados({ correo: true, contrasena: true });
       return;
     }
     setEnviando(true);
     setError('');
     limpiarAviso();
     try {
-      const u = await iniciarSesion({ correo, contrasena, recordarme });
+      const u = await iniciarSesion({ correo: datos.correo, contrasena: datos.contrasena, recordarme });
       navegar(destinoPara(u), { replace: true });
     } catch (err) {
       setError(err.message);
@@ -48,18 +76,42 @@ export default function Login() {
       <Alerta tipo="exito">{state?.mensaje}</Alerta>
       <Alerta tipo="aviso" alCerrar={limpiarAviso}>{avisoSesion}</Alerta>
       <Alerta>{error}</Alerta>
-      <form onSubmit={enviar} noValidate>
-        <Campo etiqueta="Correo electrónico" id="correo">
-          <input id="correo" type="email" placeholder="tu@correo.com" value={correo} onChange={(e) => setCorreo(e.target.value)} autoComplete="email" />
+      <form
+        ref={formulario}
+        onSubmit={enviar}
+        onPointerDownCapture={sincronizarAutocompletado}
+        onKeyDownCapture={sincronizarAutocompletado}
+        noValidate
+      >
+        <Campo etiqueta="Correo electrónico" id="correo" error={errorDe('correo')} valido={esValido('correo')}>
+          <input
+            id="correo"
+            name="correo"
+            type="email"
+            placeholder="tu@correo.com"
+            value={datos.correo}
+            onChange={cambiar}
+            onBlur={tocar}
+            autoComplete="email"
+          />
         </Campo>
-        <Campo etiqueta="Contraseña" id="contrasena">
-          <input id="contrasena" type="password" placeholder="••••••••" value={contrasena} onChange={(e) => setContrasena(e.target.value)} autoComplete="current-password" />
+        <Campo etiqueta="Contraseña" id="contrasena" error={errorDe('contrasena')}>
+          <input
+            id="contrasena"
+            name="contrasena"
+            type="password"
+            placeholder="••••••••"
+            value={datos.contrasena}
+            onChange={cambiar}
+            onBlur={tocar}
+            autoComplete="current-password"
+          />
         </Campo>
         <label className="casilla">
           <input type="checkbox" checked={recordarme} onChange={(e) => setRecordarme(e.target.checked)} />
           Recordarme en este equipo
         </label>
-        <button type="submit" className="boton boton-primario boton-grande boton-bloque" disabled={enviando}>
+        <button type="submit" className="boton boton-primario boton-grande boton-bloque" disabled={enviando || hayErrores}>
           {enviando ? 'Ingresando…' : 'Ingresar'}
         </button>
       </form>
