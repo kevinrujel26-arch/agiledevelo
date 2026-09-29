@@ -333,9 +333,14 @@ public final class Validador {
 
     /** Fecha 'AAAA-MM-DD' real (no acepta 2026-02-30). */
     public String fecha(String campo, boolean obligatorio) {
+        return fecha(campo, obligatorio ? OBLIGATORIO : null);
+    }
+
+    /** Fecha obligatoria con un mensaje propio si falta (null = opcional). */
+    public String fecha(String campo, String mensajeObligatorio) {
         Object v = datos.get(campo);
         if (v == null || (v instanceof String s && s.isBlank())) {
-            if (obligatorio) error(campo, OBLIGATORIO);
+            if (mensajeObligatorio != null) error(campo, mensajeObligatorio);
             return null;
         }
         if (!(v instanceof String s) || !Fechas.esFechaValida(s)) {
@@ -505,7 +510,7 @@ public final class Validador {
 
     /** Lista de objetos JSON (por ejemplo, los rangos de fechas a bloquear). */
     @SuppressWarnings("unchecked")
-    public List<Map<String, Object>> listaDeObjetos(String campo, int min, int max, String mensajeMin) {
+    public List<Map<String, Object>> listaDeObjetos(String campo, int min, int max, String mensajeMin, String mensajeMax) {
         Object v = datos.get(campo);
         if (v == null) {
             error(campo, OBLIGATORIO);
@@ -520,7 +525,7 @@ public final class Validador {
             return List.of();
         }
         if (lista.size() > max) {
-            error(campo, "Debe tener como máximo " + max + " elemento(s)");
+            error(campo, mensajeMax);
             return List.of();
         }
         List<Map<String, Object>> resultado = new ArrayList<>();

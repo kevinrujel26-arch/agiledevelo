@@ -42,6 +42,66 @@ class DisponibilidadTest extends PruebaBase {
         return post("/api/admin/maquinas/" + maquinaId + "/bloqueos", Json.obj("rangos", rangos, "motivo", "Mantenimiento"), token);
     }
 
+    // ------------------------------------------------------------ Validaciones
+    private Resp bloquearConMotivo(Object motivo, List<Map<String, Object>> rangos) {
+        return post("/api/admin/maquinas/" + maquinaId + "/bloqueos", Json.obj("rangos", rangos, "motivo", motivo), token);
+    }
+
+    @Test
+    @DisplayName("Validación: no se bloquean fechas pasadas ni a más de 5 años de hoy (el límite sí se admite)")
+    void fechasFueraDeRango() {
+        Resp pasada = bloquear(List.of(rango(-1, 0)));
+        assertEquals(400, pasada.estado());
+        assertEquals("No se pueden bloquear fechas pasadas", pasada.errorDe("rangos.0.fechaInicio"));
+
+        LocalDate hoy = LocalDate.now(ZoneId.of("America/Lima"));
+        String limite = hoy.plusYears(5).toString();
+        Resp lejana = bloquear(List.of(Json.obj("fechaInicio", hoy.plusYears(5).plusDays(1).toString(), "fechaFin", "9999-12-31")));
+        assertEquals(400, lejana.estado());
+        assertEquals("No se pueden bloquear fechas a más de 5 años de hoy", lejana.errorDe("rangos.0.fechaInicio"));
+        assertEquals("No se pueden bloquear fechas a más de 5 años de hoy", lejana.errorDe("rangos.0.fechaFin"));
+
+        Resp finLejano = bloquear(List.of(Json.obj("fechaInicio", dentroDe(1), "fechaFin", hoy.plusYears(6).toString())));
+        assertEquals("No se pueden bloquear fechas a más de 5 años de hoy", finLejano.errorDe("rangos.0.fechaFin"));
+
+        assertEquals(201, bloquear(List.of(Json.obj("fechaInicio", limite, "fechaFin", limite))).estado());
+    }
+
+    @Test
+    @DisplayName("Validación: la fecha fin no es anterior al inicio y ambas son obligatorias, con el error en su campo")
+    void ordenYObligatorias() {
+        Resp r = bloquear(List.of(rango(5, 2)));
+        assertEquals("La fecha de fin no puede ser anterior a la de inicio", r.errorDe("rangos.0.fechaFin"));
+        Resp sinFin = bloquear(List.of(Json.obj("fechaInicio", dentroDe(1))));
+        assertEquals("Elige la fecha de fin", sinFin.errorDe("rangos.0.fechaFin"));
+        Resp formato = bloquear(List.of(Json.obj("fechaInicio", "20000-01-01", "fechaFin", dentroDe(1))));
+        assertEquals("Fecha inválida, usa el formato AAAA-MM-DD", formato.errorDe("rangos.0.fechaInicio"));
+        assertEquals(201, bloquear(List.of(rango(2, 2))).estado());
+    }
+
+    @Test
+    @DisplayName("Validación: como máximo 20 rangos por vez")
+    void maximoVeinteRangos() {
+        List<Map<String, Object>> veintiuno = new java.util.ArrayList<>();
+        for (int i = 0; i < 21; i++) veintiuno.add(rango(1 + i * 2, 1 + i * 2));
+        Resp r = bloquear(veintiuno);
+        assertEquals(400, r.estado());
+        assertEquals("Puedes bloquear como máximo 20 rangos a la vez", r.errorDe("rangos"));
+        assertEquals(201, bloquear(veintiuno.subList(0, 20)).estado());
+    }
+
+    @Test
+    @DisplayName("Validación: el motivo tiene hasta 160 caracteres, sin HTML, y se recorta")
+    void motivoReglas() {
+        Resp largo = bloquearConMotivo("m".repeat(161), List.of(rango(1, 1)));
+        assertEquals("El motivo debe tener como máximo 160 caracteres", largo.errorDe("motivo"));
+        Resp html = bloquearConMotivo("<script>x</script>", List.of(rango(1, 1)));
+        assertEquals("El motivo no puede contener los signos < ni >", html.errorDe("motivo"));
+        Resp ok = bloquearConMotivo("  Mantenimiento   preventivo ", List.of(rango(1, 1)));
+        assertEquals(201, ok.estado(), String.valueOf(ok.cuerpo()));
+        assertEquals("Mantenimiento preventivo", ok.lista("datos").get(0).get("motivo"));
+    }
+
     @Test
     @DisplayName("HU-09: bloquea uno o varios rangos de fechas a la vez")
     void variosRangos() {

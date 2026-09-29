@@ -22,6 +22,12 @@ public class DisponibilidadControlador {
 
     private static final int DIAS_POR_DEFECTO = 180;
     private static final int DIAS_MAXIMOS = 400;
+    private static final int MAX_RANGOS = 20;
+    /** No se bloquean fechas más allá de este número de años desde hoy (evita años absurdos). */
+    private static final int ANIOS_MAXIMOS = 5;
+    // Mismos textos que frontend/src/utils/validaciones.js
+    private static final String FECHA_PASADA = "No se pueden bloquear fechas pasadas";
+    private static final String FECHA_LEJANA = "No se pueden bloquear fechas a más de " + ANIOS_MAXIMOS + " años de hoy";
 
     private final DisponibilidadServicio servicio;
     private final Config config;
@@ -69,15 +75,28 @@ public class DisponibilidadControlador {
         Solicitud s = Solicitud.de(peticion);
         long id = s.id("id");
         Validador v = Validador.de(s.json());
-        List<Map<String, Object>> lista = v.listaDeObjetos("rangos", 1, 20, "Agrega al menos un rango de fechas");
-        String motivo = v.texto("motivo", 0, 160, false, null);
-        if (motivo != null && motivo.isEmpty()) motivo = null;
+        List<Map<String, Object>> lista = v.listaDeObjetos("rangos", 1, MAX_RANGOS, "Agrega al menos un rango de fechas",
+                "Puedes bloquear como máximo " + MAX_RANGOS + " rangos a la vez");
+        String motivo = v.linea("motivo", "El motivo", 0, 160, false, null);
 
+        String hoy = Fechas.hoy(config.zonaHoraria);
+        String limite = Fechas.sumarAnios(hoy, ANIOS_MAXIMOS);
         List<Fechas.Rango> rangos = new ArrayList<>();
         for (int i = 0; i < lista.size(); i++) {
             Validador vr = v.anidado(lista.get(i), "rangos." + i);
-            String inicio = vr.fecha("fechaInicio", true);
-            String fin = vr.fecha("fechaFin", true);
+            String inicio = vr.fecha("fechaInicio", "Elige la fecha de inicio");
+            String fin = vr.fecha("fechaFin", "Elige la fecha de fin");
+            if (inicio != null && inicio.compareTo(hoy) < 0) {
+                vr.error("fechaInicio", FECHA_PASADA);
+                inicio = null;
+            } else if (inicio != null && inicio.compareTo(limite) > 0) {
+                vr.error("fechaInicio", FECHA_LEJANA);
+                inicio = null;
+            }
+            if (fin != null && fin.compareTo(limite) > 0) {
+                vr.error("fechaFin", FECHA_LEJANA);
+                fin = null;
+            }
             if (inicio != null && fin != null) {
                 if (fin.compareTo(inicio) < 0) {
                     vr.error("fechaFin", "La fecha de fin no puede ser anterior a la de inicio");

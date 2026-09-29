@@ -62,4 +62,9 @@ public final class Fechas {
     public static String sumarDias(String fecha, long dias) {
         return LocalDate.parse(fecha).plusDays(dias).toString();
     }
+
+    /** Suma años; si el día no existe (29 de febrero) queda en el último día del mes. */
+    public static String sumarAnios(String fecha, long anios) {
+        return LocalDate.parse(fecha).plusYears(anios).toString();
+    }
 }

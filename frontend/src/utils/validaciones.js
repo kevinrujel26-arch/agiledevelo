@@ -280,6 +280,54 @@ export function validarFotos(archivos, yaSubidas) {
   return '';
 }
 
+// ------------------------------------------------------------------ Bloqueos de fechas
+
+export const MAX_RANGOS = 20;
+export const ANIOS_BLOQUEO = 5;
+const FECHA_FORMATO = /^\d{4}-\d{2}-\d{2}$/;
+const FECHA_PASADA = 'No se pueden bloquear fechas pasadas';
+const FECHA_LEJANA = `No se pueden bloquear fechas a más de ${ANIOS_BLOQUEO} años de hoy`;
+
+/** 'AAAA-MM-DD' + n años; el 29 de febrero pasa al 28 si el año no es bisiesto (como LocalDate.plusYears) */
+export function sumarAnios(fechaISO, n) {
+  const [a, m, d] = fechaISO.split('-').map(Number);
+  const ultimoDia = new Date(Date.UTC(a + n, m, 0)).getUTCDate();
+  return new Date(Date.UTC(a + n, m - 1, Math.min(d, ultimoDia))).toISOString().slice(0, 10);
+}
+
+/** true si el texto es una fecha real 'AAAA-MM-DD' (rechaza 2026-02-30) */
+function esFechaValida(texto) {
+  if (!FECHA_FORMATO.test(texto)) return false;
+  const [a, m, d] = texto.split('-').map(Number);
+  const f = new Date(Date.UTC(a, m - 1, d));
+  return f.getUTCFullYear() === a && f.getUTCMonth() === m - 1 && f.getUTCDate() === d;
+}
+
+/**
+ * Errores de un rango a bloquear, en el mismo orden que DisponibilidadControlador:
+ * { fechaInicio?, fechaFin? }. Un rango sin ninguna fecha no se revisa (se ignora al enviar).
+ */
+export function erroresRango({ fechaInicio, fechaFin }, hoy) {
+  const e = {};
+  if (!fechaInicio && !fechaFin) return e;
+  const limite = sumarAnios(hoy, ANIOS_BLOQUEO);
+  let inicio = fechaInicio;
+  let fin = fechaFin;
+  if (!inicio) e.fechaInicio = 'Elige la fecha de inicio';
+  else if (!esFechaValida(inicio)) e.fechaInicio = 'Fecha inválida, usa el formato AAAA-MM-DD';
+  else if (inicio < hoy) e.fechaInicio = FECHA_PASADA;
+  else if (inicio > limite) e.fechaInicio = FECHA_LEJANA;
+  if (e.fechaInicio) inicio = null;
+  if (!fin) e.fechaFin = 'Elige la fecha de fin';
+  else if (!esFechaValida(fin)) e.fechaFin = 'Fecha inválida, usa el formato AAAA-MM-DD';
+  else if (fin > limite) e.fechaFin = FECHA_LEJANA;
+  if (e.fechaFin) fin = null;
+  if (inicio && fin && fin < inicio) e.fechaFin = 'La fecha de fin no puede ser anterior a la de inicio';
+  return e;
+}
+
+export const validarMotivo = (v) => validarLinea(v, { etiqueta: 'El motivo', max: 160 });
+
 // ------------------------------------------------------------------ Utilidades
 
 /** Aplica { campo: regla } a los datos y devuelve solo los campos con error */
