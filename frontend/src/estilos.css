@@ -313,6 +313,9 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); }
 .cabecera-seccion h1 { margin: 0; }
 .filtros { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
 .filtros input { width: 280px; }
+.filtro-precio { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
+.filtro-precio label { display: flex; flex-direction: column; gap: 4px; font-size: 0.78rem; color: var(--texto-suave); }
+.filtros .filtro-precio input { width: 150px; }
 .pestanas { display: flex; gap: 4px; background: var(--vidrio); border: 1px solid var(--borde); padding: 4px; border-radius: 999px; max-width: 100%; overflow-x: auto; }
 .pestanas button { flex-shrink: 0; }
 .pestanas button { border: 0; background: none; padding: 8px 16px; border-radius: 999px; font: inherit; font-weight: 500; font-size: 0.9rem; cursor: pointer; color: var(--texto-suave); }
@@ -382,6 +385,9 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); }
   .hero { padding-top: 44px; }
   .hero-estadisticas { gap: 22px; }
   .filtros input { width: 100%; }
+  .filtro-precio { width: 100%; }
+  .filtro-precio label { flex: 1; }
+  .filtros .filtro-precio input { width: 100%; }
   .fila-spec, .fila-rango { flex-wrap: wrap; }
   .contenedor { padding: 0 16px; }
   .pie-rejilla { grid-template-columns: 1fr; }

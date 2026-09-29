@@ -72,16 +72,18 @@ public class MaquinaControlador {
         return Respuesta.ok(Json.obj("fotos", servicio.eliminarFoto(s.id("id"), s.id("fotoId"))));
     }
 
-    /** HU-03: catálogo paginado, visible sin iniciar sesión. Criterio 2: filtro por categoría y búsqueda por palabra clave. */
+    /**
+     * HU-03: catálogo paginado, visible sin iniciar sesión. Criterio 2: filtro por categoría y búsqueda por palabra clave.
+     * HU-06: filtro por rango de precio por hora (precioMin y precioMax, inclusivos).
+     */
     @GetMapping("/api/maquinas")
     public ResponseEntity<Object> catalogo(HttpServletRequest peticion) {
         Solicitud s = Solicitud.de(peticion);
         Validador v = Validador.de(s.query());
         Paginacion p = Paginacion.desde(v);
-        Long categoriaId = v.idPositivo("categoriaId", false, null);
-        String texto = v.texto("q", 0, 80, false, null);
+        MaquinaRepositorio.Filtros f = leerFiltros(v, "PUBLICADA");
         v.validar();
-        return Respuesta.ok(servicio.catalogo(categoriaId, texto, p));
+        return Respuesta.ok(servicio.catalogo(f, p));
     }
 
     @GetMapping("/api/admin/maquinas")
@@ -90,10 +92,21 @@ public class MaquinaControlador {
         Validador v = Validador.de(s.query());
         Paginacion p = Paginacion.desde(v);
         String estado = v.opcion("estado", ESTADOS, false);
+        MaquinaRepositorio.Filtros f = leerFiltros(v, estado);
+        v.validar();
+        return Respuesta.ok(servicio.listarAdmin(f, p));
+    }
+
+    /** Filtros comunes del catálogo y del listado del administrador: categoría, texto y rango de precio (HU-06). */
+    private static MaquinaRepositorio.Filtros leerFiltros(Validador v, String estado) {
         Long categoriaId = v.idPositivo("categoriaId", false, null);
         String texto = v.texto("q", 0, 80, false, null);
-        v.validar();
-        return Respuesta.ok(servicio.listarAdmin(estado, categoriaId, texto, p));
+        BigDecimal precioMin = v.decimalNoNegativoOpcional("precioMin", "El precio mínimo", TARIFA_MAXIMA);
+        BigDecimal precioMax = v.decimalNoNegativoOpcional("precioMax", "El precio máximo", TARIFA_MAXIMA);
+        if (precioMin != null && precioMax != null && precioMin.compareTo(precioMax) > 0) {
+            v.error("precioMin", "El precio mínimo no puede ser mayor que el precio máximo");
+        }
+        return new MaquinaRepositorio.Filtros(estado, categoriaId, texto, precioMin, precioMax);
     }
 
     // ------------------------------------------------------------------

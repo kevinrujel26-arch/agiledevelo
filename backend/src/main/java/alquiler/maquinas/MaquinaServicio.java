@@ -44,10 +44,10 @@ public class MaquinaServicio {
     // ------------------------------------------------------------------
     // Catálogo público (HU-03)
     // ------------------------------------------------------------------
-    public Map<String, Object> catalogo(Long categoriaId, String texto, Paginacion p) {
-        List<Map<String, Object>> tarjetas = maquinas.listarPublicadas(categoriaId, texto, p.limite(), p.desplazamiento())
+    public Map<String, Object> catalogo(MaquinaRepositorio.Filtros filtros, Paginacion p) {
+        List<Map<String, Object>> tarjetas = maquinas.listarPublicadas(filtros, p.limite(), p.desplazamiento())
                 .stream().map(Maquina::tarjetaJson).toList();
-        return p.respuesta(tarjetas, maquinas.contarPublicadas(categoriaId, texto));
+        return p.respuesta(tarjetas, maquinas.contarPublicadas(filtros));
     }
 
     /** Detalle público: solo si está publicada (la URL se puede compartir, HU-04 criterio 4). */
@@ -62,10 +62,10 @@ public class MaquinaServicio {
     // ------------------------------------------------------------------
     // Administración (HU-08)
     // ------------------------------------------------------------------
-    public Map<String, Object> listarAdmin(String estado, Long categoriaId, String texto, Paginacion p) {
-        List<Map<String, Object>> filas = maquinas.listarAdmin(estado, categoriaId, texto, p.limite(), p.desplazamiento())
+    public Map<String, Object> listarAdmin(MaquinaRepositorio.Filtros filtros, Paginacion p) {
+        List<Map<String, Object>> filas = maquinas.listarAdmin(filtros, p.limite(), p.desplazamiento())
                 .stream().map(Maquina::filaAdminJson).toList();
-        return p.respuesta(filas, maquinas.contarAdmin(estado, categoriaId, texto));
+        return p.respuesta(filas, maquinas.contarAdmin(filtros));
     }
 
     public Map<String, Object> detalleAdmin(long id) {

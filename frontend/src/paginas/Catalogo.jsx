@@ -7,6 +7,7 @@ import { Alerta, Cargando, Paginacion, TarjetaMaquina } from '../componentes/com
 import { Excavadora, Icono } from '../componentes/Ilustracion';
 
 const TAMANIO_PAGINA = 12;
+const ESPERA_PRECIO_MS = 500; // HU-06: espera antes de aplicar el precio mientras se escribe
 
 const PASOS = [
   { titulo: 'Explora el catálogo', texto: 'Compara equipos, especificaciones técnicas y tarifas por hora en un solo lugar.' },
@@ -20,7 +21,14 @@ export default function Catalogo() {
   const pagina = Math.max(1, Number(params.get('pagina')) || 1);
   const categoriaId = params.get('categoriaId') || '';
   const q = params.get('q') || '';
+  const precioMin = params.get('precioMin') || '';
+  const precioMax = params.get('precioMax') || '';
   const [busqueda, setBusqueda] = useState(q);
+  // HU-06: lo que el usuario escribe; se lleva a la URL tras una pequeña espera
+  const [entradaMin, setEntradaMin] = useState(precioMin);
+  const [entradaMax, setEntradaMax] = useState(precioMax);
+  const rangoInvalido = entradaMin !== '' && entradaMax !== '' && Number(entradaMin) > Number(entradaMax);
+  const hayFiltros = Boolean(categoriaId || q || precioMin || precioMax);
 
   const [resultado, setResultado] = useState(null);
   const [error, setError] = useState('');
@@ -35,17 +43,38 @@ export default function Catalogo() {
     let vigente = true;
     setError('');
     api
-      .get('/maquinas', { categoriaId, q, pagina, tamanio: TAMANIO_PAGINA })
+      .get('/maquinas', { categoriaId, q, precioMin, precioMax, pagina, tamanio: TAMANIO_PAGINA })
       .then((r) => vigente && setResultado(r))
       .catch((e) => vigente && setError(e.message));
     return () => {
       vigente = false;
     };
-  }, [categoriaId, q, pagina]);
+  }, [categoriaId, q, precioMin, precioMax, pagina]);
 
   const actualizarFiltros = (cambios) => {
-    const nuevos = { categoriaId, q, ...cambios };
+    const nuevos = { categoriaId, q, precioMin, precioMax, ...cambios };
     setParams(Object.fromEntries(Object.entries(nuevos).filter(([, v]) => v)));
+  };
+
+  // Si la URL cambia desde fuera (atrás/adelante, "Quitar filtros"), los campos la siguen
+  useEffect(() => setEntradaMin(precioMin), [precioMin]);
+  useEffect(() => setEntradaMax(precioMax), [precioMax]);
+
+  // HU-06: aplica el rango de precio tras dejar de escribir (debounce)
+  useEffect(() => {
+    if (rangoInvalido || (entradaMin === precioMin && entradaMax === precioMax)) return undefined;
+    const temporizador = setTimeout(
+      () => actualizarFiltros({ precioMin: entradaMin, precioMax: entradaMax, pagina: '' }),
+      ESPERA_PRECIO_MS
+    );
+    return () => clearTimeout(temporizador);
+    // Incluye los demás filtros para no aplicar el precio con valores viejos de categoría o búsqueda
+  }, [entradaMin, entradaMax, categoriaId, q, precioMin, precioMax]);
+
+  const limpiarPrecio = () => {
+    setEntradaMin('');
+    setEntradaMax('');
+    actualizarFiltros({ precioMin: '', precioMax: '', pagina: '' });
   };
 
   const ciudades = useMemo(
@@ -201,22 +230,61 @@ export default function Catalogo() {
                 aria-label="Buscar maquinaria"
               />
             </form>
+            {/* HU-06: rango de precio por hora */}
+            <div className={`filtro-precio ${rangoInvalido ? 'campo-error' : ''}`}>
+              <label>
+                <span>Precio mín. (S/ por hora)</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  inputMode="decimal"
+                  placeholder="0"
+                  value={entradaMin}
+                  onChange={(e) => setEntradaMin(e.target.value)}
+                  aria-invalid={rangoInvalido}
+                />
+              </label>
+              <label>
+                <span>Precio máx.</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  inputMode="decimal"
+                  placeholder="Sin límite"
+                  value={entradaMax}
+                  onChange={(e) => setEntradaMax(e.target.value)}
+                  aria-invalid={rangoInvalido}
+                />
+              </label>
+              {(entradaMin || entradaMax) && (
+                <button type="button" className="boton boton-secundario boton-chico" onClick={limpiarPrecio}>
+                  Limpiar precio
+                </button>
+              )}
+            </div>
           </div>
+          {rangoInvalido && <p className="mensaje-error">El precio mínimo no puede ser mayor que el máximo.</p>}
 
           <Alerta>{error}</Alerta>
           {!resultado && !error && <Cargando texto="Cargando catálogo…" />}
 
-          {resultado && resultado.datos.length === 0 && (categoriaId || q) && (
+          {resultado && resultado.datos.length === 0 && hayFiltros && (
             <div className="vacio">
-              <h2>Sin resultados para estos filtros</h2>
-              <p className="texto-suave">Prueba con otra categoría o palabra clave.</p>
+              <h2>{precioMin || precioMax ? 'No hay máquinas en ese rango' : 'Sin resultados para estos filtros'}</h2>
+              <p className="texto-suave">
+                {precioMin || precioMax
+                  ? 'Prueba ampliando el rango de precio por hora.'
+                  : 'Prueba con otra categoría o palabra clave.'}
+              </p>
               <button type="button" className="boton boton-secundario" onClick={() => { setBusqueda(''); setParams({}); }}>
                 Quitar filtros
               </button>
             </div>
           )}
 
-          {resultado && resultado.datos.length === 0 && !categoriaId && !q && (
+          {resultado && resultado.datos.length === 0 && !hayFiltros && (
             <div className="vacio">
               <h2>Aún no hay máquinas publicadas</h2>
               <p className="texto-suave">Vuelve pronto: estamos preparando nuestra flota.</p>

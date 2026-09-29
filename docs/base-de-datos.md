@@ -58,7 +58,7 @@ erDiagram
         varchar marca
         varchar modelo
         jsonb especificaciones
-        numeric tarifa_diaria
+        numeric tarifa_horaria "S/ por hora"
         varchar ubicacion
         varchar estado "BORRADOR | PUBLICADA | RETIRADA"
         bool en_mantenimiento
@@ -129,6 +129,17 @@ erDiagram
 | Reserva mínima de 1 día | HU-05 | `CHECK (fecha_fin >= fecha_inicio)`; las fechas son inclusivas |
 | Un webhook duplicado no confirma dos veces | HU-06 | Índice único `(proveedor, id_externo)` en pagos |
 | Retirar una máquina no borra su historial | HU-08 | Reservas usan `ON DELETE RESTRICT`; retirar = cambiar `estado` |
+
+## Filtros del catálogo (HU-03, HU-06)
+
+El catálogo filtra directamente en SQL (no en memoria), sobre la misma condición `WHERE` para la página y para el `count(*)` del total, así la paginación siempre coincide con los filtros:
+
+| Filtro | Condición |
+|---|---|
+| Categoría | `m.categoria_id = ?` |
+| Palabra clave | `lower(m.nombre) LIKE ? OR lower(m.marca) LIKE ?` |
+| Precio mínimo (HU-06) | `m.tarifa_horaria >= ?` |
+| Precio máximo (HU-06) | `m.tarifa_horaria <= ?` |
 
 ## Estados de una máquina
 

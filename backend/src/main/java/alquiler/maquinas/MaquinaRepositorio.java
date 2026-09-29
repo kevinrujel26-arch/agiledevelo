@@ -6,6 +6,7 @@ import alquiler.bd.Fila;
 import alquiler.modelo.EstadoMaquina;
 import alquiler.modelo.Maquina;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -48,10 +49,18 @@ public class MaquinaRepositorio {
         return f == null ? null : Maquina.desde(f);
     }
 
+    /**
+     * Filtros opcionales del listado (null = sin filtrar).
+     * HU-03 criterio 2: categoría y búsqueda por palabra clave (nombre o marca).
+     * HU-06: rango de tarifa por hora, inclusivo en ambos extremos.
+     */
+    public record Filtros(String estado, Long categoriaId, String texto, BigDecimal precioMin, BigDecimal precioMax) {
+    }
+
     // ---------------- Catálogo público (HU-03) ----------------
-    /** HU-03 criterio 2: filtro opcional por categoría y búsqueda por palabra clave (nombre o marca). */
-    public List<Maquina> listarPublicadas(Long categoriaId, String texto, int limite, long desplazamiento) {
-        Filtro f = filtro("PUBLICADA", categoriaId, texto);
+    /** El controlador fija estado = PUBLICADA en los filtros del catálogo. */
+    public List<Maquina> listarPublicadas(Filtros filtros, int limite, long desplazamiento) {
+        Filtro f = filtro(filtros);
         List<Object> params = new ArrayList<>(f.params());
         params.add(limite);
         params.add(desplazamiento);
@@ -60,15 +69,15 @@ public class MaquinaRepositorio {
                  LIMIT ? OFFSET ?""", params.toArray()).stream().map(Maquina::desde).toList();
     }
 
-    public long contarPublicadas(Long categoriaId, String texto) {
-        Filtro f = filtro("PUBLICADA", categoriaId, texto);
+    public long contarPublicadas(Filtros filtros) {
+        Filtro f = filtro(filtros);
         return bd.uno("SELECT count(*) AS total FROM maquinas m" + f.where(), f.params().toArray()).enteroOCero("total");
     }
 
     // ---------------- Administración (HU-08) ----------------
     /** Listado con filtros opcionales. Devuelve [filas de la página, total]. */
-    public List<Maquina> listarAdmin(String estado, Long categoriaId, String texto, int limite, long desplazamiento) {
-        Filtro f = filtro(estado, categoriaId, texto);
+    public List<Maquina> listarAdmin(Filtros filtros, int limite, long desplazamiento) {
+        Filtro f = filtro(filtros);
         List<Object> params = new ArrayList<>(f.params());
         params.add(limite);
         params.add(desplazamiento);
@@ -77,8 +86,8 @@ public class MaquinaRepositorio {
                  LIMIT ? OFFSET ?""", params.toArray()).stream().map(Maquina::desde).toList();
     }
 
-    public long contarAdmin(String estado, Long categoriaId, String texto) {
-        Filtro f = filtro(estado, categoriaId, texto);
+    public long contarAdmin(Filtros filtros) {
+        Filtro f = filtro(filtros);
         return bd.uno("SELECT count(*) AS total FROM maquinas m" + f.where(), f.params().toArray()).enteroOCero("total");
     }
 
@@ -86,22 +95,32 @@ public class MaquinaRepositorio {
     }
 
     /** Compartido entre el catálogo público y el listado del administrador. */
-    private static Filtro filtro(String estado, Long categoriaId, String texto) {
+    private static Filtro filtro(Filtros filtros) {
         List<String> condiciones = new ArrayList<>();
         List<Object> params = new ArrayList<>();
-        if (estado != null) {
+        if (filtros.estado() != null) {
             condiciones.add("m.estado = ?");
-            params.add(estado);
+            params.add(filtros.estado());
         }
-        if (categoriaId != null) {
+        if (filtros.categoriaId() != null) {
             condiciones.add("m.categoria_id = ?");
-            params.add(categoriaId);
+            params.add(filtros.categoriaId());
         }
+        String texto = filtros.texto();
         if (texto != null && !texto.isBlank()) {
             String patron = "%" + texto.toLowerCase() + "%";
             condiciones.add("(lower(m.nombre) LIKE ? OR lower(m.marca) LIKE ?)");
             params.add(patron);
             params.add(patron);
+        }
+        // HU-06: rango de precio por hora (inclusivo)
+        if (filtros.precioMin() != null) {
+            condiciones.add("m.tarifa_horaria >= ?");
+            params.add(filtros.precioMin());
+        }
+        if (filtros.precioMax() != null) {
+            condiciones.add("m.tarifa_horaria <= ?");
+            params.add(filtros.precioMax());
         }
         String where = condiciones.isEmpty() ? "" : " WHERE " + String.join(" AND ", condiciones);
         return new Filtro(where + "\n", params);

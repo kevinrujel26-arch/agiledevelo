@@ -260,6 +260,29 @@ public final class Validador {
         return d.setScale(2, RoundingMode.HALF_UP);
     }
 
+    /** Decimal opcional mayor o igual a 0 (filtros de precio). Si no viene, devuelve null. */
+    public BigDecimal decimalNoNegativoOpcional(String campo, String etiqueta, BigDecimal maximo) {
+        Object v = datos.get(campo);
+        if (v == null || (v instanceof String s && s.isBlank())) return null;
+        BigDecimal d;
+        try {
+            if (v instanceof Boolean) throw new NumberFormatException();
+            d = v instanceof BigDecimal b ? b : new BigDecimal(v.toString().trim());
+        } catch (NumberFormatException e) {
+            error(campo, etiqueta + " debe ser un número");
+            return null;
+        }
+        if (d.signum() < 0) {
+            error(campo, etiqueta + " no puede ser negativo");
+            return null;
+        }
+        if (maximo != null && d.compareTo(maximo) > 0) {
+            error(campo, etiqueta + " es demasiado alto");
+            return null;
+        }
+        return d;
+    }
+
     /** Booleano (true/false en JSON). Si no viene, devuelve el valor por defecto. */
     public Boolean booleano(String campo, Boolean porDefecto) {
         Object v = datos.get(campo);

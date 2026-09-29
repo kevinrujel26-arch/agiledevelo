@@ -8,6 +8,7 @@ import alquiler.json.Json;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -177,6 +178,121 @@ class MaquinaTest extends PruebaBase {
         assertEquals(2L, numero(p.get("pagina")));
         assertEquals(5L, numero(p.get("total")));
         assertEquals(3L, numero(p.get("totalPaginas")));
+    }
+
+    // ------------------------------------------------------------ HU-06: rango de precio
+    private long crearPublicada(String nombre, long categoria, Object tarifaHoraria) {
+        Map<String, Object> datos = datosMaquina(categoria);
+        datos.put("nombre", nombre);
+        datos.put("tarifaHoraria", tarifaHoraria);
+        long id = crearMaquina(datos);
+        assertEquals(201, subir("/api/admin/maquinas/" + id + "/fotos", token, new Archivo("foto.png", "image/png", PNG)).estado());
+        assertEquals(200, post("/api/admin/maquinas/" + id + "/publicar", null, token).estado());
+        return id;
+    }
+
+    /** Cuatro máquinas publicadas de S/ 50, 100, 150 y 200 por hora. Devuelve sus ids en ese orden. */
+    private long[] crearRangoDePrecios() {
+        return new long[]{
+                crearPublicada("Minicargador", categoriaId, 50),
+                crearPublicada("Retroexcavadora", categoriaId, 100),
+                crearPublicada("Excavadora", categoriaId, "150.00"),
+                crearPublicada("Cargador frontal", categoriaId, 200)};
+    }
+
+    private static long total(Resp r) {
+        return numero(r.objeto("paginacion").get("total"));
+    }
+
+    @Test
+    @DisplayName("HU-06: filtra solo con precio mínimo (inclusivo)")
+    void soloPrecioMinimo() {
+        long[] m = crearRangoDePrecios();
+        Resp r = get("/api/maquinas?precioMin=150", null);
+        assertEquals(200, r.estado());
+        assertEquals(Set.of(m[2], m[3]), Set.copyOf(ids(r)));
+        assertEquals(2L, total(r));
+    }
+
+    @Test
+    @DisplayName("HU-06: filtra solo con precio máximo (inclusivo)")
+    void soloPrecioMaximo() {
+        long[] m = crearRangoDePrecios();
+        Resp r = get("/api/maquinas?precioMax=100", null);
+        assertEquals(Set.of(m[0], m[1]), Set.copyOf(ids(r)));
+        assertEquals(2L, total(r));
+    }
+
+    @Test
+    @DisplayName("HU-06: filtra con mínimo y máximo, incluyendo los bordes")
+    void rangoInclusivo() {
+        long[] m = crearRangoDePrecios();
+        assertEquals(Set.of(m[1], m[2]), Set.copyOf(ids(get("/api/maquinas?precioMin=100&precioMax=150", null))));
+        assertEquals(List.of(m[1]), ids(get("/api/maquinas?precioMin=100&precioMax=100", null)));
+        assertEquals(Set.of(m[1], m[2]), Set.copyOf(ids(get("/api/maquinas?precioMin=99.99&precioMax=150.01", null))));
+        Resp vacio = get("/api/maquinas?precioMin=100.01&precioMax=149.99", null);
+        assertEquals(200, vacio.estado());
+        assertEquals(0, vacio.lista("datos").size());
+        assertEquals(0L, total(vacio));
+    }
+
+    @Test
+    @DisplayName("HU-06: si el mínimo es mayor que el máximo responde 400 con un mensaje claro")
+    void minimoMayorQueMaximo() {
+        Resp r = get("/api/maquinas?precioMin=200&precioMax=100", null);
+        assertEquals(400, r.estado());
+        assertEquals("precioMin", r.lista("detalles").get(0).get("campo"));
+        assertTrue(r.error().contains("no puede ser mayor que el precio máximo"), r.error());
+    }
+
+    @Test
+    @DisplayName("HU-06: rechaza precios negativos o que no son números")
+    void precioInvalido() {
+        assertEquals(400, get("/api/maquinas?precioMin=-1", null).estado());
+        assertEquals(400, get("/api/maquinas?precioMax=abc", null).estado());
+        assertEquals(200, get("/api/maquinas?precioMin=0", null).estado());
+    }
+
+    @Test
+    @DisplayName("HU-06: el rango de precio se combina con la categoría y la búsqueda")
+    void combinaConCategoriaYBusqueda() {
+        long[] m = crearRangoDePrecios();
+        long otraCategoria = crearCategoria("Montacargas", true);
+        long montacargas = crearPublicada("Montacargas diésel", otraCategoria, 120);
+
+        assertEquals(List.of(montacargas),
+                ids(get("/api/maquinas?categoriaId=" + otraCategoria + "&precioMin=100&precioMax=150", null)));
+        assertEquals(Set.of(m[1], m[2]),
+                Set.copyOf(ids(get("/api/maquinas?categoriaId=" + categoriaId + "&precioMin=100&precioMax=150", null))));
+        // "cargador" encuentra Minicargador (50) y Cargador frontal (200); el rango deja solo el segundo
+        Resp r = get("/api/maquinas?q=cargador&precioMin=100", null);
+        assertEquals(List.of(m[3]), ids(r));
+        assertEquals(1L, total(r));
+    }
+
+    @Test
+    @DisplayName("HU-06: la paginación y el total respetan el rango de precio")
+    void paginacionConRango() {
+        for (int i = 0; i < 5; i++) crearPublicada("Barata " + i, categoriaId, 40 + i);
+        for (int i = 0; i < 3; i++) crearPublicada("Cara " + i, categoriaId, 500 + i);
+
+        Resp p1 = get("/api/maquinas?precioMax=100&pagina=1&tamanio=2", null);
+        Resp p3 = get("/api/maquinas?precioMax=100&pagina=3&tamanio=2", null);
+        assertEquals(5L, total(p1));
+        assertEquals(3L, numero(p1.objeto("paginacion").get("totalPaginas")));
+        assertEquals(2, p1.lista("datos").size());
+        assertEquals(1, p3.lista("datos").size());
+        p1.lista("datos").forEach(t -> assertTrue(((Number) t.get("tarifaHoraria")).doubleValue() <= 100));
+    }
+
+    @Test
+    @DisplayName("HU-06: el listado del administrador también acepta el rango de precio")
+    void rangoEnAdmin() {
+        long[] m = crearRangoDePrecios();
+        Resp r = get("/api/admin/maquinas?precioMin=150&precioMax=150", token);
+        assertEquals(200, r.estado());
+        assertEquals(List.of(m[2]), ids(r));
+        assertEquals(400, get("/api/admin/maquinas?precioMin=10&precioMax=5", token).estado());
     }
 
     @Test
