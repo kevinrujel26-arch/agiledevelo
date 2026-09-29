@@ -1,5 +1,5 @@
 // Página de inicio + HU-03 Ver catálogo de maquinaria
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../api/cliente';
 import { useAuth, panelSegunRol } from '../contexto/AuthContext';
@@ -7,7 +7,7 @@ import { Alerta, Cargando, Paginacion, TarjetaMaquina } from '../componentes/com
 import { Excavadora, Icono } from '../componentes/Ilustracion';
 
 const TAMANIO_PAGINA = 12;
-const ESPERA_PRECIO_MS = 500; // HU-06: espera antes de aplicar el precio mientras se escribe
+const ESPERA_BUSQUEDA_MS = 400; // espera tras dejar de escribir antes de buscar (texto y precio)
 
 const PASOS = [
   { titulo: 'Explora el catálogo', texto: 'Compara equipos, especificaciones técnicas y tarifas por hora en un solo lugar.' },
@@ -23,10 +23,12 @@ export default function Catalogo() {
   const q = params.get('q') || '';
   const precioMin = params.get('precioMin') || '';
   const precioMax = params.get('precioMax') || '';
+  // Lo que el usuario escribe; se lleva a la URL tras una pequeña espera (debounce)
   const [busqueda, setBusqueda] = useState(q);
-  // HU-06: lo que el usuario escribe; se lleva a la URL tras una pequeña espera
   const [entradaMin, setEntradaMin] = useState(precioMin);
   const [entradaMax, setEntradaMax] = useState(precioMax);
+  // Últimos valores que este componente llevó a la URL, para distinguirlos de cambios externos
+  const enviadoRef = useRef(null);
   const rangoInvalido = entradaMin !== '' && entradaMax !== '' && Number(entradaMin) > Number(entradaMax);
   const hayFiltros = Boolean(categoriaId || q || precioMin || precioMax);
 
@@ -56,25 +58,46 @@ export default function Catalogo() {
     setParams(Object.fromEntries(Object.entries(nuevos).filter(([, v]) => v)));
   };
 
-  // Si la URL cambia desde fuera (atrás/adelante, "Quitar filtros"), los campos la siguen
-  useEffect(() => setEntradaMin(precioMin), [precioMin]);
-  useEffect(() => setEntradaMax(precioMax), [precioMax]);
+  // Búsqueda y rango de precio que corresponden a lo escrito en los campos
+  const objetivo = {
+    q: busqueda.trim(),
+    // HU-06: un rango inválido no se aplica; se mantiene el último válido
+    precioMin: rangoInvalido ? precioMin : entradaMin,
+    precioMax: rangoInvalido ? precioMax : entradaMax,
+  };
+  const pendiente = objetivo.q !== q || objetivo.precioMin !== precioMin || objetivo.precioMax !== precioMax;
 
-  // HU-06: aplica el rango de precio tras dejar de escribir (debounce)
+  // Lleva a la URL una nueva búsqueda (vuelve a la página 1) y la recuerda como propia
+  const enviarBusqueda = (nueva) => {
+    if (nueva.q === q && nueva.precioMin === precioMin && nueva.precioMax === precioMax) return;
+    enviadoRef.current = nueva;
+    actualizarFiltros({ ...nueva, pagina: '' });
+  };
+  const aplicarEntradas = () => enviarBusqueda(objetivo);
+
+  // Busca al dejar de escribir; cada tecla reinicia la espera
   useEffect(() => {
-    if (rangoInvalido || (entradaMin === precioMin && entradaMax === precioMax)) return undefined;
-    const temporizador = setTimeout(
-      () => actualizarFiltros({ precioMin: entradaMin, precioMax: entradaMax, pagina: '' }),
-      ESPERA_PRECIO_MS
-    );
+    if (!pendiente) return undefined;
+    const temporizador = setTimeout(aplicarEntradas, ESPERA_BUSQUEDA_MS);
     return () => clearTimeout(temporizador);
-    // Incluye los demás filtros para no aplicar el precio con valores viejos de categoría o búsqueda
-  }, [entradaMin, entradaMax, categoriaId, q, precioMin, precioMax]);
+    // Incluye los demás filtros para no aplicar la búsqueda con valores viejos de categoría
+  }, [busqueda, entradaMin, entradaMax, categoriaId, q, precioMin, precioMax]);
+
+  // Si la URL cambia desde fuera (atrás/adelante, "Quitar filtros"), los campos la siguen.
+  // Los cambios que hizo la propia búsqueda se ignoran para no pisar lo que se sigue escribiendo.
+  useEffect(() => {
+    const enviado = enviadoRef.current;
+    enviadoRef.current = null;
+    if (enviado && enviado.q === q && enviado.precioMin === precioMin && enviado.precioMax === precioMax) return;
+    setBusqueda(q);
+    setEntradaMin(precioMin);
+    setEntradaMax(precioMax);
+  }, [q, precioMin, precioMax]);
 
   const limpiarPrecio = () => {
     setEntradaMin('');
     setEntradaMax('');
-    actualizarFiltros({ precioMin: '', precioMax: '', pagina: '' });
+    enviarBusqueda({ q: objetivo.q, precioMin: '', precioMax: '' });
   };
 
   const ciudades = useMemo(
@@ -219,7 +242,7 @@ export default function Catalogo() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                actualizarFiltros({ q: busqueda.trim(), pagina: '' });
+                aplicarEntradas(); // Enter busca sin esperar
               }}
             >
               <input
@@ -278,7 +301,7 @@ export default function Catalogo() {
                   ? 'Prueba ampliando el rango de precio por hora.'
                   : 'Prueba con otra categoría o palabra clave.'}
               </p>
-              <button type="button" className="boton boton-secundario" onClick={() => { setBusqueda(''); setParams({}); }}>
+              <button type="button" className="boton boton-secundario" onClick={() => setParams({})}>
                 Quitar filtros
               </button>
             </div>

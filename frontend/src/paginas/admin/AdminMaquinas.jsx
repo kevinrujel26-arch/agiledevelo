@@ -1,5 +1,5 @@
 // Listado de la flota para el administrador (HU-08)
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../../api/cliente';
 import { Alerta, Cargando, FotoMaquina, Paginacion } from '../../componentes/comunes';
@@ -12,18 +12,24 @@ const PESTANAS = [
   ['RETIRADA', 'Retiradas'],
 ];
 
+const ESPERA_BUSQUEDA_MS = 400; // espera tras dejar de escribir antes de buscar
+
 export default function AdminMaquinas() {
   const [params, setParams] = useSearchParams();
   const estado = params.get('estado') || '';
   const pagina = Number(params.get('pagina')) || 1;
-  const [busqueda, setBusqueda] = useState(params.get('q') || '');
   const q = params.get('q') || '';
+  // Lo que se escribe; se lleva a la URL tras una pequeña espera (debounce)
+  const [busqueda, setBusqueda] = useState(q);
+  // Último texto que este componente llevó a la URL, para distinguirlo de cambios externos
+  const enviadoRef = useRef(null);
 
   const [resultado, setResultado] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
     let vigente = true;
+    setError('');
     api
       .get('/admin/maquinas', { estado, q, pagina, tamanio: 15 })
       .then((r) => vigente && setResultado(r))
@@ -37,6 +43,28 @@ export default function AdminMaquinas() {
     const nuevos = { estado, q, ...cambios };
     setParams(Object.fromEntries(Object.entries(nuevos).filter(([, v]) => v)));
   };
+
+  // Lleva la búsqueda a la URL (vuelve a la página 1)
+  const aplicarBusqueda = () => {
+    const texto = busqueda.trim();
+    if (texto === q) return;
+    enviadoRef.current = texto;
+    actualizarFiltros({ q: texto, pagina: '' });
+  };
+
+  // Busca al dejar de escribir; cada tecla reinicia la espera
+  useEffect(() => {
+    if (busqueda.trim() === q) return undefined;
+    const temporizador = setTimeout(aplicarBusqueda, ESPERA_BUSQUEDA_MS);
+    return () => clearTimeout(temporizador);
+  }, [busqueda, q, estado]);
+
+  // Si la URL cambia desde fuera (atrás/adelante), el campo la sigue sin pisar lo que se escribe
+  useEffect(() => {
+    const enviado = enviadoRef.current;
+    enviadoRef.current = null;
+    if (enviado !== q) setBusqueda(q);
+  }, [q]);
 
   return (
     <>
@@ -64,7 +92,7 @@ export default function AdminMaquinas() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            actualizarFiltros({ q: busqueda.trim(), pagina: '' });
+            aplicarBusqueda(); // Enter busca sin esperar
           }}
         >
           <input type="search" placeholder="Buscar por nombre o marca" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} aria-label="Buscar" />
