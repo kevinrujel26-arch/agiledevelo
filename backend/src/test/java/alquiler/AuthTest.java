@@ -2,6 +2,7 @@ package alquiler;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import alquiler.bd.ErrorBd;
 import alquiler.bd.Fila;
 import alquiler.json.Json;
 
@@ -10,6 +11,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Pruebas de aceptación: HU-01, HU-02, EN-03 y EN-05. */
@@ -73,6 +75,25 @@ class AuthTest extends PruebaBase {
             datos.remove(campo);
             assertEquals(400, post("/api/auth/registro", datos, null).estado(), "sin " + campo);
         }
+    }
+
+    // ------------------------------------------------------------ Roles (EN-05)
+    @Test
+    @DisplayName("EN-05: la BD solo admite los roles CLIENTE y ADMINISTRADOR (no existe PROVEEDOR)")
+    void bdRechazaRolProveedor() {
+        ErrorBd e = assertThrows(ErrorBd.class, () -> bd().ejecutar("""
+                INSERT INTO usuarios (nombre, correo, contrasena_hash, rol)
+                VALUES ('Prov', 'prov@prueba.pe', 'x', 'PROVEEDOR')"""));
+        assertEquals("usuarios_rol_check", e.getRestriccion());
+    }
+
+    @Test
+    @DisplayName("EN-05: el registro sigue creando usuarios con rol CLIENTE")
+    void registroSigueCreandoCliente() {
+        Map<String, Object> datos = registroValido();
+        datos.put("rol", "PROVEEDOR"); // se debe ignorar
+        assertEquals(201, post("/api/auth/registro", datos, null).estado());
+        assertEquals("CLIENTE", bd().uno("SELECT rol FROM usuarios").texto("rol"));
     }
 
     // ------------------------------------------------------------ HU-02

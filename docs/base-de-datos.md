@@ -1,6 +1,13 @@
 # Base de datos (EN-02)
 
-Motor: **PostgreSQL 14+**. Script: `database/migrations/001_esquema_inicial.sql`.
+Motor: **PostgreSQL 14+**. Scripts en `database/migrations/` (se aplican en orden y cada uno una sola vez):
+
+| Migración | Qué hace |
+|---|---|
+| `001_esquema_inicial.sql` | Crea todas las tablas |
+| `002_preparar_rol_proveedor.sql` | (Histórica) reservaba un rol PROVEEDOR; la 004 lo deshace |
+| `003_tarifa_y_fechas_por_hora.sql` | La tarifa pasa a ser por hora (`tarifa_horaria`) y las fechas de bloqueos/reservas pasan a `TIMESTAMPTZ` |
+| `004_quitar_rol_proveedor.sql` | Elimina el rol PROVEEDOR: solo existen CLIENTE y ADMINISTRADOR |
 
 El modelo ya incluye las tablas de los Sprints 3 y 4 (reservas, pagos, reembolsos, auditoría) para que el diseño quede completo desde el inicio, aunque el código que las usa se construye más adelante.
 
@@ -107,6 +114,7 @@ erDiagram
 
 | Regla | Historia | Cómo se garantiza |
 |---|---|---|
+| Solo existen los roles CLIENTE y ADMINISTRADOR | EN-05 | `CHECK (rol IN ('CLIENTE','ADMINISTRADOR'))` (`usuarios_rol_check`). Las máquinas son del negocio: no hay proveedores |
 | El correo no se repite | HU-01 | Índice único `ux_usuarios_correo` (los correos se guardan en minúsculas) |
 | La contraseña se guarda cifrada | HU-01 | Solo existe la columna `contrasena_hash` (PBKDF2-SHA256 con sal) |
 | Nombre de categoría único | HU-14 | Índice único sobre `lower(trim(nombre))` |

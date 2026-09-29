@@ -4,6 +4,8 @@ Base: `http://localhost:3000/api`. Todas las respuestas son JSON. Backend en **J
 
 **Autenticación:** cabecera `Authorization: Bearer <token>`. El token se obtiene en `POST /auth/login`.
 
+**Roles:** solo existen `CLIENTE` y `ADMINISTRADOR` (las máquinas son del negocio; no hay proveedores).
+
 **Errores:** `{ "error": "mensaje para el usuario", "detalles": [{ "campo": "correo", "mensaje": "..." }] }`
 
 | Código | Significado |
@@ -49,7 +51,7 @@ Base: `http://localhost:3000/api`. Todas las respuestas son JSON. Backend en **J
 |---|---|---|
 | GET | `/admin/maquinas?estado=&q=&categoriaId=&pagina=` | Toda la flota |
 | GET | `/admin/maquinas/:id` | Detalle con fotos |
-| POST | `/admin/maquinas` | Crea en estado BORRADOR. Cuerpo: `{ categoriaId, nombre, marca, modelo, tarifaDiaria, ubicacion, descripcion?, especificaciones?: { "Potencia": "146 HP" }, enMantenimiento? }` |
+| POST | `/admin/maquinas` | Crea en estado BORRADOR. Cuerpo: `{ categoriaId, nombre, marca, modelo, tarifaHoraria, ubicacion, descripcion?, especificaciones?: { "Potencia": "146 HP" }, enMantenimiento? }` |
 | PUT | `/admin/maquinas/:id` | Edita cualquier campo (también si ya está publicada) |
 | POST | `/admin/maquinas/:id/publicar` | Requiere foto principal |
 | POST | `/admin/maquinas/:id/retirar` | Sale del catálogo y conserva su historial |
