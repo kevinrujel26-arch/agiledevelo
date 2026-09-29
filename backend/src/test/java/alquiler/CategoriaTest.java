@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import alquiler.json.Json;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -39,6 +40,57 @@ class CategoriaTest extends PruebaBase {
     void nombreUnico() {
         crearCategoria("Excavadoras", true);
         assertEquals(409, post("/api/admin/categorias", Json.obj("nombre", "  EXCAVADORAS "), token).estado());
+    }
+
+    // ------------------------------------------------------------ Validaciones
+    @Test
+    @DisplayName("Validación: el nombre de categoría admite letras, números y guiones; recorta y colapsa espacios")
+    void nombreCategoriaValido() {
+        Resp r = post("/api/admin/categorias", Json.obj("nombre", "  Grúas   torre-2 ", "descripcion", "  Para obras altas "), token);
+        assertEquals(201, r.estado(), String.valueOf(r.cuerpo()));
+        assertEquals("Grúas torre-2", r.json().get("nombre"));
+        assertEquals("Para obras altas", r.json().get("descripcion"));
+    }
+
+    @Test
+    @DisplayName("Validación: el nombre de categoría rechaza símbolos, HTML, sin letras y largos fuera de 2–80")
+    void nombreCategoriaInvalido() {
+        Map<String, String> casos = Map.of(
+                "A", "El nombre debe tener al menos 2 caracteres",
+                "a".repeat(81), "El nombre debe tener como máximo 80 caracteres",
+                "123", "El nombre debe contener al menos una letra",
+                "Grúas & más", "El nombre solo puede contener letras, números, espacios y guiones",
+                "   ", "El nombre es obligatorio",
+                "<b>Grúas</b>", "El nombre no puede contener los signos < ni >");
+        casos.forEach((malo, mensaje) -> {
+            Resp r = post("/api/admin/categorias", Json.obj("nombre", malo), token);
+            assertEquals(400, r.estado(), malo);
+            assertEquals(mensaje, r.errorDe("nombre"), malo);
+        });
+        Resp larga = post("/api/admin/categorias", Json.obj("nombre", "Grúas", "descripcion", "x".repeat(256)), token);
+        assertEquals("La descripción debe tener como máximo 255 caracteres", larga.errorDe("descripcion"));
+    }
+
+    @Test
+    @DisplayName("Validación: el nombre no se repite aunque cambien mayúsculas o tildes, con un mensaje claro")
+    void nombreRepetidoSinTildes() {
+        long gruas = crearCategoria("Grúas", true);
+        long otra = crearCategoria("Montacargas", true);
+        Resp r = post("/api/admin/categorias", Json.obj("nombre", "GRUAS"), token);
+        assertEquals(409, r.estado());
+        assertEquals("Ya existe una categoría con ese nombre (sin distinguir mayúsculas ni tildes)", r.errorDe("nombre"));
+        assertEquals(409, put("/api/admin/categorias/" + otra, Json.obj("nombre", "gruas"), token).estado());
+        // Cambiarle solo las mayúsculas o tildes a la misma categoría sí se permite
+        assertEquals(200, put("/api/admin/categorias/" + gruas, Json.obj("nombre", "GRÚAS"), token).estado());
+    }
+
+    @Test
+    @DisplayName("Validación: una categoría antigua con nombre fuera de las reglas se puede seguir editando sin renombrarla")
+    void categoriaAntiguaSeEdita() {
+        long id = crearCategoria("Cat. #1 & Co", true);
+        Resp r = put("/api/admin/categorias/" + id, Json.obj("descripcion", "Nueva descripción"), token);
+        assertEquals(200, r.estado(), String.valueOf(r.cuerpo()));
+        assertEquals("Cat. #1 & Co", r.json().get("nombre"));
     }
 
     @Test

@@ -4,6 +4,7 @@ import org.springframework.stereotype.Repository;
 import alquiler.bd.Consultas;
 import alquiler.bd.Fila;
 import alquiler.modelo.Categoria;
+import alquiler.util.Validador;
 
 import java.util.List;
 
@@ -38,12 +39,14 @@ public class CategoriaRepositorio {
         return f == null ? null : Categoria.desde(f);
     }
 
-    /** ¿Ya existe otra categoría con ese nombre? (sin distinguir mayúsculas ni espacios) */
+    /**
+     * ¿Ya existe otra categoría con ese nombre? Sin distinguir mayúsculas, tildes ni espacios
+     * sobrantes: "Grúas" y "GRUAS" son la misma. Se compara en Java porque son pocas filas.
+     */
     public boolean nombreEnUso(String nombre, Long excluirId) {
-        return bd.uno("""
-                SELECT 1 FROM categorias
-                 WHERE lower(trim(nombre)) = lower(trim(?))
-                   AND (?::int IS NULL OR id <> ?::int)""", nombre, excluirId, excluirId) != null;
+        String buscado = Validador.clave(nombre);
+        return bd.consultar("SELECT id, nombre FROM categorias").stream()
+                .anyMatch(f -> !f.entero("id").equals(excluirId) && Validador.clave(f.texto("nombre")).equals(buscado));
     }
 
     public Categoria crear(String nombre, String descripcion) {

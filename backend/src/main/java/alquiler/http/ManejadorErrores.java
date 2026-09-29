@@ -1,6 +1,7 @@
 package alquiler.http;
 
 import alquiler.bd.ErrorBd;
+import alquiler.categorias.CategoriaServicio;
 import alquiler.config.Config;
 import alquiler.json.Json;
 import alquiler.util.ErrorApp;
@@ -30,7 +31,7 @@ public class ManejadorErrores {
     // Restricciones de la BD -> mensaje entendible para el usuario
     private static final Map<String, Object[]> MENSAJES_RESTRICCION = Map.of(
             "ux_usuarios_correo", new Object[]{409, "Ya existe una cuenta registrada con ese correo"},
-            "ux_categorias_nombre", new Object[]{409, "Ya existe una categoría con ese nombre"},
+            "ux_categorias_nombre", new Object[]{409, CategoriaServicio.NOMBRE_REPETIDO},
             "ux_fotos_una_principal", new Object[]{409, "La máquina ya tiene una foto principal"},
             "ck_max_5_fotos", new Object[]{400, "Una máquina puede tener como máximo 5 fotos"},
             "ex_bloqueos_sin_superposicion", new Object[]{409, "El rango se superpone con otro bloqueo existente de esta máquina"},

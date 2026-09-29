@@ -36,8 +36,8 @@ public class CategoriaControlador {
     public ResponseEntity<Object> crear(HttpServletRequest peticion) {
         Solicitud s = Solicitud.de(peticion);
         Validador v = Validador.de(s.json());
-        String nombre = v.texto("nombre", 1, 80, true, "El nombre es obligatorio");
-        String descripcion = v.texto("descripcion", 0, 255, false, null);
+        String nombre = v.nombreCategoria("nombre");
+        String descripcion = v.linea("descripcion", "La descripción", 0, 255, false, null);
         v.validar();
         return Respuesta.creado(servicio.crear(nombre, descripcion));
     }
@@ -51,8 +51,8 @@ public class CategoriaControlador {
             throw ErrorApp.solicitudInvalida("Envía al menos un campo para actualizar");
         }
         Validador v = Validador.de(cuerpo);
-        String nombre = v.tiene("nombre") ? v.texto("nombre", 1, 80, true, "El nombre es obligatorio") : null;
-        String descripcion = v.texto("descripcion", 0, 255, false, null);
+        String nombre = v.tiene("nombre") ? v.nombreCategoria("nombre") : null;
+        String descripcion = v.linea("descripcion", "La descripción", 0, 255, false, null);
         v.validar();
         return Respuesta.ok(servicio.actualizar(id, nombre, v.tiene("descripcion"), descripcion));
     }

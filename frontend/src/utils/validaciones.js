@@ -127,6 +127,28 @@ export function validarContrasenaIngreso(valor) {
   return (valor || '').trim() ? '' : 'Ingresa tu contraseña';
 }
 
+// ------------------------------------------------------------------ Categorías
+
+const NOMBRE_CATEGORIA = /^[\p{L}\p{M}0-9 -]+$/u;
+export const MENSAJE_CATEGORIA_REPETIDA = 'Ya existe una categoría con ese nombre (sin distinguir mayúsculas ni tildes)';
+
+/** Clave para comparar sin mayúsculas, tildes ni espacios sobrantes ('Grúas ' -> 'gruas'), como Validador.clave */
+export const claveTexto = (valor) => normalizarTexto((valor || '').normalize('NFD').replace(/\p{M}+/gu, '')).toLowerCase();
+
+/** @param existentes categorías ya cargadas, para avisar en vivo si el nombre se repite */
+export function validarNombreCategoria(valor, existentes = [], excluirId = null) {
+  const base = validarLinea(valor, { etiqueta: 'El nombre', min: 2, max: 80, obligatorio: 'El nombre es obligatorio' });
+  if (base) return base;
+  const t = normalizarTexto(valor);
+  if (!NOMBRE_CATEGORIA.test(t)) return 'El nombre solo puede contener letras, números, espacios y guiones';
+  if (!LETRA.test(t)) return 'El nombre debe contener al menos una letra';
+  const clave = claveTexto(t);
+  if (existentes.some((c) => c.id !== excluirId && claveTexto(c.nombre) === clave)) return MENSAJE_CATEGORIA_REPETIDA;
+  return '';
+}
+
+export const validarDescripcionCategoria = (valor) => validarLinea(valor, { etiqueta: 'La descripción', max: 255 });
+
 // ------------------------------------------------------------------ Utilidades
 
 /** Aplica { campo: regla } a los datos y devuelve solo los campos con error */

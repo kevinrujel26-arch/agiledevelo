@@ -4,6 +4,7 @@ import alquiler.json.Json;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -37,6 +38,8 @@ public final class Validador {
     private static final Pattern LETRA = Pattern.compile("\\p{L}");
     private static final Pattern NUMERO = Pattern.compile("[0-9]");
     private static final Pattern NOMBRE_PERSONA = Pattern.compile("^[\\p{L}\\p{M}'’ -]+$");
+    private static final Pattern NOMBRE_CATEGORIA = Pattern.compile("^[\\p{L}\\p{M}0-9 -]+$");
+    private static final Pattern MARCAS = Pattern.compile("\\p{M}+");
     private static final String OBLIGATORIO = "Este campo es obligatorio";
     private static final String TIPO_INVALIDO = "Tipo de dato inválido";
 
@@ -136,6 +139,28 @@ public final class Validador {
             return null;
         }
         return t;
+    }
+
+    /** Nombre de categoría: 2 a 80 caracteres con al menos una letra; admite números, espacios y guiones. */
+    public String nombreCategoria(String campo) {
+        String t = linea(campo, "El nombre", 2, 80, true, "El nombre es obligatorio");
+        if (t == null) return null;
+        if (!NOMBRE_CATEGORIA.matcher(t).matches()) {
+            error(campo, "El nombre solo puede contener letras, números, espacios y guiones");
+            return null;
+        }
+        if (!LETRA.matcher(t).find()) {
+            error(campo, "El nombre debe contener al menos una letra");
+            return null;
+        }
+        return t;
+    }
+
+    /** Clave para comparar textos sin distinguir mayúsculas, tildes ni espacios sobrantes ("Grúas " -> "gruas"). */
+    public static String clave(String texto) {
+        if (texto == null) return "";
+        String sinTildes = MARCAS.matcher(Normalizer.normalize(texto, Normalizer.Form.NFD)).replaceAll("");
+        return ESPACIOS.matcher(sinTildes.strip()).replaceAll(" ").toLowerCase(Locale.ROOT);
     }
 
     /** Contraseña nueva: 8 a 72 caracteres, al menos una letra y un número, sin espacios en los extremos. */

@@ -1,6 +1,7 @@
 package alquiler.categorias;
 
 import org.springframework.stereotype.Service;
+import alquiler.json.Json;
 import alquiler.modelo.Categoria;
 import alquiler.util.ErrorApp;
 
@@ -11,6 +12,8 @@ import java.util.List;
 public class CategoriaServicio {
 
     private static final String NO_EXISTE = "La categoría no existe";
+    /** El mismo texto usa el frontend (utils/validaciones.js) y ManejadorErrores. */
+    public static final String NOMBRE_REPETIDO = "Ya existe una categoría con ese nombre (sin distinguir mayúsculas ni tildes)";
     private final CategoriaRepositorio repo;
 
     public CategoriaServicio(CategoriaRepositorio repo) {
@@ -29,17 +32,20 @@ public class CategoriaServicio {
 
     /** HU-14 criterio 4: el nombre no puede repetirse. */
     public Categoria crear(String nombre, String descripcion) {
-        if (repo.nombreEnUso(nombre, null)) throw ErrorApp.conflicto("Ya existe una categoría con ese nombre");
+        if (repo.nombreEnUso(nombre, null)) throw nombreRepetido();
         return repo.crear(nombre, descripcion);
     }
 
     public Categoria actualizar(long id, String nombre, boolean cambiarDescripcion, String descripcion) {
-        if (nombre != null && repo.nombreEnUso(nombre, id)) {
-            throw ErrorApp.conflicto("Ya existe una categoría con ese nombre");
-        }
+        if (nombre != null && repo.nombreEnUso(nombre, id)) throw nombreRepetido();
         Categoria c = repo.actualizar(id, nombre, cambiarDescripcion, descripcion);
         if (c == null) throw ErrorApp.noEncontrado(NO_EXISTE);
         return c;
+    }
+
+    /** 409 con el detalle en el campo "nombre", para que el formulario lo muestre bajo ese campo. */
+    private static ErrorApp nombreRepetido() {
+        return new ErrorApp(409, NOMBRE_REPETIDO, List.of(Json.obj("campo", "nombre", "mensaje", NOMBRE_REPETIDO)));
     }
 
     public Categoria cambiarEstado(long id, boolean activa) {
