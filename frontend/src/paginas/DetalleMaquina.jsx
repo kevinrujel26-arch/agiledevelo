@@ -1,7 +1,8 @@
-// Detalle de máquina: base para HU-04 (el botón "Reservar" llega en el Sprint 3)
+// HU-04 Detalle de máquina
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/cliente';
+import { useAuth } from '../contexto/AuthContext';
 import { Alerta, Cargando, FotoMaquina } from '../componentes/comunes';
 import { Icono } from '../componentes/Ilustracion';
 import Calendario from '../componentes/Calendario';
@@ -9,16 +10,20 @@ import { formatearHoras, formatearMoneda } from '../utils/formato';
 
 export default function DetalleMaquina() {
   const { id } = useParams();
+  const { usuario, cargando } = useAuth();
+  const navegar = useNavigate();
   const [maquina, setMaquina] = useState(null);
   const [ocupados, setOcupados] = useState([]);
   const [fotoActiva, setFotoActiva] = useState(0);
   const [error, setError] = useState('');
+  const [avisoReserva, setAvisoReserva] = useState(false);
 
   useEffect(() => {
     let vigente = true;
     setMaquina(null);
     setError('');
     setFotoActiva(0);
+    setAvisoReserva(false);
     Promise.all([api.get(`/maquinas/${id}`), api.get(`/maquinas/${id}/disponibilidad`)])
       .then(([m, d]) => {
         if (!vigente) return;
@@ -57,6 +62,15 @@ export default function DetalleMaquina() {
         </div>
       </div>
     );
+  }
+
+  // HU-04 criterio 3: sin sesión lleva al login y vuelve aquí; con sesión, el flujo de reservas aún no existe
+  function reservar() {
+    if (!usuario) {
+      navegar('/login', { state: { desde: `/maquinas/${id}` } });
+      return;
+    }
+    setAvisoReserva(true);
   }
 
   const fotos = maquina.fotos;
@@ -140,10 +154,23 @@ export default function DetalleMaquina() {
 
           {maquina.descripcion && <p className="descripcion">{maquina.descripcion}</p>}
 
-          <div className="nota-reserva">
-            <Icono nombre="info" />
-            <span>La reserva en línea estará disponible muy pronto. Revisa en el calendario las fechas libres.</span>
-          </div>
+          <button
+            type="button"
+            className="boton boton-primario boton-grande boton-bloque"
+            onClick={reservar}
+            disabled={cargando}
+          >
+            Reservar
+          </button>
+          {!usuario && !cargando && (
+            <p className="ayuda centrado" style={{ margin: '10px 0 0' }}>Necesitas iniciar sesión para reservar.</p>
+          )}
+          {avisoReserva && (
+            <div className="nota-reserva" role="status" style={{ marginTop: 14 }}>
+              <Icono nombre="info" />
+              <span>La reserva en línea estará disponible pronto. Mientras tanto, revisa en el calendario las fechas libres.</span>
+            </div>
+          )}
         </aside>
       </div>
     </div>
