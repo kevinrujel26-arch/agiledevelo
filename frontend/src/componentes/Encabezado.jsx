@@ -21,8 +21,9 @@ export default function Encabezado() {
         </Link>
         <nav className="nav-principal">
           <NavLink to="/" end>
-            Catálogo
+            Inicio
           </NavLink>
+          <NavLink to="/catalogo">Catálogo</NavLink>
           {esAdmin && <NavLink to="/admin">Administración</NavLink>}
           {usuario && !esAdmin && <NavLink to="/mi-cuenta">Mi cuenta</NavLink>}
         </nav>

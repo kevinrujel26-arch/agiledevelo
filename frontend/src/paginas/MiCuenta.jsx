@@ -14,7 +14,7 @@ export default function MiCuenta() {
           Celular: {usuario.telefono ? formatearCelular(usuario.telefono) : 'sin registrar'}
         </p>
         <div className="tarjetas-accion">
-          <Link to="/" className="tarjeta-accion">
+          <Link to="/catalogo" className="tarjeta-accion">
             <strong>Explorar catálogo</strong>
             <span>Revisa la maquinaria disponible y sus tarifas.</span>
           </Link>

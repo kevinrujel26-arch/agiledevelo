@@ -41,7 +41,7 @@ export function RutaProtegida({ roles, children }) {
     return (
       <div className="contenedor">
         <Alerta>No tienes permiso para ver esta página.</Alerta>
-        <Link to="/">Volver al catálogo</Link>
+        <Link to="/catalogo">Volver al catálogo</Link>
       </div>
     );
   }

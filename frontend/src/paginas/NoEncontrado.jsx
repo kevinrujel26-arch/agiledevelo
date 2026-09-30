@@ -6,7 +6,10 @@ export default function NoEncontrado() {
       <div className="panel centrado">
         <h1>Página no encontrada</h1>
         <p className="texto-suave">La dirección que buscas no existe.</p>
-        <Link to="/" className="boton boton-primario">Ir al catálogo</Link>
+        <div className="hero-acciones" style={{ justifyContent: 'center', marginBottom: 0 }}>
+          <Link to="/catalogo" className="boton boton-primario">Ir al catálogo</Link>
+          <Link to="/" className="boton boton-secundario">Ir al inicio</Link>
+        </div>
       </div>
     </div>
   );

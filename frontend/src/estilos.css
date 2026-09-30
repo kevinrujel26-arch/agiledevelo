@@ -365,6 +365,14 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); }
 .foto-agregar span { font-size: 2rem; line-height: 1; }
 .foto-agregar:hover:not(:disabled) { border-color: var(--naranja); color: var(--naranja-claro); }
 
+/* ---------- Página de inicio ---------- */
+.inicio-marca { font-size: 1.35rem; margin-bottom: 18px; }
+.contacto-rejilla { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
+.contacto-item { padding: 20px 22px; border-radius: var(--radio); background: var(--vidrio); border: 1px solid var(--borde); color: inherit; text-decoration: none; overflow-wrap: anywhere; transition: border-color .15s; }
+a.contacto-item:hover { border-color: rgba(255, 138, 31, 0.5); }
+.contacto-item span { display: block; color: var(--texto-tenue); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+.contacto-item strong { color: #fff; font-weight: 600; }
+
 /* ---------- Pie de página ---------- */
 .pie { border-top: 1px solid var(--borde); padding: 44px 0 28px; color: var(--texto-suave); font-size: 0.9rem; background: rgba(0, 0, 0, 0.25); }
 .pie-rejilla { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 32px; margin-bottom: 30px; }

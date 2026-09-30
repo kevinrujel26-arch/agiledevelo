@@ -36,7 +36,7 @@ export default function DetalleMaquina() {
       <div className="contenedor contenedor-angosto">
         <div className="panel centrado">
           <Alerta>{error}</Alerta>
-          <Link to="/" className="boton boton-secundario">← Volver al catálogo</Link>
+          <Link to="/catalogo" className="boton boton-secundario">← Volver al catálogo</Link>
         </div>
       </div>
     );
@@ -53,7 +53,7 @@ export default function DetalleMaquina() {
           <p className="texto-suave">
             Este equipo está en mantenimiento y no se puede reservar por ahora. Vuelve a revisarlo en unos días.
           </p>
-          <Link to="/" className="boton boton-secundario">← Ver otros equipos</Link>
+          <Link to="/catalogo" className="boton boton-secundario">← Ver otros equipos</Link>
         </div>
       </div>
     );
@@ -65,7 +65,7 @@ export default function DetalleMaquina() {
   return (
     <div className="contenedor">
       <nav className="migas" aria-label="Ruta">
-        <Link to="/">Catálogo</Link> <span>/</span> <span>{maquina.categoria.nombre}</span> <span>/</span>
+        <Link to="/catalogo">Catálogo</Link> <span>/</span> <span>{maquina.categoria.nombre}</span> <span>/</span>
         <span style={{ color: 'var(--texto)' }}>{maquina.nombre}</span>
       </nav>
 

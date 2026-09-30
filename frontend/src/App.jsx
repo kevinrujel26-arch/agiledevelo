@@ -1,6 +1,7 @@
 import { Link, Navigate, Route, Routes } from 'react-router-dom';
 import Encabezado from './componentes/Encabezado';
 import { RutaProtegida } from './componentes/comunes';
+import Inicio from './paginas/Inicio';
 import Catalogo from './paginas/Catalogo';
 import DetalleMaquina from './paginas/DetalleMaquina';
 import Registro from './paginas/Registro';
@@ -22,7 +23,8 @@ export default function App() {
       <main>
         <Routes>
           {/* Públicas */}
-          <Route path="/" element={<Catalogo />} />
+          <Route path="/" element={<Inicio />} />
+          <Route path="/catalogo" element={<Catalogo />} />
           <Route path="/maquinas/:id" element={<DetalleMaquina />} />
           <Route path="/registro" element={<Registro />} />
           <Route path="/login" element={<Login />} />
@@ -72,8 +74,9 @@ export default function App() {
             <div>
               <h4>Explorar</h4>
               <ul>
-                <li><Link to="/">Catálogo</Link></li>
-                <li><a href="/#equipos">Equipos disponibles</a></li>
+                <li><Link to="/">Inicio</Link></li>
+                <li><Link to="/catalogo">Catálogo</Link></li>
+                <li><a href="/#contacto">Contacto</a></li>
               </ul>
             </div>
             <div>
