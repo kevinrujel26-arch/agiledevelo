@@ -105,18 +105,6 @@ public final class Config {
         });
     }
 
-    /** Para las pruebas: igual que cargar(), pero con APP_ENV=test y valores extra. */
-    public static Config paraPruebas(Map<String, String> extra) {
-        Map<String, String> archivoEnv = leerArchivoEnv(Path.of(".env"));
-        Map<String, String> fijos = new HashMap<>(extra);
-        fijos.put("APP_ENV", "test");
-        return new Config(clave -> {
-            if (fijos.containsKey(clave)) return fijos.get(clave);
-            String v = System.getenv(clave);
-            return v != null ? v : archivoEnv.get(clave);
-        });
-    }
-
     public String valor(String clave, String porDefecto) {
         String v = fuente.apply(clave);
         return (v == null || v.isBlank()) ? porDefecto : v.trim();

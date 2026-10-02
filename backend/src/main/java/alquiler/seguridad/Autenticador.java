@@ -75,13 +75,4 @@ public class Autenticador {
                 s.entero("usuario_id"), s.texto("nombre"), s.texto("correo"), s.texto("telefono"),
                 Rol.valueOf(s.texto("rol")), sid);
     }
-
-    /** EN-05: exige uno de los roles indicados. */
-    public static void exigirRol(UsuarioSesion usuario, Rol... permitidos) {
-        if (usuario == null) throw ErrorApp.noAutenticado();
-        for (Rol r : permitidos) {
-            if (usuario.rol() == r) return;
-        }
-        throw ErrorApp.prohibido();
-    }
 }

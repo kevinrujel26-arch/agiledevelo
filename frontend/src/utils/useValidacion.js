@@ -12,7 +12,6 @@ export function useValidacion(reglas, datos, tocadosIniciales = {}) {
   const hayErrores = Object.keys(errores).length > 0;
 
   return {
-    errores,
     hayErrores,
     tocados,
     /** Error visible: el del servidor (hasta que se vuelve a editar el campo) o el de la regla si ya se tocó */

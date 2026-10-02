@@ -75,10 +75,6 @@ public final class Validador {
         errores.add(Json.obj("campo", prefijo + campo, "mensaje", mensaje));
     }
 
-    public boolean hayErrores() {
-        return !errores.isEmpty();
-    }
-
     /** Lanza ErrorApp 400 si hubo errores. El mensaje principal es "campo: mensaje" del primero. */
     public void validar() {
         if (errores.isEmpty()) return;
