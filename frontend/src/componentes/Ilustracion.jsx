@@ -5,22 +5,22 @@ export function Excavadora({ className = '' }) {
     <svg className={className} viewBox="0 0 480 360" role="img" aria-label="Ilustración de una excavadora">
       <defs>
         <linearGradient id="exc-trazo" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#ff7a18" />
-          <stop offset="100%" stopColor="#ffd166" />
+          <stop offset="0%" className="exc-stop-1" />
+          <stop offset="100%" className="exc-stop-2" />
         </linearGradient>
         <linearGradient id="exc-relleno" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#ff8a1f" stopOpacity="0.22" />
-          <stop offset="100%" stopColor="#ff8a1f" stopOpacity="0.04" />
+          <stop offset="0%" className="exc-stop-relleno" stopOpacity="0.22" />
+          <stop offset="100%" className="exc-stop-relleno" stopOpacity="0.04" />
         </linearGradient>
         <radialGradient id="exc-suelo" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0%" stopColor="#ff8a1f" stopOpacity="0.35" />
-          <stop offset="100%" stopColor="#ff8a1f" stopOpacity="0" />
+          <stop offset="0%" className="exc-stop-relleno" stopOpacity="0.35" />
+          <stop offset="100%" className="exc-stop-relleno" stopOpacity="0" />
         </radialGradient>
       </defs>
 
       {/* Sombra y suelo */}
       <ellipse cx="220" cy="322" rx="190" ry="16" fill="url(#exc-suelo)" />
-      <line x1="30" y1="320" x2="450" y2="320" stroke="rgba(255,255,255,0.14)" strokeWidth="2" strokeDasharray="2 10" strokeLinecap="round" />
+      <line x1="30" y1="320" x2="450" y2="320" className="exc-suelo" strokeWidth="2" strokeDasharray="2 10" strokeLinecap="round" />
 
       <g fill="url(#exc-relleno)" stroke="url(#exc-trazo)" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round">
         {/* Orugas */}
@@ -39,23 +39,23 @@ export function Excavadora({ className = '' }) {
       </g>
 
       {/* Ventana de la cabina */}
-      <path d="M113 152 L172 152 L184 196 L113 196 Z" fill="rgba(122,162,255,0.16)" stroke="rgba(255,255,255,0.35)" strokeWidth="2" strokeLinejoin="round" />
-      <line x1="140" y1="152" x2="140" y2="196" stroke="rgba(255,255,255,0.25)" strokeWidth="2" />
+      <path d="M113 152 L172 152 L184 196 L113 196 Z" className="exc-cristal" strokeWidth="2" strokeLinejoin="round" />
+      <line x1="140" y1="152" x2="140" y2="196" className="exc-linea" strokeWidth="2" />
 
       {/* Ruedas de la oruga */}
-      <g fill="#0a0c10" stroke="url(#exc-trazo)" strokeWidth="3">
+      <g className="exc-rueda" stroke="url(#exc-trazo)" strokeWidth="3">
         {[98, 144, 190, 236, 276].map((cx) => (
           <circle key={cx} cx={cx} cy="289" r="14" />
         ))}
       </g>
-      <g fill="#ff8a1f">
+      <g className="exc-eje">
         {[98, 144, 190, 236, 276].map((cx) => (
           <circle key={cx} cx={cx} cy="289" r="3.5" />
         ))}
       </g>
 
       {/* Cilindros hidráulicos */}
-      <g stroke="rgba(255,255,255,0.55)" strokeWidth="4" strokeLinecap="round">
+      <g className="exc-cilindro" strokeWidth="4" strokeLinecap="round">
         <line x1="214" y1="210" x2="296" y2="138" />
         <line x1="338" y1="82" x2="386" y2="150" />
       </g>
@@ -66,7 +66,7 @@ export function Excavadora({ className = '' }) {
         <line x1="396" y1="252" x2="398" y2="266" />
       </g>
       {/* Articulaciones */}
-      <g fill="#ffb347">
+      <g className="exc-articulacion">
         <circle cx="252" cy="222" r="6" />
         <circle cx="330" cy="92" r="6" />
         <circle cx="402" cy="186" r="6" />
@@ -107,6 +107,13 @@ const TRAZOS = {
       <path d="M12 8h.01M11 11.5h1V16h1" />
     </>
   ),
+  sol: (
+    <>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4" />
+    </>
+  ),
+  luna: <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" />,
   herramienta: <path d="M14.5 6.5a4 4 0 0 0 5 5L12 19a2.1 2.1 0 0 1-3-3l7.5-7.5a4 4 0 0 0-2-2z" />,
 };
 
@@ -131,10 +138,10 @@ export function Icono({ nombre, tamanio = 18 }) {
 export function LogoMarca() {
   return (
     <span className="marca-icono" aria-hidden="true">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1206" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
         <path d="M3 17h11l-1.5-5H8l-1-3.5H4.5zM14 12l4-6 2 1-2.5 7" />
-        <circle cx="6.5" cy="19" r="1.4" fill="#1a1206" />
-        <circle cx="11.5" cy="19" r="1.4" fill="#1a1206" />
+        <circle cx="6.5" cy="19" r="1.4" fill="currentColor" />
+        <circle cx="11.5" cy="19" r="1.4" fill="currentColor" />
       </svg>
     </span>
   );

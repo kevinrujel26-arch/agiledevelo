@@ -1,0 +1,201 @@
+/* =========================================================
+   MaquiRenta — tokens de diseño (variables CSS)
+   Tema oscuro = diseño original (carbón, naranja y vidrio).
+   Tema claro  = misma identidad sobre fondo hueso cálido.
+   El script de index.html pone data-theme en <html> antes de cargar React.
+   ========================================================= */
+:root {
+  --degradado: linear-gradient(100deg, #ff7a18 0%, #ffb347 55%, #ffd166 100%);
+  --radio: 16px;
+  --radio-chico: 10px;
+  --fuente: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --fuente-titulos: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --transicion-tema: 0.3s ease;
+}
+
+/* ---------- Tema oscuro (original) ---------- */
+:root,
+[data-theme='dark'] {
+  color-scheme: dark;
+  --fondo: #0a0c10;
+  --superficie: #11141a;
+  --superficie-2: #171b22;
+  --vidrio: rgba(255, 255, 255, 0.04);
+  --vidrio-fuerte: rgba(255, 255, 255, 0.07);
+  --borde: rgba(255, 255, 255, 0.09);
+  --borde-fuerte: rgba(255, 255, 255, 0.16);
+  --texto: #e8eaef;
+  --texto-suave: #9aa3b2;
+  --texto-tenue: #828b9b;
+  --naranja: #ff8a1f;
+  --naranja-claro: #ffb24a;
+  --amarillo: #ffd166;
+  --exito: #3ddc97;
+  --exito-fondo: rgba(61, 220, 151, 0.12);
+  --error: #ff6b6b;
+  --error-fondo: rgba(255, 107, 107, 0.12);
+  --aviso: #ffd166;
+  --aviso-fondo: rgba(255, 209, 102, 0.12);
+  --azul: #7aa2ff;
+  --sombra: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --brillo: 0 0 0 1px rgba(255, 138, 31, 0.35), 0 10px 40px rgba(255, 122, 24, 0.25);
+  --degradado-texto: var(--degradado);
+  --dia-ocupado-texto: #ffb3b3;
+  --exc-trazo-1: #ff7a18;
+  --exc-trazo-2: #ffd166;
+  --exc-cristal-borde: rgba(255, 255, 255, 0.35);
+  --exc-linea: rgba(255, 255, 255, 0.25);
+  --exc-cilindro: rgba(255, 255, 255, 0.55);
+  --exc-suelo: rgba(255, 255, 255, 0.14);
+  --exc-rueda: #0a0c10;
+  --insignia-foto-fondo: rgba(255, 138, 31, 0.12);
+  --exc-articulacion: #ffb347;
+  --exc-cristal-fondo: rgba(122, 162, 255, 0.16);
+
+  --titulo: #fff;
+  --sobre-acento: #1a1206;
+  --resplandor-fondo: rgba(255, 122, 24, 0.14);
+  --resplandor-azul: rgba(122, 162, 255, 0.07);
+  --seleccion: rgba(255, 138, 31, 0.35);
+  --encabezado-fondo: rgba(10, 12, 16, 0.72);
+  --sombra-marca: rgba(255, 122, 24, 0.35);
+  --sombra-boton: rgba(255, 122, 24, 0.28);
+  --sombra-boton-hover: rgba(255, 122, 24, 0.4);
+  --secundario-hover-fondo: rgba(255, 255, 255, 0.11);
+  --secundario-hover-borde: rgba(255, 255, 255, 0.28);
+  --peligro-borde: rgba(255, 107, 107, 0.35);
+  --error-borde: rgba(255, 107, 107, 0.3);
+  --acento-tenue: rgba(255, 138, 31, 0.12);
+  --acento-borde: rgba(255, 138, 31, 0.25);
+  --aviso-borde: rgba(255, 209, 102, 0.3);
+  --exito-borde: rgba(61, 220, 151, 0.3);
+  --azul-fondo: rgba(122, 162, 255, 0.12);
+  --azul-borde: rgba(122, 162, 255, 0.3);
+  --panel-arriba: rgba(255, 255, 255, 0.05);
+  --panel-abajo: rgba(255, 255, 255, 0.025);
+  --campo-fondo: rgba(0, 0, 0, 0.25);
+  --campo-borde-hover: rgba(255, 255, 255, 0.26);
+  --anillo-foco: rgba(255, 138, 31, 0.2);
+  --campo-fondo-foco: rgba(0, 0, 0, 0.35);
+  --exito-borde-fuerte: rgba(61, 220, 151, 0.55);
+  --error-texto: #ffb3b3;
+  --exito-texto: #9ff0c9;
+  --exito-halo: rgba(61, 220, 151, 0.18);
+  --resplandor-acento: rgba(255, 138, 31, 0.28);
+  --flotante-fondo: rgba(20, 23, 30, 0.8);
+  --acento-tenue-2: rgba(255, 138, 31, 0.15);
+  --tarjeta-arriba: rgba(255, 255, 255, 0.06);
+  --tarjeta-abajo: rgba(255, 255, 255, 0.02);
+  --acento-borde-hover: rgba(255, 138, 31, 0.45);
+  --velo-foto: rgba(10, 12, 16, 0.85);
+  --foto-vacia-icono: #3a414d;
+  --foto-vacia-1: #1c2129;
+  --foto-vacia-2: #12151a;
+  --dato-fondo: rgba(0, 0, 0, 0.22);
+  --nota-fondo: rgba(122, 162, 255, 0.08);
+  --nota-borde: rgba(122, 162, 255, 0.22);
+  --nota-texto: #c4d3ff;
+  --dia-libre: rgba(61, 220, 151, 0.07);
+  --dia-pasado: #3f4654;
+  --dia-ocupado: rgba(255, 107, 107, 0.18);
+  --leyenda-libre: rgba(61, 220, 151, 0.35);
+  --leyenda-ocupado: rgba(255, 107, 107, 0.55);
+  --resplandor-amarillo: rgba(255, 209, 102, 0.12);
+  --auth-fondo-1: #15110c;
+  --auth-fondo-2: #0c0e12;
+  --acento-borde-fuerte: rgba(255, 138, 31, 0.5);
+  --deshabilitado-texto: #474e5b;
+}
+
+/* ---------- Tema claro ---------- */
+[data-theme='light'] {
+  color-scheme: light;
+  --fondo: #faf7f2;
+  --superficie: #ffffff;
+  --superficie-2: #f3eee6;
+  --vidrio: rgba(255, 255, 255, 0.75);
+  --vidrio-fuerte: rgba(28, 25, 23, 0.05);
+  --borde: rgba(28, 25, 23, 0.1);
+  --borde-fuerte: rgba(28, 25, 23, 0.2);
+  --texto: #1c1917;
+  --texto-suave: #57534e;
+  --texto-tenue: #6b625b;
+  --naranja: #ea7a12;
+  --naranja-claro: #a3480a;
+  --amarillo: #92400e;
+  --exito: #15803d;
+  --exito-fondo: #f0f9f3;
+  --error: #b91c1c;
+  --error-fondo: #fdecec;
+  --aviso: #92400e;
+  --aviso-fondo: #fff6e0;
+  --azul: #1d4ed8;
+  --sombra: 0 1px 3px rgba(28, 25, 23, 0.06), 0 8px 24px rgba(28, 25, 23, 0.07);
+  --brillo: 0 0 0 1px rgba(234, 88, 12, 0.3), 0 12px 32px rgba(234, 88, 12, 0.15);
+  --degradado-texto: linear-gradient(100deg, #c2410c 0%, #a3480a 100%);
+  --dia-ocupado-texto: #991b1b;
+  --exc-trazo-1: #ea580c;
+  --exc-trazo-2: #f59e0b;
+  --exc-cristal-borde: rgba(28, 25, 23, 0.35);
+  --exc-linea: rgba(28, 25, 23, 0.25);
+  --exc-cilindro: rgba(28, 25, 23, 0.45);
+  --exc-suelo: rgba(28, 25, 23, 0.18);
+  --exc-rueda: #2a211a;
+  --insignia-foto-fondo: rgba(255, 255, 255, 0.94);
+  --exc-articulacion: #f59e0b;
+  --exc-cristal-fondo: rgba(122, 162, 255, 0.16);
+
+  --titulo: #1c1917;
+  --sobre-acento: #1a1206;
+  --resplandor-fondo: rgba(255, 122, 24, 0.10);
+  --resplandor-azul: rgba(255, 209, 102, 0.12);
+  --seleccion: rgba(255, 138, 31, 0.3);
+  --encabezado-fondo: rgba(250, 247, 242, 0.82);
+  --sombra-marca: rgba(234, 88, 12, 0.25);
+  --sombra-boton: rgba(234, 88, 12, 0.22);
+  --sombra-boton-hover: rgba(234, 88, 12, 0.32);
+  --secundario-hover-fondo: rgba(28, 25, 23, 0.08);
+  --secundario-hover-borde: rgba(28, 25, 23, 0.3);
+  --peligro-borde: rgba(185, 28, 28, 0.35);
+  --error-borde: rgba(185, 28, 28, 0.3);
+  --acento-tenue: rgba(234, 88, 12, 0.09);
+  --acento-borde: rgba(234, 88, 12, 0.28);
+  --aviso-borde: rgba(161, 98, 7, 0.3);
+  --exito-borde: rgba(21, 128, 61, 0.3);
+  --azul-fondo: #eef2ff;
+  --azul-borde: rgba(29, 78, 216, 0.3);
+  --panel-arriba: #ffffff;
+  --panel-abajo: #fffdfa;
+  --campo-fondo: #ffffff;
+  --campo-borde-hover: rgba(28, 25, 23, 0.35);
+  --anillo-foco: rgba(234, 88, 12, 0.22);
+  --campo-fondo-foco: #ffffff;
+  --exito-borde-fuerte: rgba(21, 128, 61, 0.6);
+  --error-texto: #991b1b;
+  --exito-texto: #166534;
+  --exito-halo: rgba(21, 128, 61, 0.15);
+  --resplandor-acento: rgba(255, 138, 31, 0.22);
+  --flotante-fondo: rgba(255, 255, 255, 0.92);
+  --acento-tenue-2: rgba(234, 88, 12, 0.11);
+  --tarjeta-arriba: #ffffff;
+  --tarjeta-abajo: #ffffff;
+  --acento-borde-hover: rgba(234, 88, 12, 0.45);
+  --velo-foto: rgba(28, 25, 23, 0.55);
+  --foto-vacia-icono: #c9bfb3;
+  --foto-vacia-1: #f6f1ea;
+  --foto-vacia-2: #ece4d9;
+  --dato-fondo: #faf7f2;
+  --nota-fondo: #eef2ff;
+  --nota-borde: rgba(29, 78, 216, 0.25);
+  --nota-texto: #1e3a8a;
+  --dia-libre: rgba(21, 128, 61, 0.08);
+  --dia-pasado: #b5ada4;
+  --dia-ocupado: rgba(185, 28, 28, 0.12);
+  --leyenda-libre: rgba(21, 128, 61, 0.35);
+  --leyenda-ocupado: rgba(185, 28, 28, 0.5);
+  --resplandor-amarillo: rgba(255, 209, 102, 0.25);
+  --auth-fondo-1: #fff1e0;
+  --auth-fondo-2: #faf7f2;
+  --acento-borde-fuerte: rgba(234, 88, 12, 0.5);
+  --deshabilitado-texto: #a8a29e;
+}
