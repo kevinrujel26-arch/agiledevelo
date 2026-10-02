@@ -1,7 +1,24 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth, panelSegunRol } from '../contexto/AuthContext';
 import { NOMBRE_APP } from '../utils/formato';
-import { LogoMarca } from './Ilustracion';
+import { useTema } from '../utils/tema';
+import { Icono, LogoMarca } from './Ilustracion';
+
+function BotonTema() {
+  const { tema, alternar } = useTema();
+  const oscuro = tema === 'dark';
+  return (
+    <button
+      type="button"
+      className="boton-tema"
+      onClick={alternar}
+      aria-label={oscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+      title={oscuro ? 'Modo claro' : 'Modo oscuro'}
+    >
+      <Icono nombre={oscuro ? 'sol' : 'luna'} tamanio={18} />
+    </button>
+  );
+}
 
 export default function Encabezado() {
   const { usuario, esAdmin, cerrarSesion } = useAuth();
@@ -15,11 +32,11 @@ export default function Encabezado() {
   return (
     <header className="encabezado">
       <div className="contenedor encabezado-interior">
-        <Link to="/" className="marca">
+        <Link to="/" className="marca" aria-label={`${NOMBRE_APP}, ir al inicio`}>
           <LogoMarca />
           <span className="marca-texto">{NOMBRE_APP}</span>
         </Link>
-        <nav className="nav-principal">
+        <nav className="nav-principal" aria-label="Principal">
           <NavLink to="/" end>
             Inicio
           </NavLink>
@@ -28,6 +45,7 @@ export default function Encabezado() {
           {usuario && !esAdmin && <NavLink to="/mi-cuenta">Mi cuenta</NavLink>}
         </nav>
         <div className="nav-usuario">
+          <BotonTema />
           {usuario ? (
             <>
               <Link to={panelSegunRol(usuario)} className="nombre-usuario" title={usuario.correo}>

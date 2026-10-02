@@ -19,8 +19,9 @@ import { LogoMarca } from './componentes/Ilustracion';
 export default function App() {
   return (
     <>
+      <a href="#contenido" className="saltar-contenido">Saltar al contenido</a>
       <Encabezado />
-      <main>
+      <main id="contenido" tabIndex={-1}>
         <Routes>
           {/* Públicas */}
           <Route path="/" element={<Inicio />} />
