@@ -103,7 +103,7 @@ export default function AdminMaquinas() {
             value={busqueda}
             maxLength={BUSQUEDA_MAX}
             onChange={(e) => setBusqueda(e.target.value)}
-            aria-label="Buscar"
+            aria-label="Buscar máquinas"
             aria-invalid={Boolean(errorBusqueda)}
             aria-describedby={errorBusqueda ? 'busqueda-mensaje' : undefined}
           />

@@ -54,13 +54,13 @@ export function Paginacion({ paginacion, alCambiar }) {
   return (
     <nav className="paginacion" aria-label="Paginación">
       <button type="button" className="boton boton-secundario" disabled={pagina <= 1} onClick={() => alCambiar(pagina - 1)}>
-        ← Anterior
+        <span aria-hidden="true">←</span> Anterior
       </button>
       <span>
         Página {pagina} de {totalPaginas}
       </span>
       <button type="button" className="boton boton-secundario" disabled={pagina >= totalPaginas} onClick={() => alCambiar(pagina + 1)}>
-        Siguiente →
+        Siguiente <span aria-hidden="true">→</span>
       </button>
     </nav>
   );
@@ -69,7 +69,7 @@ export function Paginacion({ paginacion, alCambiar }) {
 export function FotoMaquina({ ruta, alt, className = '' }) {
   if (!ruta) {
     return (
-      <div className={`foto-vacia ${className}`} aria-label="Sin foto">
+      <div className={`foto-vacia ${className}`} role="img" aria-label="Sin foto">
         <svg viewBox="0 0 64 40" width="72" aria-hidden="true">
           <path d="M6 30h30l-4-12H20l-2-8H10zM36 18l8-12 4 2-6 14" fill="none" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" />
           <circle cx="14" cy="34" r="4" fill="currentColor" />

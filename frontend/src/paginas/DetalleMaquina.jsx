@@ -79,8 +79,9 @@ export default function DetalleMaquina() {
   return (
     <div className="contenedor">
       <nav className="migas" aria-label="Ruta">
-        <Link to="/catalogo">Catálogo</Link> <span>/</span> <span>{maquina.categoria.nombre}</span> <span>/</span>
-        <span style={{ color: 'var(--texto)' }}>{maquina.nombre}</span>
+        <Link to="/catalogo">Catálogo</Link> <span aria-hidden="true">/</span> <span>{maquina.categoria.nombre}</span>{' '}
+        <span aria-hidden="true">/</span>
+        <span style={{ color: 'var(--texto)' }} aria-current="page">{maquina.nombre}</span>
       </nav>
 
       <div className="detalle">
