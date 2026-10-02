@@ -15,7 +15,7 @@ export default function PantallaAuth({ titulo, subtitulo, children }) {
           <h2>
             Tu obra no se detiene.
             <br />
-            <span className="texto-acento">Tu maquinaria tampoco.</span>
+            <span className="degradado">Tu maquinaria tampoco.</span>
           </h2>
           <p>Alquila equipos pesados en minutos, desde cualquier lugar.</p>
           <ul className="auth-beneficios">

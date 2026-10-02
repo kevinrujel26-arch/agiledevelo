@@ -2,8 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api/cliente';
-import { Alerta, EsqueletoTarjetas, Paginacion, TarjetaMaquina } from '../componentes/comunes';
-import { Icono } from '../componentes/Ilustracion';
+import { Alerta, Cargando, Paginacion, TarjetaMaquina } from '../componentes/comunes';
 import { BUSQUEDA_MAX, erroresPrecio, limpiarDecimal, normalizarTexto, sinPuntoFinal, validarBusqueda } from '../utils/validaciones';
 
 const TAMANIO_PAGINA = 12;
@@ -112,7 +111,7 @@ export default function Catalogo() {
               <h2>Equipos disponibles</h2>
             </div>
             {resultado && resultado.datos.length > 0 && (
-              <p className="texto-suave sin-margen">
+              <p className="texto-suave" style={{ margin: 0 }}>
                 {resultado.paginacion.total} equipo(s) · página {resultado.paginacion.pagina} de {resultado.paginacion.totalPaginas}
               </p>
             )}
@@ -144,14 +143,11 @@ export default function Catalogo() {
               ))}
             </div>
             <form
-              className="buscador"
-              role="search"
               onSubmit={(e) => {
                 e.preventDefault();
                 aplicarEntradas(); // Enter busca sin esperar
               }}
             >
-              <Icono nombre="buscar" />
               <input
                 type="search"
                 placeholder="Buscar por nombre o marca"
@@ -199,11 +195,10 @@ export default function Catalogo() {
           {errPrecio.precioMax && <p className="mensaje-error" id="precio-max-mensaje">{errPrecio.precioMax}</p>}
 
           <Alerta>{error}</Alerta>
-          {!resultado && !error && <EsqueletoTarjetas cantidad={6} texto="Cargando catálogo…" />}
+          {!resultado && !error && <Cargando texto="Cargando catálogo…" />}
 
           {resultado && resultado.datos.length === 0 && hayFiltros && (
             <div className="vacio">
-              <span className="vacio-icono" aria-hidden="true"><Icono nombre="buscar" tamanio={28} /></span>
               <h2>{precioMin || precioMax ? 'No hay máquinas en ese rango' : 'Sin resultados para estos filtros'}</h2>
               <p className="texto-suave">
                 {precioMin || precioMax
@@ -218,7 +213,6 @@ export default function Catalogo() {
 
           {resultado && resultado.datos.length === 0 && !hayFiltros && (
             <div className="vacio">
-              <span className="vacio-icono" aria-hidden="true"><Icono nombre="camion" tamanio={28} /></span>
               <h2>Aún no hay máquinas publicadas</h2>
               <p className="texto-suave">Vuelve pronto: estamos preparando nuestra flota.</p>
             </div>

@@ -1,6 +1,5 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Link, Navigate, Route, Routes } from 'react-router-dom';
 import Encabezado from './componentes/Encabezado';
-import PiePagina from './componentes/PiePagina';
 import { RutaProtegida } from './componentes/comunes';
 import Inicio from './paginas/Inicio';
 import Catalogo from './paginas/Catalogo';
@@ -14,13 +13,14 @@ import AdminCategorias from './paginas/admin/AdminCategorias';
 import AdminMaquinas from './paginas/admin/AdminMaquinas';
 import AdminMaquinaForm from './paginas/admin/AdminMaquinaForm';
 import AdminDisponibilidad from './paginas/admin/AdminDisponibilidad';
+import { NOMBRE_APP, CONTACTO } from './utils/formato';
+import { LogoMarca } from './componentes/Ilustracion';
 
 export default function App() {
   return (
     <>
-      <a href="#contenido" className="saltar-contenido">Saltar al contenido</a>
       <Encabezado />
-      <main id="contenido" tabIndex={-1}>
+      <main>
         <Routes>
           {/* Públicas */}
           <Route path="/" element={<Inicio />} />
@@ -59,7 +59,49 @@ export default function App() {
           <Route path="*" element={<NoEncontrado />} />
         </Routes>
       </main>
-      <PiePagina />
+      <footer className="pie">
+        <div className="contenedor">
+          <div className="pie-rejilla">
+            <div>
+              <Link to="/" className="marca" style={{ marginBottom: 12 }}>
+                <LogoMarca />
+                {NOMBRE_APP}
+              </Link>
+              <p style={{ maxWidth: 320, margin: '12px 0 0' }}>
+                Alquiler de maquinaria pesada por horas. Compara, revisa la disponibilidad y reserva en línea.
+              </p>
+            </div>
+            <div>
+              <h4>Explorar</h4>
+              <ul>
+                <li><Link to="/">Inicio</Link></li>
+                <li><Link to="/catalogo">Catálogo</Link></li>
+                <li><a href="/#contacto">Contacto</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4>Cuenta</h4>
+              <ul>
+                <li><Link to="/login">Iniciar sesión</Link></li>
+                <li><Link to="/registro">Crear cuenta</Link></li>
+              </ul>
+            </div>
+            {/* HU-01 criterio 5: datos de contacto de la empresa */}
+            <div>
+              <h4>Contacto</h4>
+              <ul>
+                <li><a href={`mailto:${CONTACTO.correo}`}>{CONTACTO.correo}</a></li>
+                <li><a href={`tel:${CONTACTO.telefono.replace(/\s+/g, '')}`}>{CONTACTO.telefono}</a></li>
+                <li>{CONTACTO.direccion}</li>
+              </ul>
+            </div>
+          </div>
+          <div className="pie-legal">
+            <span>© {new Date().getFullYear()} {NOMBRE_APP}. Todos los derechos reservados.</span>
+            <span>Proyecto académico · Agile Development · UPAO</span>
+          </div>
+        </div>
+      </footer>
     </>
   );
 }

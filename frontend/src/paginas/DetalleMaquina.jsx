@@ -54,7 +54,7 @@ export default function DetalleMaquina() {
       <div className="contenedor contenedor-angosto">
         <div className="panel centrado">
           <span className="insignia insignia-aviso"><Icono nombre="herramienta" tamanio={14} /> En mantenimiento</span>
-          <h1 className="titulo-aviso">{maquina.nombre}</h1>
+          <h1 style={{ marginTop: 14 }}>{maquina.nombre}</h1>
           <p className="texto-suave">
             Este equipo está en mantenimiento y no se puede reservar por ahora. Vuelve a revisarlo en unos días.
           </p>
@@ -79,9 +79,8 @@ export default function DetalleMaquina() {
   return (
     <div className="contenedor">
       <nav className="migas" aria-label="Ruta">
-        <Link to="/catalogo">Catálogo</Link> <span aria-hidden="true">/</span> <span>{maquina.categoria.nombre}</span>{' '}
-        <span aria-hidden="true">/</span>
-        <span className="miga-actual" aria-current="page">{maquina.nombre}</span>
+        <Link to="/catalogo">Catálogo</Link> <span>/</span> <span>{maquina.categoria.nombre}</span> <span>/</span>
+        <span style={{ color: 'var(--texto)' }}>{maquina.nombre}</span>
       </nav>
 
       <div className="detalle">
@@ -128,9 +127,9 @@ export default function DetalleMaquina() {
 
         {/* ------------------------------ Columna derecha ------------------------------ */}
         <aside className="panel panel-precio detalle-info">
-          <span className="insignia insignia-info">{maquina.categoria.nombre}</span>
+          <span className="insignia">{maquina.categoria.nombre}</span>
           <h1>{maquina.nombre}</h1>
-          <p className="texto-suave sin-margen">
+          <p className="texto-suave" style={{ margin: 0 }}>
             {maquina.marca} · Modelo {maquina.modelo}
           </p>
           <p className="tarifa tarifa-grande">
@@ -164,10 +163,10 @@ export default function DetalleMaquina() {
             Reservar
           </button>
           {!usuario && !cargando && (
-            <p className="ayuda centrado nota-sesion">Necesitas iniciar sesión para reservar.</p>
+            <p className="ayuda centrado" style={{ margin: '10px 0 0' }}>Necesitas iniciar sesión para reservar.</p>
           )}
           {avisoReserva && (
-            <div className="nota-reserva" role="status">
+            <div className="nota-reserva" role="status" style={{ marginTop: 14 }}>
               <Icono nombre="info" />
               <span>La reserva en línea estará disponible pronto. Mientras tanto, revisa en el calendario las fechas libres.</span>
             </div>

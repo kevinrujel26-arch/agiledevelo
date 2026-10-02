@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../../api/cliente';
 import { Alerta, Cargando, FotoMaquina, Paginacion } from '../../componentes/comunes';
-import { Icono } from '../../componentes/Ilustracion';
 import { ETIQUETA_ESTADO, formatearHoras, formatearMoneda } from '../../utils/formato';
 import { BUSQUEDA_MAX, normalizarTexto, validarBusqueda } from '../../utils/validaciones';
 
@@ -73,7 +72,7 @@ export default function AdminMaquinas() {
     <>
       <div className="cabecera-seccion">
         <h1>Máquinas</h1>
-        <Link to="/admin/maquinas/nueva" className="boton boton-primario"><span aria-hidden="true">+</span> Registrar máquina</Link>
+        <Link to="/admin/maquinas/nueva" className="boton boton-primario">+ Registrar máquina</Link>
       </div>
       <Alerta>{error}</Alerta>
 
@@ -93,21 +92,18 @@ export default function AdminMaquinas() {
           ))}
         </div>
         <form
-          className="buscador"
-          role="search"
           onSubmit={(e) => {
             e.preventDefault();
             aplicarBusqueda(); // Enter busca sin esperar
           }}
         >
-          <Icono nombre="buscar" />
           <input
             type="search"
             placeholder="Buscar por nombre o marca"
             value={busqueda}
             maxLength={BUSQUEDA_MAX}
             onChange={(e) => setBusqueda(e.target.value)}
-            aria-label="Buscar máquinas"
+            aria-label="Buscar"
             aria-invalid={Boolean(errorBusqueda)}
             aria-describedby={errorBusqueda ? 'busqueda-mensaje' : undefined}
           />
@@ -119,7 +115,7 @@ export default function AdminMaquinas() {
         <Cargando />
       ) : resultado.datos.length === 0 ? (
         <div className="vacio">
-          <p className="sin-margen">No hay máquinas con estos filtros.</p>
+          <p>No hay máquinas con estos filtros.</p>
         </div>
       ) : (
         <>
