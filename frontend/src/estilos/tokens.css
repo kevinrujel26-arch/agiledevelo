@@ -1,0 +1,245 @@
+/* =========================================================
+   MaquiRenta — design tokens
+   Único lugar con valores de color, tipografía, espacios, radios,
+   sombras y transiciones. Los componentes solo usan var(--…).
+   Temas: [data-theme="light"] y [data-theme="dark"] en <html>
+   (lo aplica el script de index.html antes de cargar React).
+   ========================================================= */
+
+:root {
+  /* ---------- Tipografía ---------- */
+  --fuente: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --fuente-titulos: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --texto-xs: 0.75rem;
+  --texto-sm: 0.875rem;
+  --texto-base: 1rem;
+  --texto-md: 1.125rem;
+  --texto-lg: 1.375rem;
+  --texto-xl: 1.75rem;
+  --texto-2xl: clamp(1.75rem, 3vw, 2.25rem);
+  --texto-hero: clamp(2.25rem, 5vw, 3.75rem);
+  --peso-normal: 400;
+  --peso-medio: 500;
+  --peso-semi: 600;
+  --peso-bold: 700;
+  --interlineado: 1.6;
+  --interlineado-titulos: 1.15;
+
+  /* ---------- Espaciados (escala de 4px) ---------- */
+  --esp-1: 4px;
+  --esp-2: 8px;
+  --esp-3: 12px;
+  --esp-4: 16px;
+  --esp-5: 20px;
+  --esp-6: 24px;
+  --esp-8: 32px;
+  --esp-10: 40px;
+  --esp-12: 48px;
+  --esp-16: 64px;
+  --esp-20: 80px;
+
+  /* ---------- Medidas ---------- */
+  --ancho-max: 1200px;
+  --alto-encabezado: 68px;
+  --tactil: 44px; /* tamaño táctil mínimo */
+
+  /* ---------- Radios ---------- */
+  --radio-sm: 6px;
+  --radio: 10px;
+  --radio-lg: 14px;
+  --radio-xl: 20px;
+  --radio-pildora: 999px;
+
+  /* ---------- Transiciones ---------- */
+  --duracion-rapida: 0.15s;
+  --duracion: 0.25s;
+  --curva: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* ---------- Paleta base (no usar directo en componentes) ---------- */
+  --azul-400: #60a5fa;
+  --azul-500: #3b82f6;
+  --azul-600: #2563eb;
+  --azul-700: #1d4ed8;
+  --azul-800: #1e40af;
+  --azul-100: #dbeafe;
+  --pizarra-900: #0f172a;
+  --pizarra-800: #1e293b;
+  --pizarra-700: #334155;
+  --pizarra-500: #64748b;
+  --pizarra-400: #94a3b8;
+  --pizarra-300: #cbd5e1;
+  --pizarra-200: #e2e8f0;
+  --pizarra-50: #f8fafc;
+  --blanco: #ffffff;
+  --verde-600: #16a34a;
+  --rojo-600: #dc2626;
+  --rojo-700: #b91c1c;
+  --ambar-600: #d97706;
+
+  /* Panel visual de login/registro: oscuro en ambos temas */
+  --auth-titulo: var(--blanco);
+  --auth-texto: var(--pizarra-200);
+  --auth-texto-suave: var(--pizarra-300);
+  --auth-acento: #93c5fd;
+  --auth-velo: rgba(255, 255, 255, 0.1);
+  --auth-rueda: var(--pizarra-900);
+  --auth-detalle: var(--pizarra-500);
+}
+
+/* =============================== Tema claro =============================== */
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+
+  --color-fondo: var(--pizarra-50);
+  --color-superficie: var(--blanco);
+  --color-superficie-2: #f1f5f9;
+  --color-superficie-hundida: var(--pizarra-50);
+  --color-encabezado: rgba(255, 255, 255, 0.85);
+  --color-borde: var(--pizarra-200);
+  --color-borde-fuerte: var(--pizarra-300);
+
+  --color-texto: var(--pizarra-900);
+  --color-texto-suave: var(--pizarra-700);
+  --color-texto-tenue: var(--pizarra-500);
+  --color-titulo: var(--pizarra-900);
+
+  /* Acento (azul acero) */
+  --color-acento: var(--azul-600);
+  --color-acento-hover: var(--azul-700);
+  --color-acento-activo: var(--azul-800);
+  --color-acento-suave: var(--azul-100);
+  --color-acento-texto: var(--azul-700); /* enlaces y texto en azul */
+  --color-sobre-acento: var(--blanco);
+  --color-foco: var(--azul-600);
+  --anillo-foco: 0 0 0 3px rgba(37, 99, 235, 0.35);
+
+  /* Estados: base (puntos, bordes), texto y fondo de insignias/alertas */
+  --color-exito: var(--verde-600);
+  --color-exito-texto: #15803d;
+  --color-exito-fondo: #f0fdf4;
+  --color-exito-borde: #bbf7d0;
+  --color-error: var(--rojo-600);
+  --color-error-texto: var(--rojo-700);
+  --color-error-fondo: #fef2f2;
+  --color-error-borde: #fecaca;
+  --color-peligro: var(--rojo-600);
+  --color-peligro-hover: var(--rojo-700);
+  --color-aviso: var(--ambar-600);
+  --color-aviso-texto: #b45309;
+  --color-aviso-fondo: #fffbeb;
+  --color-aviso-borde: #fde68a;
+  --color-info-texto: var(--azul-700);
+  --color-info-fondo: #eff6ff;
+  --color-info-borde: #bfdbfe;
+  --color-neutro-texto: var(--pizarra-700);
+  --color-neutro-fondo: #f1f5f9;
+  --color-neutro-borde: var(--pizarra-200);
+
+  /* Calendario */
+  --color-dia-libre: #f0fdf4;
+  --color-dia-libre-texto: var(--pizarra-900);
+  --color-dia-ocupado: #fee2e2;
+  --color-dia-ocupado-texto: var(--rojo-700);
+  --color-dia-pasado: var(--pizarra-400);
+
+  /* Ilustración y fotos */
+  --ilustracion-trazo: var(--azul-600);
+  --ilustracion-trazo-2: var(--pizarra-700);
+  --ilustracion-relleno: rgba(37, 99, 235, 0.08);
+  --ilustracion-detalle: var(--pizarra-400);
+  --ilustracion-cristal: rgba(37, 99, 235, 0.14);
+  --ilustracion-rueda: var(--blanco);
+  --foto-vacia-fondo: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+  --foto-vacia-icono: var(--pizarra-400);
+  --filtro-foto: none;
+  --velo-foto: linear-gradient(transparent, rgba(15, 23, 42, 0.55));
+
+  /* Fondos decorativos */
+  --fondo-hero: radial-gradient(900px 480px at 85% -10%, rgba(37, 99, 235, 0.10), transparent 60%),
+    linear-gradient(180deg, var(--blanco), var(--pizarra-50));
+  --fondo-auth: linear-gradient(160deg, #1e3a8a, var(--pizarra-900));
+  --cuadricula: rgba(15, 23, 42, 0.05);
+
+  /* Sombras */
+  --sombra-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --sombra: 0 1px 3px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.06);
+  --sombra-lg: 0 10px 30px rgba(15, 23, 42, 0.12);
+  --sombra-acento: 0 6px 16px rgba(37, 99, 235, 0.28);
+}
+
+/* ============================== Tema oscuro ============================== */
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-fondo: #0b1220;
+  --color-superficie: #111b2e;
+  --color-superficie-2: #16233a;
+  --color-superficie-hundida: #0d1626;
+  --color-encabezado: rgba(11, 18, 32, 0.85);
+  --color-borde: #1e2a3f;
+  --color-borde-fuerte: #2c3b55;
+
+  --color-texto: var(--pizarra-200);
+  --color-texto-suave: var(--pizarra-300);
+  --color-texto-tenue: var(--pizarra-400);
+  --color-titulo: #f1f5f9;
+
+  /* Los botones mantienen #2563EB (blanco 5.2:1); enlaces y texto usan un azul más claro */
+  --color-acento: var(--azul-600);
+  --color-acento-hover: var(--azul-700);
+  --color-acento-activo: var(--azul-800);
+  --color-acento-suave: rgba(59, 130, 246, 0.16);
+  --color-acento-texto: var(--azul-400);
+  --color-sobre-acento: var(--blanco);
+  --color-foco: var(--azul-400);
+  --anillo-foco: 0 0 0 3px rgba(96, 165, 250, 0.45);
+
+  --color-exito: #22c55e;
+  --color-exito-texto: #4ade80;
+  --color-exito-fondo: rgba(34, 197, 94, 0.12);
+  --color-exito-borde: rgba(74, 222, 128, 0.3);
+  --color-error: #ef4444;
+  --color-error-texto: #f87171;
+  --color-error-fondo: rgba(239, 68, 68, 0.12);
+  --color-error-borde: rgba(248, 113, 113, 0.35);
+  --color-peligro: var(--rojo-600);
+  --color-peligro-hover: var(--rojo-700);
+  --color-aviso: #f59e0b;
+  --color-aviso-texto: #fbbf24;
+  --color-aviso-fondo: rgba(245, 158, 11, 0.12);
+  --color-aviso-borde: rgba(251, 191, 36, 0.3);
+  --color-info-texto: #93c5fd;
+  --color-info-fondo: rgba(59, 130, 246, 0.12);
+  --color-info-borde: rgba(96, 165, 250, 0.3);
+  --color-neutro-texto: var(--pizarra-300);
+  --color-neutro-fondo: rgba(148, 163, 184, 0.12);
+  --color-neutro-borde: #2c3b55;
+
+  --color-dia-libre: rgba(34, 197, 94, 0.1);
+  --color-dia-libre-texto: var(--pizarra-200);
+  --color-dia-ocupado: rgba(239, 68, 68, 0.2);
+  --color-dia-ocupado-texto: #fca5a5;
+  --color-dia-pasado: #475569;
+
+  --ilustracion-trazo: var(--azul-400);
+  --ilustracion-trazo-2: var(--pizarra-300);
+  --ilustracion-relleno: rgba(96, 165, 250, 0.10);
+  --ilustracion-detalle: #475569;
+  --ilustracion-cristal: rgba(96, 165, 250, 0.18);
+  --ilustracion-rueda: #0b1220;
+  --foto-vacia-fondo: linear-gradient(135deg, #16233a, #0d1626);
+  --foto-vacia-icono: #475569;
+  --filtro-foto: brightness(0.92);
+  --velo-foto: linear-gradient(transparent, rgba(11, 18, 32, 0.75));
+
+  --fondo-hero: radial-gradient(900px 480px at 85% -10%, rgba(37, 99, 235, 0.18), transparent 60%),
+    linear-gradient(180deg, #0d1626, #0b1220);
+  --fondo-auth: linear-gradient(160deg, #13244a, #0b1220);
+  --cuadricula: rgba(148, 163, 184, 0.06);
+
+  --sombra-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --sombra: 0 1px 3px rgba(0, 0, 0, 0.4), 0 6px 16px rgba(0, 0, 0, 0.3);
+  --sombra-lg: 0 16px 40px rgba(0, 0, 0, 0.5);
+  --sombra-acento: 0 6px 18px rgba(37, 99, 235, 0.35);
+}
