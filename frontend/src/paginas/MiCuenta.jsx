@@ -2,6 +2,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexto/AuthContext';
 import { formatearCelular } from '../utils/formato';
+import { Icono } from '../componentes/Ilustracion';
 
 export default function MiCuenta() {
   const { usuario } = useAuth();
@@ -9,18 +10,30 @@ export default function MiCuenta() {
     <div className="contenedor contenedor-angosto">
       <div className="panel">
         <h1>Hola, {usuario.nombre.split(' ')[0]} 👋</h1>
-        <p className="texto-suave">{usuario.correo}</p>
-        <p className="texto-suave">
-          Celular: {usuario.telefono ? formatearCelular(usuario.telefono) : 'sin registrar'}
-        </p>
+        <dl className="datos-cuenta">
+          <div>
+            <dt>Correo</dt>
+            <dd>{usuario.correo}</dd>
+          </div>
+          <div>
+            <dt>Celular</dt>
+            <dd>{usuario.telefono ? formatearCelular(usuario.telefono) : 'Sin registrar'}</dd>
+          </div>
+        </dl>
         <div className="tarjetas-accion">
           <Link to="/catalogo" className="tarjeta-accion">
-            <strong>Explorar catálogo</strong>
-            <span>Revisa la maquinaria disponible y sus tarifas.</span>
+            <span className="icono-circulo" aria-hidden="true"><Icono nombre="camion" /></span>
+            <div>
+              <strong>Explorar catálogo</strong>
+              <span>Revisa la maquinaria disponible y sus tarifas.</span>
+            </div>
           </Link>
-          <div className="tarjeta-accion deshabilitada" title="Disponible en el Sprint 3">
-            <strong>Mis reservas</strong>
-            <span>Próximamente: aquí verás tus reservas y su estado.</span>
+          <div className="tarjeta-accion deshabilitada" title="Disponible en el Sprint 3" aria-disabled="true">
+            <span className="icono-circulo" aria-hidden="true"><Icono nombre="calendario" /></span>
+            <div>
+              <strong>Mis reservas <span className="insignia insignia-gris">Próximamente</span></strong>
+              <span>Aquí verás tus reservas y su estado.</span>
+            </div>
           </div>
         </div>
       </div>

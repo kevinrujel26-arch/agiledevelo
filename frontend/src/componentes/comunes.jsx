@@ -9,7 +9,8 @@ export function Alerta({ tipo = 'error', children, alCerrar }) {
   if (!children) return null;
   return (
     <div className={`alerta alerta-${tipo}`} role={tipo === 'error' ? 'alert' : 'status'}>
-      <span>{children}</span>
+      <Icono nombre={tipo === 'exito' ? 'check' : 'info'} />
+      <span className="alerta-texto">{children}</span>
       {alCerrar && (
         <button type="button" className="alerta-cerrar" onClick={alCerrar} aria-label="Cerrar">
           ×
@@ -24,6 +25,27 @@ export function Cargando({ texto = 'Cargando…' }) {
     <div className="cargando" role="status">
       <span className="spinner" aria-hidden="true" />
       {texto}
+    </div>
+  );
+}
+
+/** Tarjetas de catálogo "fantasma" mientras llegan los datos */
+export function EsqueletoTarjetas({ cantidad = 3, texto = 'Cargando equipos…' }) {
+  return (
+    <div className="rejilla-catalogo" role="status" aria-label={texto}>
+      {Array.from({ length: cantidad }, (_, i) => (
+        <div className="tarjeta-maquina esqueleto" key={i} aria-hidden="true">
+          <div className="tarjeta-foto esqueleto-bloque" />
+          <div className="tarjeta-cuerpo">
+            <span className="esqueleto-linea ancho-70" />
+            <span className="esqueleto-linea ancho-50" />
+            <span className="esqueleto-linea ancho-40" />
+            <div className="tarjeta-pie">
+              <span className="esqueleto-linea ancho-30 alta" />
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -54,13 +76,13 @@ export function Paginacion({ paginacion, alCambiar }) {
   return (
     <nav className="paginacion" aria-label="Paginación">
       <button type="button" className="boton boton-secundario" disabled={pagina <= 1} onClick={() => alCambiar(pagina - 1)}>
-        ← Anterior
+        <span aria-hidden="true">←</span> Anterior
       </button>
-      <span>
+      <span aria-current="page">
         Página {pagina} de {totalPaginas}
       </span>
       <button type="button" className="boton boton-secundario" disabled={pagina >= totalPaginas} onClick={() => alCambiar(pagina + 1)}>
-        Siguiente →
+        Siguiente <span aria-hidden="true">→</span>
       </button>
     </nav>
   );
@@ -69,7 +91,7 @@ export function Paginacion({ paginacion, alCambiar }) {
 export function FotoMaquina({ ruta, alt, className = '' }) {
   if (!ruta) {
     return (
-      <div className={`foto-vacia ${className}`} aria-label="Sin foto">
+      <div className={`foto-vacia ${className}`} role="img" aria-label="Sin foto">
         <svg viewBox="0 0 64 40" width="72" aria-hidden="true">
           <path d="M6 30h30l-4-12H20l-2-8H10zM36 18l8-12 4 2-6 14" fill="none" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" />
           <circle cx="14" cy="34" r="4" fill="currentColor" />
@@ -88,7 +110,7 @@ export function TarjetaMaquina({ maquina }) {
     <Link to={`/maquinas/${maquina.id}`} className="tarjeta-maquina">
       <div className="tarjeta-foto">
         <FotoMaquina ruta={maquina.fotoPrincipal} alt={maquina.nombre} />
-        <span className="insignia tarjeta-categoria">{maquina.categoria.nombre}</span>
+        <span className="insignia insignia-sobre-foto tarjeta-categoria">{maquina.categoria.nombre}</span>
         {maquina.enMantenimiento && <span className="insignia insignia-aviso flotante">En mantenimiento</span>}
       </div>
       <div className="tarjeta-cuerpo">
@@ -96,7 +118,7 @@ export function TarjetaMaquina({ maquina }) {
         <p className="texto-suave">
           {maquina.marca} · {maquina.modelo}
         </p>
-        <p className="texto-suave" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <p className="texto-suave con-icono">
           <Icono nombre="ubicacion" tamanio={15} /> {maquina.ubicacion}
         </p>
         <div className="tarjeta-pie">

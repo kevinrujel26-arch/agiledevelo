@@ -3,11 +3,17 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/cliente';
 import { useAuth, panelSegunRol } from '../contexto/AuthContext';
-import { Alerta, Cargando, TarjetaMaquina } from '../componentes/comunes';
-import { Excavadora, Icono, LogoMarca } from '../componentes/Ilustracion';
-import { CONTACTO, NOMBRE_APP } from '../utils/formato';
+import { Alerta, EsqueletoTarjetas, TarjetaMaquina } from '../componentes/comunes';
+import { Excavadora, Icono } from '../componentes/Ilustracion';
+import { CONTACTO } from '../utils/formato';
 
 const TAMANIO_DESTACADAS = 3;
+
+const GARANTIAS = [
+  { icono: 'rayo', texto: 'Tarifas claras por hora' },
+  { icono: 'calendario', texto: 'Disponibilidad en vivo' },
+  { icono: 'escudo', texto: 'Reserva en línea' },
+];
 
 const PASOS = [
   { titulo: 'Explora el catálogo', texto: 'Compara equipos, especificaciones técnicas y tarifas por hora en un solo lugar.' },
@@ -38,17 +44,13 @@ export default function Inicio() {
       <section className="hero">
         <div className="contenedor hero-interior">
           <div>
-            <div className="marca inicio-marca">
-              <LogoMarca />
-              {NOMBRE_APP}
-            </div>
             <span className="hero-etiqueta">
               <span className="punto-vivo" /> Alquiler de maquinaria pesada por hora
             </span>
             <h1>
               Maquinaria pesada,
               <br />
-              <span className="degradado">a un clic.</span>
+              <span className="texto-acento">a un clic.</span>
             </h1>
             <p className="hero-texto">
               Alquila excavadoras, cargadores, rodillos y más por hora, desde una hora de uso. Compara tarifas, revisa
@@ -68,6 +70,14 @@ export default function Inicio() {
                 </Link>
               )}
             </div>
+            <ul className="hero-garantias">
+              {GARANTIAS.map((g) => (
+                <li key={g.texto}>
+                  <span className="icono-circulo"><Icono nombre={g.icono} tamanio={16} /></span>
+                  {g.texto}
+                </li>
+              ))}
+            </ul>
           </div>
 
           <div className="hero-visual" aria-hidden="true">
@@ -102,7 +112,7 @@ export default function Inicio() {
           <div className="pasos">
             {PASOS.map((p, i) => (
               <div className="paso" key={p.titulo}>
-                <div className="paso-numero degradado">0{i + 1}</div>
+                <div className="paso-numero" aria-hidden="true">0{i + 1}</div>
                 <h3>{p.titulo}</h3>
                 <p>{p.texto}</p>
               </div>
@@ -125,9 +135,10 @@ export default function Inicio() {
           </div>
 
           <Alerta>{error}</Alerta>
-          {!destacadas && !error && <Cargando texto="Cargando equipos…" />}
+          {!destacadas && !error && <EsqueletoTarjetas cantidad={TAMANIO_DESTACADAS} />}
           {destacadas && destacadas.length === 0 && (
             <div className="vacio">
+              <span className="vacio-icono" aria-hidden="true"><Icono nombre="camion" tamanio={28} /></span>
               <h2>Aún no hay máquinas publicadas</h2>
               <p className="texto-suave">Vuelve pronto: estamos preparando nuestra flota.</p>
             </div>
@@ -154,14 +165,17 @@ export default function Inicio() {
           </div>
           <div className="contacto-rejilla">
             <a className="contacto-item" href={`mailto:${CONTACTO.correo}`}>
+              <span className="icono-circulo" aria-hidden="true"><Icono nombre="correo" /></span>
               <span>Correo</span>
               <strong>{CONTACTO.correo}</strong>
             </a>
             <a className="contacto-item" href={`tel:${CONTACTO.telefono.replace(/\s+/g, '')}`}>
+              <span className="icono-circulo" aria-hidden="true"><Icono nombre="telefono" /></span>
               <span>Teléfono</span>
               <strong>{CONTACTO.telefono}</strong>
             </a>
             <div className="contacto-item">
+              <span className="icono-circulo" aria-hidden="true"><Icono nombre="ubicacion" /></span>
               <span>Dirección</span>
               <strong>{CONTACTO.direccion}</strong>
             </div>
