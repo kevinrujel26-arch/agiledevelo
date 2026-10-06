@@ -278,10 +278,11 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); }
 .auth-tarjeta > .texto-suave { margin: 0 0 26px; }
 
 /* "Continuar con Google": el botón lo dibuja Google (tema oscuro o claro según la página) */
+.acceso-google { background: transparent; }
 .separador-o { display: flex; align-items: center; gap: 14px; margin: 22px 0 18px; color: var(--texto-tenue); font-size: 0.85rem; text-transform: lowercase; }
 .separador-o::before, .separador-o::after { content: ''; flex: 1; height: 1px; background: var(--borde-fuerte); }
-.boton-google { display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 44px; justify-content: center; transition: opacity .15s; }
-.boton-google-marco { width: 100%; display: flex; justify-content: center; color-scheme: normal; }
+.boton-google { display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 44px; justify-content: center; transition: opacity .15s; background: transparent; }
+.boton-google-marco { width: 100%; display: flex; justify-content: center; color-scheme: light; background: transparent; }
 .boton-google.ocupado { opacity: 0.45; pointer-events: none; }
 .boton-google-error { text-align: center; margin: 8px 0 0; }
 
