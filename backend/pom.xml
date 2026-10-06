@@ -38,6 +38,13 @@
       <artifactId>spring-boot-starter-security</artifactId>
     </dependency>
 
+    <!-- Verifica los ID tokens de "Continuar con Google" (firma, vencimiento y audiencia) -->
+    <dependency>
+      <groupId>com.google.api-client</groupId>
+      <artifactId>google-api-client</artifactId>
+      <version>2.7.2</version>
+    </dependency>
+
     <!-- Driver JDBC de PostgreSQL: solo se necesita al ejecutar -->
     <dependency>
       <groupId>org.postgresql</groupId>

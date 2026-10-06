@@ -10,6 +10,7 @@ Motor: **PostgreSQL 14+**. Scripts en `database/migrations/` (se aplican en orde
 | `004_quitar_rol_proveedor.sql` | Elimina el rol PROVEEDOR: solo existen CLIENTE y ADMINISTRADOR |
 | `005_telefono_usuario.sql` | Agrega `usuarios.telefono` (celular de 9 dígitos, opcional en la BD para las cuentas antiguas) |
 | `006_horometro_maquina.sql` | Agrega `maquinas.horometro_inicial` (horas de uso que ya traía la máquina, por defecto 0) |
+| `007_login_google.sql` | Agrega `usuarios.google_id` (único) para "Continuar con Google" y permite `contrasena_hash` NULL en cuentas creadas con Google |
 
 El modelo ya incluye las tablas de los Sprints 3 y 4 (reservas, pagos, reembolsos, auditoría) para que el diseño quede completo desde el inicio, aunque el código que las usa se construye más adelante.
 
@@ -32,8 +33,9 @@ erDiagram
         int id PK
         varchar nombre
         varchar correo UK
-        varchar telefono "9 dígitos, NULL en cuentas antiguas"
-        varchar contrasena_hash
+        varchar telefono "9 dígitos, NULL en cuentas antiguas o de Google"
+        varchar contrasena_hash "NULL si la cuenta se creó con Google"
+        varchar google_id UK "sub del ID token de Google, NULL si no usa Google"
         varchar rol "CLIENTE | ADMINISTRADOR"
         bool activo
         smallint intentos_fallidos
@@ -122,6 +124,8 @@ erDiagram
 | El celular es de 9 dígitos y empieza con 9 | HU-02 | `ck_usuarios_telefono`: `telefono IS NULL OR telefono ~ '^9[0-9]{8}$'`. Se guarda sin espacios ni `+51`. Es obligatorio al registrarse (lo exige el backend), pero admite `NULL` para no romper las cuentas creadas antes |
 | El correo no se repite | HU-01 | Índice único `ux_usuarios_correo` (los correos se guardan en minúsculas) |
 | La contraseña se guarda cifrada | HU-01 | Solo existe la columna `contrasena_hash` (PBKDF2-SHA256 con sal) |
+| Toda cuenta tiene una forma de entrar | Google | `ck_usuarios_forma_de_ingreso`: `contrasena_hash IS NOT NULL OR google_id IS NOT NULL`. Una cuenta creada con Google no tiene contraseña y el login normal la rechaza siempre |
+| Una cuenta de Google se vincula a un solo usuario | Google | Restricción única `ux_usuarios_google_id` |
 | Nombre de categoría único | HU-14 | Índice único sobre `lower(trim(nombre))` |
 | Cada máquina tiene exactamente una categoría | HU-14 | `categoria_id NOT NULL` + FK con `ON DELETE RESTRICT` |
 | Máximo 5 fotos por máquina | HU-08 | Trigger `tg_fotos_max` |

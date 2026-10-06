@@ -48,6 +48,9 @@ public final class Config {
     public final String cloudinaryApiKey;
     public final String cloudinaryApiSecret;
 
+    // "Continuar con Google": Client ID (público) de Google Identity Services. Sin él, el botón no funciona
+    public final String googleClientId;
+
     public final List<String> corsOrigenes;
     public final Path dirSubidas;
     public final String zonaHoraria;
@@ -81,6 +84,8 @@ public final class Config {
         this.cloudinaryCloudName = valor("CLOUDINARY_CLOUD_NAME", null);
         this.cloudinaryApiKey = valor("CLOUDINARY_API_KEY", null);
         this.cloudinaryApiSecret = valor("CLOUDINARY_API_SECRET", null);
+
+        this.googleClientId = valor("GOOGLE_CLIENT_ID", null);
     }
 
     /** Configuración normal: variables de entorno + archivo .env */

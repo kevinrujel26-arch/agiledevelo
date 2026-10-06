@@ -4,6 +4,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, panelSegunRol } from '../contexto/AuthContext';
 import { Alerta, Campo } from '../componentes/comunes';
 import PantallaAuth from '../componentes/PantallaAuth';
+import BotonGoogle from '../componentes/BotonGoogle';
 import { leerCampos, validarContrasenaIngreso, validarCorreo } from '../utils/validaciones';
 import { useValidacion } from '../utils/useValidacion';
 
@@ -12,7 +13,7 @@ const REGLAS = { correo: validarCorreo, contrasena: validarContrasenaIngreso };
 const CAMPOS = Object.keys(REGLAS);
 
 export default function Login() {
-  const { usuario, iniciarSesion, avisoSesion, limpiarAviso } = useAuth();
+  const { usuario, iniciarSesion, iniciarSesionGoogle, avisoSesion, limpiarAviso } = useAuth();
   const navegar = useNavigate();
   const { state } = useLocation();
 
@@ -71,6 +72,21 @@ export default function Login() {
     }
   }
 
+  // "Continuar con Google": si la cuenta es nueva, va a "Mi cuenta" a completar su celular
+  async function ingresarConGoogle(credential) {
+    setEnviando(true);
+    setError('');
+    limpiarAviso();
+    try {
+      const { usuario: u, nuevo } = await iniciarSesionGoogle({ credential, recordarme });
+      navegar(nuevo ? panelSegunRol(u) : destinoPara(u), { replace: true });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setEnviando(false);
+    }
+  }
+
   return (
     <PantallaAuth titulo="Bienvenido de nuevo" subtitulo="Ingresa para gestionar tus alquileres.">
       <Alerta tipo="exito">{state?.mensaje}</Alerta>
@@ -115,6 +131,7 @@ export default function Login() {
           {enviando ? 'Ingresando…' : 'Ingresar'}
         </button>
       </form>
+      <BotonGoogle texto="continue_with" alIngresar={ingresarConGoogle} ocupado={enviando} />
       <p className="pie-formulario">
         ¿No tienes cuenta? <Link to="/registro">Regístrate gratis</Link>
       </p>

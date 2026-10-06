@@ -25,10 +25,27 @@ Base: `http://localhost:3000/api`. Todas las respuestas son JSON. Backend en **J
 | POST | `/auth/login` | Público | `{ correo, contrasena, recordarme? }` → `{ token, expiraEn, usuario }` |
 | POST | `/auth/logout` | Con sesión | Invalida el token → 204 |
 | GET | `/auth/yo` | Con sesión | `{ usuario }` |
+| PATCH | `/auth/yo` | Con sesión | `{ telefono }` → `{ usuario }`. Completa o cambia el celular (misma validación que el registro) |
+| POST | `/auth/google` | Público | `{ credential, recordarme? }` → `{ token, expiraEn, recordarme, usuario, nuevo }` (ver abajo) |
 
 `usuario` (en registro, login y `/auth/yo`): `{ id, nombre, correo, telefono, rol }`. `telefono` puede ser `null` en cuentas creadas antes de que se pidiera el celular.
 
 **Celular (`telefono`, HU-02):** celular peruano de 9 dígitos que empieza con 9. Se aceptan espacios, guiones y el prefijo `+51` o `51` (ej. `"+51 987-654-321"`), y se guarda normalizado (`"987654321"`). Si falta o es inválido → 400 con `detalles: [{ campo: "telefono", mensaje: "Ingresa un celular válido de 9 dígitos que empiece con 9" }]` (o `"El celular es obligatorio"` si no se envía).
+
+**Continuar con Google (`POST /auth/google`):** `credential` es el ID token que entrega el botón de Google Identity Services. El backend lo verifica con la librería oficial `google-api-client` (firma, vencimiento, emisor y audiencia = `GOOGLE_CLIENT_ID`; sin Client Secret) y exige `email_verified = true`. Después abre la misma sesión que `/auth/login` (mismo JWT, mismas reglas de "Recordarme"):
+- Si ya existe un usuario con ese correo, se vincula (`google_id`) y entra con su rol y datos de siempre.
+- Si no existe, se crea un **CLIENTE** sin contraseña y con `telefono: null` (`nuevo: true`); el frontend le pide el celular en "Mi cuenta" (`PATCH /auth/yo`). Nunca se crea un ADMINISTRADOR.
+
+| Caso | Respuesta |
+|---|---|
+| Falta `credential` | 400, `detalles: [{ campo: "credential" }]` |
+| Token inválido, vencido o de otra aplicación | 401 `"No se pudo verificar tu cuenta de Google. Intenta nuevamente"` |
+| Correo de Google sin verificar | 401 |
+| Usuario desactivado | 403 |
+| El correo ya está vinculado a otra cuenta de Google | 409 |
+| `GOOGLE_CLIENT_ID` no configurado, o no se pudo contactar a Google | 503 |
+
+Una cuenta creada con Google no puede entrar por `/auth/login`: responde 401 `"Esta cuenta usa Google. Ingresa con el botón "Continuar con Google""` (no suma intentos fallidos).
 
 ## Catálogo público (HU-03, HU-06, HU-14, HU-09)
 

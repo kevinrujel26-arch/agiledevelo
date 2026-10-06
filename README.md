@@ -1,139 +1,155 @@
 # MaquiRenta: sistema de alquiler de maquinaria
 
-Proyecto del curso **Agile Development (ISIA-109, UPAO)**. Es una plataforma web para que los clientes consulten y reserven maquinaria pesada, y para que el administrador gestione la flota.
+Proyecto del curso **Agile Development (ISIA-109, UPAO)**, 2026. Plataforma web para alquilar maquinaria pesada **por hora**: los clientes consultan el catálogo y reservan, y el administrador gestiona la flota.
 
-PROYECTO DE AGILE 2026
+- Frontend: https://agiledevelo.vercel.app
+- Repositorio: https://github.com/kevinrujel26-arch/agiledevelo
+
+## Tecnologías
 
 | Capa | Tecnología |
 |---|---|
-| Base de datos | PostgreSQL 16 |
-| Backend (API REST) | **Java 21 sin frameworks**: servidor HTTP del JDK (`com.sun.net.httpserver`) y JDBC |
-| Frontend | React 18 + Vite + React Router |
-| Pruebas | JUnit 5 (pruebas de aceptación por historia de usuario) |
+| Base de datos | PostgreSQL 16 (Neon en producción, Docker en local) |
+| Backend (API REST) | Java 21 + **Spring Boot 3.3.5** + **Spring Security** (sesión con JWT y roles) |
+| Frontend | React 18 + Vite + React Router, CSS propio (modo día/noche) |
+| Fotos | Cloudinary |
+| Pruebas | JUnit 5 + Spring Boot Test (114 pruebas) |
 | Construcción | Maven |
-| CI / Despliegue | GitHub Actions · Render (backend) · Vercel (frontend) · Neon (BD) |
+| CI / Despliegue | GitHub Actions · Render (backend, Docker) · Vercel (frontend) · Neon (BD) |
 
-Las **únicas dependencias** del backend son el driver JDBC de PostgreSQL y JUnit. El resto está escrito en Java con el JDK: el enrutador, el JSON, los tokens JWT, el cifrado de contraseñas (PBKDF2) y la subida de archivos (multipart).
+## Funciones actuales
 
-> **Nota:** "MaquiRenta" es un nombre provisional. Se cambia en `frontend/src/utils/formato.js` (`NOMBRE_APP`) y en `frontend/index.html`.
+**Clientes**
+- Registro con validación en vivo (nombre, correo, contraseña con requisitos y celular de 9 dígitos).
+- Inicio de sesión con correo y contraseña, o con **Google** ("Continuar con Google").
+- Catálogo de máquinas publicadas con búsqueda en vivo (nombre o marca), filtros por categoría y rango de tarifa por hora, paginación.
+- Detalle de máquina: fotos, especificaciones, ubicación, horas de uso, tarifa por hora, calendario de disponibilidad y botón **Reservar** (pide iniciar sesión).
+- Mi cuenta (con aviso para completar el celular si entraste con Google).
+- Modo día / noche.
+
+**Administrador** (`/admin`)
+- Crear, editar, retirar y publicar máquinas; hasta 5 fotos con una principal; estados borrador / publicada.
+- No se puede publicar sin tarifa, categoría ni foto principal.
+
+Los roles son `CLIENTE` y `ADMINISTRADOR`; el acceso se valida en el backend.
 
 ## Estado del backlog
 
-| Sprint | Ítem | Estado |
+| Sprint | Alcance | Estado |
 |---|---|---|
-| 1 | EN-01 Repositorio y CI · EN-02 Base de datos · EN-03 Autenticación · EN-04 Despliegue · EN-05 Roles | ✅ Hecho |
-| 2 | HU-01 Registro · HU-02 Login/logout · HU-14 Categorías · HU-08 Registrar y publicar máquina · HU-09 Disponibilidad · HU-03 Catálogo | ✅ Hecho |
-| 3 | HU-11 Buscar/filtrar · HU-04 Detalle (calendario y botón Reservar) · HU-05 Reservar · HU-12 Cancelar · HU-07 Mis reservas | Pendiente |
-| 4 | HU-06 Pago con Mercado Pago · HU-13 Historial de pagos · HU-10 Reservas y pagos (admin) · HU-15 Gestionar clientes | Pendiente |
+| 1 | Registro, login, catálogo, búsqueda y detalle de máquina | ✅ Hecho |
+| 2 | Panel de administración (HU-06), reservar (HU-07), pagar (HU-08) | En curso |
+| 3 y 4 | Ver el Sprint Backlog del equipo | Pendiente |
 
-En [`docs/trazabilidad.md`](docs/trazabilidad.md) está cada criterio de aceptación con la clase que lo implementa y la prueba que lo verifica.
-
-## Arquitectura del backend
+## Estructura del repositorio
 
 ```
-Controlador (HTTP)  ->  Servicio (reglas de negocio)  ->  Repositorio (SQL/JDBC)  ->  PostgreSQL
-```
-
-```
-backend/src/main/java/pe/upao/alquiler/
-├── App.java                 <- punto de entrada (servidor, migrar, sembrar, reiniciar)
-├── Aplicacion.java          <- arma todos los objetos (inyección de dependencias a mano)
-├── config/Config.java       <- lee variables de entorno y backend/.env
-├── http/                    <- Servidor, Enrutador, Solicitud, Respuesta, Multipart
-├── json/Json.java           <- lector/escritor de JSON
-├── bd/                      <- Bd (JDBC + pool), Migraciones, Sembrador
-├── seguridad/               <- Jwt, Contrasenas (PBKDF2), Autenticador, Rol
-├── util/                    <- Validador, Fechas, Paginacion, ErrorApp
-├── modelo/                  <- Categoria, Maquina, Foto, Bloqueo (records)
-├── auth/                    <- HU-01, HU-02
-├── categorias/              <- HU-14
-├── maquinas/                <- HU-03, HU-08 (incluye fotos)
-└── disponibilidad/          <- HU-09
+alquiler-maquinaria/
+├── backend/       API Spring Boot (código en src/main/java/alquiler, pruebas en src/test)
+├── frontend/      Aplicación React + Vite
+├── database/      Migraciones SQL (database/migrations/001 … 007)
+├── docs/          Documentación (API y base de datos)
+├── docker-compose.yml   PostgreSQL local
+└── Dockerfile     Imagen del backend para Render
 ```
 
 ## Cómo ejecutarlo en tu computadora
 
 ### Requisitos
-- **JDK 21**, por ejemplo [Temurin 21](https://adoptium.net/temurin/releases/?version=21).
-- **Maven**. IntelliJ IDEA y NetBeans ya lo traen integrado. Para usarlo en la terminal: [descárgalo](https://maven.apache.org/download.cgi), descomprímelo y agrega su carpeta `bin` al PATH.
-- **Node.js 20+**, para el frontend.
-- **Docker Desktop**, para la base de datos local.
+- **JDK 21** y **Maven**
+- **Node.js 20+**
+- **Docker Desktop** (base de datos local)
 
 ### 1. Base de datos
 ```bash
 docker compose up -d
 ```
-Crea las bases `alquiler_maquinaria` (desarrollo) y `alquiler_maquinaria_test` (pruebas) en el puerto **5433**, con usuario y contraseña `alquiler` / `alquiler`.
+Crea `alquiler_maquinaria` (desarrollo) y `alquiler_maquinaria_test` (pruebas) en el puerto **5433**, con usuario y contraseña `alquiler`.
 
 ### 2. Backend
 ```bash
 cd backend
-copy .env.example .env               # en Mac/Linux: cp .env.example .env
-mvn compile exec:java "-Dexec.args=reiniciar"   # crea las tablas y carga admin, categorías y máquinas
-mvn compile exec:java                            # arranca la API en http://localhost:3000
+copy .env.example .env      # Mac/Linux: cp .env.example .env
+mvn spring-boot:run         # API en http://localhost:3000
 ```
-Para comprobarlo, abre http://localhost:3000/api/salud y debe responder `{"estado":"ok"}`.
+Edita `backend/.env` con tus valores (base de datos, `JWT_SECRET`, Cloudinary, Google). Las migraciones se aplican solas al arrancar. Comprueba la API en http://localhost:3000/api/salud.
 
-**Administrador inicial:** `admin@alquiler.pe` / `Admin12345`. Se configura en `.env`.
-
-Otros comandos útiles:
-| Comando | Qué hace |
-|---|---|
-| `mvn compile exec:java "-Dexec.args=migrar"` | Aplica solo las migraciones pendientes |
-| `mvn compile exec:java "-Dexec.args=sembrar"` | Carga los datos iniciales sin borrar nada |
-| `mvn compile exec:java "-Dexec.args=reiniciar"` | ⚠ Borra todo y vuelve a crear la BD (solo en desarrollo) |
-| `mvn package` | Genera `target/alquiler-backend.jar`, que se ejecuta con `java -jar target/alquiler-backend.jar` |
-
-**Con IntelliJ o NetBeans:** abre la carpeta `backend` como proyecto Maven y ejecuta la clase `App`. Para cargar los datos, ejecútala con el argumento `reiniciar`. El directorio de trabajo debe ser la carpeta `backend`.
+El administrador inicial se define en `backend/.env` (`ADMIN_CORREO`, `ADMIN_CONTRASENA`) y se crea con el comando de sembrado. Para convertir a otro usuario en administrador:
+```sql
+UPDATE usuarios SET rol = 'ADMINISTRADOR' WHERE correo = 'correo@ejemplo.com';
+```
 
 ### 3. Frontend
-En otra terminal:
 ```bash
 cd frontend
+copy .env.example .env      # Mac/Linux: cp .env.example .env
 npm install
 npm run dev                 # http://localhost:5173
 ```
 
-### 4. Pruebas automatizadas
+### 4. Pruebas
 ```bash
-cd backend
-mvn test                    # usa la BD alquiler_maquinaria_test (se borra en cada ejecución)
+mvn -f backend/pom.xml verify    # usa alquiler_maquinaria_test (se borra en cada ejecución)
+npm run build --prefix frontend  # compila el frontend
 ```
-Deben pasar **50 pruebas**. En IntelliJ también puedes hacer clic derecho en `src/test/java` y elegir **Run 'All Tests'**.
+Con Docker encendido deben pasar las **114 pruebas**.
 
-## Reglas de sesión (HU-02)
+## Variables de entorno
 
-| | Sin "Recordarme" | Con "Recordarme" |
-|---|---|---|
-| Expira por inactividad | 30 minutos | 7 días |
-| Duración máxima | 8 horas | 30 días |
+Los archivos `.env` reales **no se suben al repositorio**; solo los `.env.example`.
 
-Cada token JWT está ligado a una fila de la tabla `sesiones`. Al cerrar sesión, esa fila se marca como revocada y el token deja de funcionar aunque aún no haya vencido. Los valores se cambian en `config/Config.java`.
+**Backend** (`backend/.env` y Render)
 
-## Despliegue (EN-04)
+| Variable | Descripción |
+|---|---|
+| `DATABASE_URL` | URL de PostgreSQL |
+| `DB_SSL` | `true` en la nube (Neon), `false` en local |
+| `JWT_SECRET` | Clave larga y aleatoria (mínimo 16 caracteres) |
+| `CORS_ORIGIN` | URL del frontend, sin `/` final (varias separadas por coma) |
+| `APP_TZ` | Zona horaria, `America/Lima` |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Almacenamiento de fotos |
+| `GOOGLE_CLIENT_ID` | Client ID de Google (opcional) |
+
+**Frontend** (`frontend/.env` y Vercel)
+
+| Variable | Descripción |
+|---|---|
+| `VITE_API_URL` | URL del backend en producción (vacío en local) |
+| `VITE_GOOGLE_CLIENT_ID` | Mismo Client ID de Google (opcional) |
+
+## Inicio de sesión con Google
+
+Usa Google Identity Services: el botón entrega un token al frontend, que lo envía a `POST /api/auth/google`; el backend lo verifica con Google y abre la misma sesión que el login normal.
+
+- Si el correo ya existe, se **vincula** a esa cuenta (conserva rol, nombre y celular).
+- Si es nuevo, se crea como `CLIENTE` sin contraseña y se pide completar el celular en Mi cuenta (`PATCH /api/auth/yo`).
+- Nunca se crea un administrador por Google.
+- Una cuenta creada solo con Google no puede entrar con contraseña.
+
+**Configuración**
+1. En [Google Cloud Console](https://console.cloud.google.com) crea un proyecto → *Google Auth Platform* → configura la pantalla de consentimiento como **Externo**.
+2. En *Clientes* crea un ID de cliente de tipo **Aplicación web**. En *Orígenes autorizados de JavaScript* agrega `http://localhost:5173`, `http://localhost` y la URL de Vercel (sin `/` final). No necesitas URI de redirección ni Client Secret.
+3. Mientras la app esté en modo *Prueba*, agrega los correos permitidos en *Público → Usuarios de prueba*.
+4. Pon el mismo Client ID en `GOOGLE_CLIENT_ID` (backend y Render) y en `VITE_GOOGLE_CLIENT_ID` (frontend y Vercel). En Vercel hay que **volver a desplegar** tras cambiar la variable.
+
+Sin estas variables el botón no aparece y todo lo demás funciona igual.
+
+## Sesión
+
+El inicio de sesión devuelve un **JWT** en la cabecera `Authorization`, ligado a la tabla `sesiones`. Al cerrar sesión se revoca y deja de funcionar aunque no haya vencido.
+
+## Despliegue
 
 | Parte | Servicio | Cómo |
 |---|---|---|
-| Base de datos | **Neon** (gratis, no vence) | Crea un proyecto y copia la connection string, quitando `&channel_binding=require` |
-| Backend | **Render**, Web Service con **Docker** | Usa el `Dockerfile` de la raíz del repositorio |
+| Base de datos | **Neon** | Crea un proyecto y copia la connection string |
+| Backend | **Render** (Web Service, Docker) | Usa el `Dockerfile` de la raíz; configura las variables de arriba |
 | Frontend | **Vercel** | Root Directory `frontend`; ya incluye `vercel.json` |
 
-Variables del backend en Render:
-| Variable | Valor |
-|---|---|
-| `DATABASE_URL` | la URL de Neon |
-| `DB_SSL` | `true` |
-| `JWT_SECRET` | una clave larga y aleatoria |
-| `CORS_ORIGIN` | la URL de Vercel, sin `/` al final |
-| `APP_TZ` | `America/Lima` |
+Flujo de trabajo: rama → push → GitHub Actions en verde → merge a `main` → Render y Vercel despliegan solos. Las migraciones se aplican al arrancar el backend.
 
-En Vercel, define la variable `VITE_API_URL` con la URL de Render. Las tablas se crean solas al arrancar la API. Para cargar el admin y los datos de ejemplo en Neon, ejecuta desde tu PC `mvn compile exec:java "-Dexec.args=sembrar"` con `DATABASE_URL` y `DB_SSL=true` apuntando a Neon.
-
-Limitaciones del plan gratuito de Render:
-- La API se duerme tras 15 minutos sin uso y tarda cerca de 1 minuto en despertar. Ábrela un rato antes de exponer.
-- Las fotos subidas se borran en cada redespliegue. Guardarlas en un servicio externo como Cloudinary es un buen habilitador para el Sprint 3.
+Limitación del plan gratuito de Render: la API se duerme tras 15 minutos sin uso y tarda cerca de 1 minuto en despertar.
 
 ## Documentación
-- [Base de datos: diagrama ER y reglas](docs/base-de-datos.md)
+- [Base de datos](docs/base-de-datos.md)
 - [API: endpoints](docs/api.md)
-- [Trazabilidad: criterio → código → prueba](docs/trazabilidad.md)

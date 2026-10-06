@@ -30,6 +30,34 @@ public class UsuarioRepositorio {
         return bd.uno("SELECT * FROM usuarios WHERE correo = ?", correo);
     }
 
+    public Fila buscarPorGoogleId(String googleId) {
+        return bd.uno("SELECT * FROM usuarios WHERE google_id = ?", googleId);
+    }
+
+    /** Cuenta creada con Google: sin contraseña (contrasena_hash NULL) y sin celular. */
+    public Fila crearConGoogle(String nombre, String correo, String googleId, String rol) {
+        return bd.uno("""
+                INSERT INTO usuarios (nombre, correo, google_id, rol)
+                VALUES (?, ?, ?, ?)
+                RETURNING *""", nombre, correo, googleId, rol);
+    }
+
+    /** Vincula Google a una cuenta existente. Devuelve null si otra petición ya la vinculó. */
+    public Fila vincularGoogle(long usuarioId, String googleId) {
+        return bd.uno("""
+                UPDATE usuarios SET google_id = ?
+                 WHERE id = ? AND google_id IS NULL
+             RETURNING *""", googleId, usuarioId);
+    }
+
+    /** El teléfono llega ya normalizado (9 dígitos). */
+    public Fila actualizarTelefono(long usuarioId, String telefono) {
+        return bd.uno("""
+                UPDATE usuarios SET telefono = ?
+                 WHERE id = ?
+             RETURNING id, nombre, correo, telefono, rol""", telefono, usuarioId);
+    }
+
     /**
      * Suma un intento fallido. Al llegar al máximo, bloquea la cuenta N minutos.
      * Si un bloqueo anterior ya venció, el contador vuelve a empezar desde 1.

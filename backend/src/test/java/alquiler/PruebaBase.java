@@ -3,9 +3,11 @@ package alquiler;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import alquiler.auth.VerificadorGoogle;
 import alquiler.bd.Bd;
 import alquiler.bd.Migraciones;
 import alquiler.config.Config;
@@ -30,7 +32,8 @@ import java.util.UUID;
  * empezar y se vacía antes de cada prueba.
  *
  * Las fotos se guardan en una carpeta temporal (no en Cloudinary), así las
- * pruebas no necesitan internet ni credenciales.
+ * pruebas no necesitan internet ni credenciales. Lo mismo con Google: el
+ * verificador del ID token es simulado (cada prueba decide qué responde).
  */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -54,6 +57,9 @@ public abstract class PruebaBase {
     private Config configInyectada;
     @LocalServerPort
     private int puertoLocal;
+    /** Simulado: sin configurar, responde como si faltara GOOGLE_CLIENT_ID. */
+    @MockBean
+    protected VerificadorGoogle verificadorGoogle;
 
     private static Path crearCarpetaTemporal() {
         try {
