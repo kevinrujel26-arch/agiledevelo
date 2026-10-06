@@ -49,7 +49,9 @@ public class SeguridadConfig {
                 .authorizeHttpRequests(a -> a
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole(Rol.ADMINISTRADOR.name())
-                        .requestMatchers("/api/auth/yo", "/api/auth/logout").authenticated()
+                        .requestMatchers("/api/auth/yo").authenticated()
+                        .requestMatchers("/api/auth/logout").authenticated()
+                        .requestMatchers("/api/auth/cambiar-contrasena").authenticated()
                         .anyRequest().permitAll())
                 .exceptionHandling(e -> e
                         // 401: sin sesión o sesión inválida (con el motivo que dejó el filtro)

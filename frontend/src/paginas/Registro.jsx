@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/cliente';
 import { panelSegunRol, useAuth } from '../contexto/AuthContext';
 import { Alerta, Campo } from '../componentes/comunes';
+import { CampoContrasena } from '../componentes/CampoContrasena';
 import {
   leerCampos,
   requisitosContrasena,
@@ -169,10 +170,9 @@ export default function Registro() {
           ayuda={<RequisitosContrasena valor={datos.contrasena} tocado={tocados.contrasena} />}
           mantenerAyuda
         >
-          <input
+          <CampoContrasena
             id="contrasena"
             name="contrasena"
-            type="password"
             placeholder="••••••••"
             value={datos.contrasena}
             onChange={cambiar}
@@ -181,10 +181,9 @@ export default function Registro() {
           />
         </Campo>
         <Campo etiqueta="Repite la contraseña" id="confirmar" error={errorDe('confirmar')} valido={esValido('confirmar')}>
-          <input
+          <CampoContrasena
             id="confirmar"
             name="confirmar"
-            type="password"
             placeholder="••••••••"
             value={datos.confirmar}
             onChange={cambiar}

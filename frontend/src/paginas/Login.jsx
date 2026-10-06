@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, panelSegunRol } from '../contexto/AuthContext';
 import { Alerta, Campo } from '../componentes/comunes';
+import { CampoContrasena } from '../componentes/CampoContrasena';
 import PantallaAuth from '../componentes/PantallaAuth';
 import BotonGoogle from '../componentes/BotonGoogle';
 import { leerCampos, validarContrasenaIngreso, validarCorreo } from '../utils/validaciones';
@@ -112,10 +113,9 @@ export default function Login() {
           />
         </Campo>
         <Campo etiqueta="Contraseña" id="contrasena" error={errorDe('contrasena')}>
-          <input
+          <CampoContrasena
             id="contrasena"
             name="contrasena"
-            type="password"
             placeholder="••••••••"
             value={datos.contrasena}
             onChange={cambiar}

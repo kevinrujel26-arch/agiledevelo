@@ -27,4 +27,11 @@ public class SesionRepositorio {
     public void revocar(String sesionId) {
         bd.ejecutar("UPDATE sesiones SET revocada_en = now() WHERE id = ?::uuid AND revocada_en IS NULL", sesionId);
     }
+
+    /** Cierra todas las sesiones del usuario excepto la actual. */
+    public void revocarTodas(long usuarioId, String sesionId) {
+        bd.ejecutar("""
+                UPDATE sesiones SET revocada_en = now()
+                 WHERE usuario_id = ? AND id != ?::uuid AND revocada_en IS NULL""", usuarioId, sesionId);
+    }
 }

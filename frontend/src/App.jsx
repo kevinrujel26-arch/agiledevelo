@@ -6,6 +6,7 @@ import Catalogo from './paginas/Catalogo';
 import DetalleMaquina from './paginas/DetalleMaquina';
 import Registro from './paginas/Registro';
 import Login from './paginas/Login';
+import CompletarRegistro from './paginas/CompletarRegistro';
 import MiCuenta from './paginas/MiCuenta';
 import NoEncontrado from './paginas/NoEncontrado';
 import AdminLayout from './paginas/admin/AdminLayout';
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="/maquinas/:id" element={<DetalleMaquina />} />
           <Route path="/registro" element={<Registro />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/completar-registro" element={<CompletarRegistro />} />
 
           {/* Cliente */}
           <Route

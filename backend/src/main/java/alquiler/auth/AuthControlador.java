@@ -3,6 +3,7 @@ package alquiler.auth;
 import alquiler.http.Respuesta;
 import alquiler.http.Solicitud;
 import alquiler.json.Json;
+import alquiler.util.ErrorApp;
 import alquiler.util.Validador;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
@@ -77,6 +78,23 @@ public class AuthControlador {
         v.validar();
 
         return Respuesta.ok(Json.obj("usuario", servicio.actualizarTelefono(s.usuario().id(), telefono)));
+    }
+
+    /** Cambiar contraseña desde "Mi cuenta" (solo para cuentas que ya la tienen). */
+    @PatchMapping("/api/auth/cambiar-contrasena")
+    public ResponseEntity<Object> cambiarContrasena(HttpServletRequest peticion) {
+        Solicitud s = Solicitud.de(peticion);
+        Validador v = Validador.de(s.json());
+        String actual = v.texto("actual", 1, 200, true, "Ingresa tu contraseña actual");
+        String nueva = v.contrasenaNueva("nueva");
+        String confirmacion = v.texto("confirmacion", 1, 200, true, "Confirma la nueva contraseña");
+        v.validar();
+
+        if (!nueva.equals(confirmacion)) {
+            throw ErrorApp.solicitudInvalida("Las contraseñas no coinciden");
+        }
+
+        return Respuesta.ok(servicio.cambiarContrasena(s.usuario().id(), actual, nueva, s.usuario().sesionId()));
     }
 
     @PostMapping("/api/auth/logout")

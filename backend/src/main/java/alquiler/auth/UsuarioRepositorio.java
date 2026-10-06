@@ -80,4 +80,15 @@ public class UsuarioRepositorio {
     public void reiniciarIntentos(long usuarioId) {
         bd.ejecutar("UPDATE usuarios SET intentos_fallidos = 0, bloqueado_hasta = NULL WHERE id = ?", usuarioId);
     }
+
+    public Fila buscarPorId(long usuarioId) {
+        return bd.uno("SELECT * FROM usuarios WHERE id = ?", usuarioId);
+    }
+
+    public Fila cambiarContrasena(long usuarioId, String hash) {
+        return bd.uno("""
+                UPDATE usuarios SET contrasena_hash = ?
+                 WHERE id = ?
+             RETURNING *""", hash, usuarioId);
+    }
 }
