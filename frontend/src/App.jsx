@@ -1,6 +1,8 @@
-import { Link, Navigate, Route, Routes } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Encabezado from './componentes/Encabezado';
-import { RutaProtegida } from './componentes/comunes';
+import { RutaProtegida, Cargando } from './componentes/comunes';
+import { useAuth } from './contexto/AuthContext';
 import Inicio from './paginas/Inicio';
 import Catalogo from './paginas/Catalogo';
 import DetalleMaquina from './paginas/DetalleMaquina';
@@ -17,11 +19,32 @@ import AdminDisponibilidad from './paginas/admin/AdminDisponibilidad';
 import { NOMBRE_APP, CONTACTO } from './utils/formato';
 import { LogoMarca } from './componentes/Ilustracion';
 
+function GuardGlobal() {
+  const { usuario, cargando } = useAuth();
+  const ubicacion = useLocation();
+
+  // Esperar a que AuthContext cargue
+  if (cargando) {
+    return <Cargando />;
+  }
+
+  // Excepciones: completar-registro, privacidad (si existe), logout no aplica aquí
+  const esExcepcion = ubicacion.pathname === '/completar-registro' || ubicacion.pathname === '/privacidad';
+
+  // Guard: si hay sesión, sin celular y no es admin, redirige a completar-registro
+  if (usuario && !usuario.tieneCelular && usuario.rol !== 'ADMINISTRADOR' && !esExcepcion) {
+    return <Navigate to="/completar-registro" replace />;
+  }
+
+  return null; // No hay redirección, continúa normalmente
+}
+
 export default function App() {
   return (
     <>
       <a href="#contenido" className="saltar-contenido">Saltar al contenido</a>
       <Encabezado />
+      <GuardGlobal />
       <main id="contenido" tabIndex={-1}>
         <Routes>
           {/* Públicas */}

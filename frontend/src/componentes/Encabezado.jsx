@@ -23,6 +23,7 @@ function BotonTema() {
 export default function Encabezado() {
   const { usuario, esAdmin, cerrarSesion } = useAuth();
   const navegar = useNavigate();
+  const esPaginaCompletarRegistro = window.location.pathname === '/completar-registro';
 
   async function salir() {
     await cerrarSesion();
@@ -32,27 +33,31 @@ export default function Encabezado() {
   return (
     <header className="encabezado">
       <div className="contenedor encabezado-interior">
-        <Link to="/" className="marca" aria-label={`${NOMBRE_APP}, ir al inicio`}>
+        <Link to={esPaginaCompletarRegistro ? '#' : '/'} className="marca" aria-label={esPaginaCompletarRegistro ? NOMBRE_APP : `${NOMBRE_APP}, ir al inicio`}>
           <LogoMarca />
           <span className="marca-texto">{NOMBRE_APP}</span>
         </Link>
-        <nav className="nav-principal" aria-label="Principal">
-          <NavLink to="/" end>
-            Inicio
-          </NavLink>
-          <NavLink to="/catalogo">Catálogo</NavLink>
-          {esAdmin && <NavLink to="/admin">Administración</NavLink>}
-          {usuario && !esAdmin && <NavLink to="/mi-cuenta">Mi cuenta</NavLink>}
-        </nav>
+        {!esPaginaCompletarRegistro && (
+          <nav className="nav-principal" aria-label="Principal">
+            <NavLink to="/" end>
+              Inicio
+            </NavLink>
+            <NavLink to="/catalogo">Catálogo</NavLink>
+            {esAdmin && <NavLink to="/admin">Administración</NavLink>}
+            {usuario && !esAdmin && <NavLink to="/mi-cuenta">Mi cuenta</NavLink>}
+          </nav>
+        )}
         <div className="nav-usuario">
           <BotonTema />
           {usuario ? (
             <>
-              <Link to={panelSegunRol(usuario)} className="nombre-usuario" title={usuario.correo}>
-                <span className="avatar" aria-hidden="true">{usuario.nombre.trim().charAt(0).toUpperCase()}</span>
-                <span className="nombre-texto">{usuario.nombre.split(' ')[0]}</span>
-                {esAdmin && <span className="insignia insignia-admin">Admin</span>}
-              </Link>
+              {!esPaginaCompletarRegistro && (
+                <Link to={panelSegunRol(usuario)} className="nombre-usuario" title={usuario.correo}>
+                  <span className="avatar" aria-hidden="true">{usuario.nombre.trim().charAt(0).toUpperCase()}</span>
+                  <span className="nombre-texto">{usuario.nombre.split(' ')[0]}</span>
+                  {esAdmin && <span className="insignia insignia-admin">Admin</span>}
+                </Link>
+              )}
               <button type="button" className="boton boton-secundario boton-chico" onClick={salir}>
                 Cerrar sesión
               </button>
