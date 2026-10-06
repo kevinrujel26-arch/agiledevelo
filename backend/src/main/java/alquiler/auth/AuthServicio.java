@@ -48,7 +48,9 @@ public class AuthServicio {
 
     public static Map<String, Object> usuarioJson(Fila u) {
         return Json.obj("id", u.entero("id"), "nombre", u.texto("nombre"), "correo", u.texto("correo"),
-                "telefono", u.texto("telefono"), "rol", u.texto("rol"));
+                "telefono", u.texto("telefono"), "rol", u.texto("rol"),
+                "tieneCelular", u.texto("telefono") != null,
+                "tieneContrasena", u.texto("contrasena_hash") != null);
     }
 
     /** HU-01: el rol siempre es CLIENTE (criterio 5), aunque envíen otro. */
@@ -142,6 +144,37 @@ public class AuthServicio {
     /** Completa el celular que falta (cuentas creadas con Google o antiguas). */
     public Map<String, Object> actualizarTelefono(long usuarioId, String telefono) {
         return usuarioJson(usuarios.actualizarTelefono(usuarioId, telefono));
+    }
+
+    /** Cambia la contraseña de una cuenta que ya la tiene. */
+    public Map<String, Object> cambiarContrasena(long usuarioId, String actual, String nueva, String sesionId) {
+        Fila u = usuarios.buscarPorId(usuarioId);
+        if (u == null) {
+            throw ErrorApp.noEncontrado("Usuario no encontrado");
+        }
+        // Solo cuentas que ya tienen contraseña pueden cambiarla
+        String hashActual = u.texto("contrasena_hash");
+        if (hashActual == null) {
+            throw ErrorApp.prohibido("Esta cuenta usa Google para iniciar sesión. No tiene contraseña");
+        }
+        // Verificar que la contraseña actual sea correcta (sin bloqueo)
+        if (!contrasenas.verificar(actual, hashActual)) {
+            throw ErrorApp.noAutenticado("La contraseña actual es incorrecta");
+        }
+        // Rechazar si la nueva es igual a la actual
+        if (contrasenas.verificar(nueva, hashActual)) {
+            throw ErrorApp.solicitudInvalida("La nueva contraseña no puede ser igual a la actual");
+        }
+        String hashNuevo = contrasenas.cifrar(nueva);
+        Fila actualizado = usuarios.cambiarContrasena(usuarioId, hashNuevo);
+        if (actualizado == null) {
+            throw ErrorApp.noEncontrado("Usuario no encontrado");
+        }
+        // Cerrar todas las otras sesiones del usuario
+        sesiones.revocarTodas(usuarioId, sesionId);
+        return Json.obj(
+                "mensaje", "Contraseña cambiada exitosamente. Las otras sesiones han sido cerradas",
+                "usuario", usuarioJson(actualizado));
     }
 
     /** HU-15 criterio 2: un cliente desactivado no puede iniciar sesión */

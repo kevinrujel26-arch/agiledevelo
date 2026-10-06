@@ -45,6 +45,10 @@ export function RutaProtegida({ roles, children }) {
       </div>
     );
   }
+  // Redirigir a completar celular si no lo tiene (excepto administradores)
+  if (!usuario.tieneCelular && usuario.rol !== 'ADMINISTRADOR') {
+    return <Navigate to="/completar-registro" replace />;
+  }
   return children;
 }
 

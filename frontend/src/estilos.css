@@ -134,6 +134,31 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); }
 .fila-rango label { display: flex; flex-direction: column; gap: 5px; font-size: 0.87rem; font-weight: 500; }
 .subtitulo { font-size: 1.12rem; margin: 0 0 14px; }
 
+/* ---------- Campo de contraseña con ojo ---------- */
+.campo-contrasena-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.campo-contrasena-wrapper input { padding-right: 44px; }
+.boton-ojo {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--texto-suave);
+  transition: color .15s;
+}
+.boton-ojo:hover { color: var(--texto); }
+.boton-ojo:focus { outline: none; color: var(--naranja); }
+.campo-error .boton-ojo { color: var(--error); }
+
 /* ---------- Alertas ---------- */
 .alerta { display: flex; justify-content: space-between; gap: 12px; padding: 12px 16px; border-radius: var(--radio-chico); margin-bottom: 16px; border: 1px solid; font-size: 0.93rem; }
 .alerta-error { background: var(--error-fondo); color: var(--error-texto); border-color: var(--error-borde); }

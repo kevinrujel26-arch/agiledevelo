@@ -66,6 +66,13 @@ export function AuthProvider({ children }) {
     return r.usuario;
   }, []);
 
+  // Cambiar contraseña desde "Mi cuenta"
+  const cambiarContrasena = useCallback(async (actual, nueva, confirmacion) => {
+    const r = await api.patch('/auth/cambiar-contrasena', { actual, nueva, confirmacion });
+    setUsuario(r.usuario);
+    return r;
+  }, []);
+
   const cerrarSesion = useCallback(async () => {
     try {
       await api.post('/auth/logout');
@@ -86,9 +93,10 @@ export function AuthProvider({ children }) {
       iniciarSesion,
       iniciarSesionGoogle,
       guardarCelular,
+      cambiarContrasena,
       cerrarSesion,
     }),
-    [usuario, cargando, avisoSesion, iniciarSesion, iniciarSesionGoogle, guardarCelular, cerrarSesion]
+    [usuario, cargando, avisoSesion, iniciarSesion, iniciarSesionGoogle, guardarCelular, cambiarContrasena, cerrarSesion]
   );
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>;

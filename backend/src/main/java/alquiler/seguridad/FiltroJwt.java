@@ -65,6 +65,6 @@ public class FiltroJwt extends OncePerRequestFilter {
      */
     private static boolean esRutaProtegida(HttpServletRequest peticion) {
         String ruta = peticion.getRequestURI();
-        return ruta.startsWith("/api/admin/") || ruta.equals("/api/auth/logout") || ruta.equals("/api/auth/yo");
+        return ruta.startsWith("/api/admin/") || ruta.equals("/api/auth/logout") || ruta.equals("/api/auth/yo") || ruta.equals("/api/auth/cambiar-contrasena");
     }
 }
