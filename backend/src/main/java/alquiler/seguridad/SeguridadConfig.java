@@ -30,7 +30,7 @@ import java.util.List;
  *  - Sin sesiones de servidor (STATELESS): cada petición trae su JWT.
  *  - /api/admin/**  → solo ADMINISTRADOR.
  *  - /api/auth/yo y /api/auth/logout → cualquier usuario con sesión.
- *  - Todo lo demás es público (catálogo, categorías, login, registro, fotos).
+ *  - Todo lo demás es público (catálogo, categorías, login, registro, login con Google, fotos).
  *  - CORS: solo los orígenes de CORS_ORIGIN.
  */
 @Configuration

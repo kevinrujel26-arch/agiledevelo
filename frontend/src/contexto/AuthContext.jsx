@@ -32,10 +32,36 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener('sesion-expirada', alExpirar);
   }, []);
 
-  const iniciarSesion = useCallback(async ({ correo, contrasena, recordarme }) => {
-    const r = await api.post('/auth/login', { correo, contrasena, recordarme });
+  // El login normal y el de Google responden igual: { token, expiraEn, recordarme, usuario }
+  const guardarSesion = useCallback((r, recordarme) => {
     almacenToken.guardar(r.token, recordarme);
     setAvisoSesion('');
+    setUsuario(r.usuario);
+  }, []);
+
+  const iniciarSesion = useCallback(
+    async ({ correo, contrasena, recordarme }) => {
+      const r = await api.post('/auth/login', { correo, contrasena, recordarme });
+      guardarSesion(r, recordarme);
+      return r.usuario;
+    },
+    [guardarSesion]
+  );
+
+  // "Continuar con Google": el backend verifica el ID token y crea o vincula la cuenta.
+  // Devuelve también "nuevo" (cuenta recién creada) para pedirle el celular.
+  const iniciarSesionGoogle = useCallback(
+    async ({ credential, recordarme = false }) => {
+      const r = await api.post('/auth/google', { credential, recordarme });
+      guardarSesion(r, recordarme);
+      return { usuario: r.usuario, nuevo: Boolean(r.nuevo) };
+    },
+    [guardarSesion]
+  );
+
+  // Completar el celular desde "Mi cuenta"
+  const guardarCelular = useCallback(async (telefono) => {
+    const r = await api.patch('/auth/yo', { telefono });
     setUsuario(r.usuario);
     return r.usuario;
   }, []);
@@ -58,9 +84,11 @@ export function AuthProvider({ children }) {
       avisoSesion,
       limpiarAviso: () => setAvisoSesion(''),
       iniciarSesion,
+      iniciarSesionGoogle,
+      guardarCelular,
       cerrarSesion,
     }),
-    [usuario, cargando, avisoSesion, iniciarSesion, cerrarSesion]
+    [usuario, cargando, avisoSesion, iniciarSesion, iniciarSesionGoogle, guardarCelular, cerrarSesion]
   );
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>;

@@ -2,6 +2,7 @@
 import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/cliente';
+import { panelSegunRol, useAuth } from '../contexto/AuthContext';
 import { Alerta, Campo } from '../componentes/comunes';
 import {
   leerCampos,
@@ -14,6 +15,7 @@ import {
 } from '../utils/validaciones';
 import { useValidacion } from '../utils/useValidacion';
 import PantallaAuth from '../componentes/PantallaAuth';
+import BotonGoogle from '../componentes/BotonGoogle';
 
 const REGLAS = {
   nombre: validarNombre,
@@ -40,6 +42,7 @@ function RequisitosContrasena({ valor, tocado }) {
 
 export default function Registro() {
   const navegar = useNavigate();
+  const { iniciarSesionGoogle } = useAuth();
   const formulario = useRef(null);
   const [datos, setDatos] = useState({ nombre: '', correo: '', telefono: '', contrasena: '', confirmar: '' });
   const { hayErrores, tocados, errorDe, esValido, tocar, editado, tocarTodos, setErroresServidor } = useValidacion(
@@ -85,6 +88,20 @@ export default function Registro() {
       navegar('/login', { state: { mensaje: r.mensaje, correo: r.usuario.correo } });
     } catch (err) {
       setErroresServidor(err.porCampo || {});
+      setErrorGeneral(err.message);
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  // Registrarse con Google deja la sesión iniciada; el celular se completa en "Mi cuenta"
+  async function registrarConGoogle(credential) {
+    setErrorGeneral('');
+    setEnviando(true);
+    try {
+      const { usuario: u } = await iniciarSesionGoogle({ credential });
+      navegar(panelSegunRol(u), { replace: true });
+    } catch (err) {
       setErrorGeneral(err.message);
     } finally {
       setEnviando(false);
@@ -183,6 +200,7 @@ export default function Registro() {
           {enviando ? 'Creando cuenta…' : 'Crear cuenta'}
         </button>
       </form>
+      <BotonGoogle texto="signup_with" alIngresar={registrarConGoogle} ocupado={enviando} />
       <p className="pie-formulario">
         ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>
       </p>

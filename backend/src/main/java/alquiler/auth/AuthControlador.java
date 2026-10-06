@@ -7,6 +7,7 @@ import alquiler.util.Validador;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -50,6 +51,32 @@ public class AuthControlador {
         v.validar();
 
         return Respuesta.ok(servicio.iniciarSesion(correo, contrasena, recordarme, s.ip(), s.cabecera("User-Agent")));
+    }
+
+    /**
+     * "Continuar con Google": recibe el ID token ("credential") del botón de Google
+     * y responde igual que /api/auth/login, más "nuevo" (true si se acaba de crear la cuenta).
+     */
+    @PostMapping("/api/auth/google")
+    public ResponseEntity<Object> google(HttpServletRequest peticion) {
+        Solicitud s = Solicitud.de(peticion);
+        Validador v = Validador.de(s.json());
+        String credencial = v.texto("credential", 1, 4096, true, "Falta el token de Google");
+        boolean recordarme = Boolean.TRUE.equals(v.booleano("recordarme", false));
+        v.validar();
+
+        return Respuesta.ok(servicio.iniciarSesionGoogle(credencial, recordarme, s.ip(), s.cabecera("User-Agent")));
+    }
+
+    /** Completar el celular desde "Mi cuenta" (obligatorio para quien entró con Google). */
+    @PatchMapping("/api/auth/yo")
+    public ResponseEntity<Object> actualizarYo(HttpServletRequest peticion) {
+        Solicitud s = Solicitud.de(peticion);
+        Validador v = Validador.de(s.json());
+        String telefono = v.celular("telefono", true);
+        v.validar();
+
+        return Respuesta.ok(Json.obj("usuario", servicio.actualizarTelefono(s.usuario().id(), telefono)));
     }
 
     @PostMapping("/api/auth/logout")
