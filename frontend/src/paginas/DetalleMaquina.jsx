@@ -6,6 +6,7 @@ import { useAuth } from '../contexto/AuthContext';
 import { Alerta, Cargando, FotoMaquina } from '../componentes/comunes';
 import { Icono } from '../componentes/Ilustracion';
 import Calendario from '../componentes/Calendario';
+import FormularioReserva from '../componentes/FormularioReserva';
 import { formatearHoras, formatearMoneda } from '../utils/formato';
 
 export default function DetalleMaquina() {
@@ -16,14 +17,14 @@ export default function DetalleMaquina() {
   const [ocupados, setOcupados] = useState([]);
   const [fotoActiva, setFotoActiva] = useState(0);
   const [error, setError] = useState('');
-  const [avisoReserva, setAvisoReserva] = useState(false);
+  const [mostrarFormularioReserva, setMostrarFormularioReserva] = useState(false);
 
   useEffect(() => {
     let vigente = true;
     setMaquina(null);
     setError('');
     setFotoActiva(0);
-    setAvisoReserva(false);
+    setMostrarFormularioReserva(false);
     Promise.all([api.get(`/maquinas/${id}`), api.get(`/maquinas/${id}/disponibilidad`)])
       .then(([m, d]) => {
         if (!vigente) return;
@@ -64,13 +65,17 @@ export default function DetalleMaquina() {
     );
   }
 
-  // HU-04 criterio 3: sin sesión lleva al login y vuelve aquí; con sesión, el flujo de reservas aún no existe
+  // HU-06: flujo de reserva por horas
   function reservar() {
     if (!usuario) {
       navegar('/login', { state: { desde: `/maquinas/${id}` } });
       return;
     }
-    setAvisoReserva(true);
+    if (!usuario.tieneCelular) {
+      navegar('/completar-registro', { state: { desde: `/maquinas/${id}` } });
+      return;
+    }
+    setMostrarFormularioReserva(true);
   }
 
   const fotos = maquina.fotos;
@@ -147,6 +152,17 @@ export default function DetalleMaquina() {
               <strong>1 hora</strong>
             </div>
             <div className="dato">
+              <span>Operador</span>
+              <strong>Incluido</strong>
+            </div>
+            {maquina.combustiblePorHora > 0 && (
+              <div className="dato">
+                <span>Combustible</span>
+                <strong>{formatearMoneda(maquina.combustiblePorHora)} / hora</strong>
+                <small className="ayuda">Lo paga el cliente y se suma al total</small>
+              </div>
+            )}
+            <div className="dato">
               <span>Horas de uso</span>
               <strong>{formatearHoras(maquina.horasUso)}</strong>
               <small className="ayuda">Horas registradas en el sistema</small>
@@ -166,14 +182,91 @@ export default function DetalleMaquina() {
           {!usuario && !cargando && (
             <p className="ayuda centrado" style={{ margin: '10px 0 0' }}>Necesitas iniciar sesión para reservar.</p>
           )}
-          {avisoReserva && (
-            <div className="nota-reserva" role="status" style={{ marginTop: 14 }}>
-              <Icono nombre="info" />
-              <span>La reserva en línea estará disponible pronto. Mientras tanto, revisa en el calendario las fechas libres.</span>
-            </div>
-          )}
         </aside>
       </div>
+
+      {mostrarFormularioReserva && maquina && (
+        <div
+          className="modal-overlay"
+          onClick={() => setMostrarFormularioReserva(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-titulo"
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setMostrarFormularioReserva(false);
+          }}
+        >
+          <div className="modal-contenido" onClick={(e) => e.stopPropagation()} role="document">
+            <FormularioReserva
+              maquina={maquina}
+              ocupados={ocupados}
+              onExito={() => {
+                setMostrarFormularioReserva(false);
+                navegar('/mi-cuenta');
+              }}
+              onCerrar={() => setMostrarFormularioReserva(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 30;
+          padding: 16px;
+          backdrop-filter: blur(4px);
+          -webkit-backdrop-filter: blur(4px);
+          animation: fadeIn 0.2s ease-out;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .modal-contenido {
+          background: var(--panel-arriba);
+          border: 1px solid var(--borde);
+          border-radius: var(--radio);
+          padding: 28px;
+          max-width: 600px;
+          width: 100%;
+          max-height: 88vh;
+          overflow-y: auto;
+          box-shadow: var(--sombra);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          animation: slideUp 0.25s ease-out;
+        }
+        @keyframes slideUp {
+          from { transform: translateY(20px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        @media (max-width: 640px) {
+          .modal-overlay {
+            padding: 0;
+            align-items: flex-end;
+          }
+          .modal-contenido {
+            border-radius: 20px 20px 0 0;
+            max-height: 90vh;
+            padding: 24px 20px 32px;
+            width: 100%;
+          }
+        }
+        @media (max-height: 500px) {
+          .modal-contenido {
+            max-height: 95vh;
+          }
+        }
+      `}</style>
     </div>
   );
 }

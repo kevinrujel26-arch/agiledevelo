@@ -40,6 +40,7 @@ public class MaquinaRepositorio {
         COLUMNAS_EDITABLES.put("descripcion", "descripcion");
         COLUMNAS_EDITABLES.put("especificaciones", "especificaciones");
         COLUMNAS_EDITABLES.put("tarifaHoraria", "tarifa_horaria");
+        COLUMNAS_EDITABLES.put("combustiblePorHora", "combustible_por_hora");
         COLUMNAS_EDITABLES.put("ubicacion", "ubicacion");
         COLUMNAS_EDITABLES.put("enMantenimiento", "en_mantenimiento");
         COLUMNAS_EDITABLES.put("horometroInicial", "horometro_inicial");
@@ -137,12 +138,13 @@ public class MaquinaRepositorio {
     public long crear(DatosMaquina d, long creadoPor) {
         return bd.uno("""
                 INSERT INTO maquinas (categoria_id, nombre, marca, modelo, descripcion, especificaciones,
-                                      tarifa_horaria, ubicacion, en_mantenimiento, horometro_inicial, creado_por)
-                VALUES (?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?, ?)
+                                      tarifa_horaria, combustible_por_hora, ubicacion, en_mantenimiento, horometro_inicial, creado_por)
+                VALUES (?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?, ?, ?)
                 RETURNING id""",
                 d.categoriaId(), d.nombre(), d.marca(), d.modelo(), d.descripcion(),
                 d.especificaciones() == null ? Map.of() : d.especificaciones(),
-                d.tarifaHoraria(), d.ubicacion(),
+                d.tarifaHoraria(),
+                d.combustiblePorHora() == null ? BigDecimal.ZERO : d.combustiblePorHora(), d.ubicacion(),
                 d.enMantenimiento() != null && d.enMantenimiento(),
                 d.horometroInicial() == null ? BigDecimal.ZERO : d.horometroInicial(), creadoPor).entero("id");
     }

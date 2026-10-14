@@ -357,4 +357,48 @@ class AuthTest extends PruebaBase {
         String token = token(crearCliente(), false);
         assertEquals(401, get("/api/auth/yo", token + "x").estado());
     }
+
+    // ------------------------------------------------------------ GET /api/auth/yo: tieneCelular y tieneContrasena
+    @Test
+    @DisplayName("GET /api/auth/yo incluye tieneCelular=true si hay teléfono")
+    void yoIncluyeTieneCelularVerdaderoSiHayTelefono() {
+        Usuario u = crearCliente();
+        String token = token(u, false);
+        Resp yo = get("/api/auth/yo", token);
+        assertEquals(200, yo.estado());
+        assertEquals(true, yo.objeto("usuario").get("tieneCelular"));
+        assertEquals(true, yo.objeto("usuario").get("tieneContrasena"));
+    }
+
+    @Test
+    @DisplayName("GET /api/auth/yo incluye tieneCelular=false sin teléfono")
+    void yoIncluyeTieneCelularFalsoSinTelefono() {
+        Usuario u = crearCliente();
+        bd().ejecutar("UPDATE usuarios SET telefono = NULL WHERE id = ?", u.id());
+        String token = token(u, false);
+        Resp yo = get("/api/auth/yo", token);
+        assertEquals(200, yo.estado());
+        assertEquals(false, yo.objeto("usuario").get("tieneCelular"));
+        assertEquals(true, yo.objeto("usuario").get("tieneContrasena"));
+    }
+
+    @Test
+    @DisplayName("GET /api/auth/yo coincide con el login en id, nombre, correo, telefono, rol, tieneCelular, tieneContrasena")
+    void yoCoincideConElLogin() {
+        Map<String, Object> datos = registroValido();
+        post("/api/auth/registro", datos, null);
+
+        Resp login = post("/api/auth/login", Json.obj("correo", "ana@correo.com", "contrasena", "secreta123"), null);
+        assertEquals(200, login.estado());
+        Map<String, Object> usuarioLogin = login.objeto("usuario");
+
+        String token = (String) login.json().get("token");
+        Resp yo = get("/api/auth/yo", token);
+        assertEquals(200, yo.estado());
+        Map<String, Object> usuarioYo = yo.objeto("usuario");
+
+        for (String campo : new String[]{"id", "nombre", "correo", "telefono", "rol", "tieneCelular", "tieneContrasena"}) {
+            assertEquals(usuarioLogin.get(campo), usuarioYo.get(campo), "Campo " + campo + " no coincide");
+        }
+    }
 }

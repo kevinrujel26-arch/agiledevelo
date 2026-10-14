@@ -107,6 +107,6 @@ public class AuthControlador {
     @GetMapping("/api/auth/yo")
     public ResponseEntity<Object> yo(HttpServletRequest peticion) {
         Solicitud s = Solicitud.de(peticion);
-        return Respuesta.ok(Json.obj("usuario", s.usuario()));
+        return Respuesta.ok(Json.obj("usuario", servicio.usuarioActual(s.usuario().id())));
     }
 }

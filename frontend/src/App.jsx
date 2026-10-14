@@ -16,6 +16,7 @@ import AdminCategorias from './paginas/admin/AdminCategorias';
 import AdminMaquinas from './paginas/admin/AdminMaquinas';
 import AdminMaquinaForm from './paginas/admin/AdminMaquinaForm';
 import AdminDisponibilidad from './paginas/admin/AdminDisponibilidad';
+import AdminReservas from './paginas/admin/AdminReservas';
 import { NOMBRE_APP, CONTACTO } from './utils/formato';
 import { LogoMarca } from './componentes/Ilustracion';
 
@@ -80,6 +81,7 @@ export default function App() {
             <Route path="maquinas/:id" element={<AdminMaquinaForm />} />
             <Route path="maquinas/:id/disponibilidad" element={<AdminDisponibilidad />} />
             <Route path="categorias" element={<AdminCategorias />} />
+            <Route path="reservas" element={<AdminReservas />} />
           </Route>
 
           <Route path="*" element={<NoEncontrado />} />

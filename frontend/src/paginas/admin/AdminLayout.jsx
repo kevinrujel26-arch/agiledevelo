@@ -8,7 +8,7 @@ export default function AdminLayout() {
         <nav>
           <NavLink to="/admin/maquinas">Máquinas</NavLink>
           <NavLink to="/admin/categorias">Categorías</NavLink>
-          <span className="deshabilitado" title="Sprint 4" aria-disabled="true">Reservas y pagos</span>
+          <NavLink to="/admin/reservas">Reservas</NavLink>
           <span className="deshabilitado" title="Sprint 4" aria-disabled="true">Clientes</span>
         </nav>
       </aside>

@@ -28,13 +28,24 @@ const VACIO = {
   marca: '',
   modelo: '',
   tarifaHoraria: '',
+  combustiblePorHora: '',
   ubicacion: '',
   descripcion: '',
   enMantenimiento: false,
   horometroInicial: '',
 };
 const FILA_VACIA = { clave: '', valor: '' };
-const CAMPOS_DECIMALES = ['tarifaHoraria', 'horometroInicial'];
+const CAMPOS_DECIMALES = ['tarifaHoraria', 'combustiblePorHora', 'horometroInicial'];
+
+// Opcional: vacío o 0 significa que la máquina no cobra combustible aparte
+const TOPE_COMBUSTIBLE = 100000;
+function validarCombustible(valor) {
+  const texto = sinPuntoFinal(valor || '');
+  if (texto === '') return '';
+  if (!/^\d+(\.\d{1,2})?$/.test(texto)) return 'Escribe un monto válido, con hasta 2 decimales';
+  if (Number(texto) > TOPE_COMBUSTIBLE) return 'El combustible por hora es demasiado alto';
+  return '';
+}
 
 const REGLAS = {
   categoriaId: (v) => (v ? '' : 'Selecciona una categoría'),
@@ -42,6 +53,7 @@ const REGLAS = {
   marca: validarMarca,
   modelo: validarModelo,
   tarifaHoraria: validarTarifa,
+  combustiblePorHora: validarCombustible,
   ubicacion: validarUbicacion,
   horometroInicial: validarHorometro,
   descripcion: validarDescripcionMaquina,
@@ -108,6 +120,7 @@ export default function AdminMaquinaForm() {
       marca: m.marca,
       modelo: m.modelo,
       tarifaHoraria: String(m.tarifaHoraria),
+      combustiblePorHora: Number(m.combustiblePorHora) ? String(m.combustiblePorHora) : '',
       ubicacion: m.ubicacion,
       descripcion: m.descripcion || '',
       enMantenimiento: m.enMantenimiento,
@@ -161,6 +174,7 @@ export default function AdminMaquinaForm() {
       ...form,
       categoriaId: Number(form.categoriaId),
       tarifaHoraria: sinPuntoFinal(form.tarifaHoraria),
+      combustiblePorHora: sinPuntoFinal(form.combustiblePorHora) || 0,
       horometroInicial: sinPuntoFinal(form.horometroInicial) || 0,
       descripcion: form.descripcion.trim() || null,
       especificaciones,
@@ -315,6 +329,22 @@ export default function AdminMaquinaForm() {
               inputMode="decimal"
               placeholder="0.00"
               value={form.tarifaHoraria}
+              onChange={cambiar}
+              onBlur={alSalir}
+            />
+          </Campo>
+          <Campo
+            etiqueta="Combustible por hora (S/)"
+            id="combustiblePorHora"
+            error={v.errorDe('combustiblePorHora')}
+            ayuda="Lo paga el cliente y se suma a la tarifa por cada hora. Vacío si no aplica"
+          >
+            <input
+              id="combustiblePorHora"
+              name="combustiblePorHora"
+              inputMode="decimal"
+              placeholder="0.00"
+              value={form.combustiblePorHora}
               onChange={cambiar}
               onBlur={alSalir}
             />

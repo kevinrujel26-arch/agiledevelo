@@ -52,6 +52,7 @@ public class SeguridadConfig {
                         .requestMatchers("/api/auth/yo").authenticated()
                         .requestMatchers("/api/auth/logout").authenticated()
                         .requestMatchers("/api/auth/cambiar-contrasena").authenticated()
+                        .requestMatchers("/api/reservas").authenticated()
                         .anyRequest().permitAll())
                 .exceptionHandling(e -> e
                         // 401: sin sesión o sesión inválida (con el motivo que dejó el filtro)

@@ -56,18 +56,15 @@ public class BloqueoRepositorio {
         return bd.ejecutar("DELETE FROM bloqueos_disponibilidad WHERE id = ? AND maquina_id = ?", bloqueoId, maquinaId) > 0;
     }
 
-    /** Bloqueos y reservas vigentes (pendientes o pagadas) que se cruzan con el periodo (días inclusivos). */
+    /** Bloqueos por mantenimiento que ocupan el día completo. Las reservas por horas se analizan en DisponibilidadServicio. */
     public List<Fila> ocupacion(Consultas bd, long maquinaId, String desde, String hasta) {
         return bd.consultar("""
                 SELECT fecha_inicio::date AS fecha_inicio, (fecha_fin - interval '1 day')::date AS fecha_fin, 'BLOQUEO' AS tipo
                   FROM bloqueos_disponibilidad
                  WHERE maquina_id = ?
                    AND tstzrange(fecha_inicio, fecha_fin, '[)') && tstzrange(?::date, (?::date + interval '1 day'), '[)')
-                UNION ALL
-                SELECT fecha_inicio::date AS fecha_inicio, (fecha_fin - interval '1 day')::date AS fecha_fin, 'RESERVA' AS tipo
-                  FROM reservas
-                 WHERE maquina_id = ? AND estado IN ('PENDIENTE_PAGO', 'PAGADA')
-                   AND tstzrange(fecha_inicio, fecha_fin, '[)') && tstzrange(?::date, (?::date + interval '1 day'), '[)')
-                 ORDER BY fecha_inicio""", maquinaId, desde, hasta, maquinaId, desde, hasta);
+                 ORDER BY fecha_inicio""", maquinaId, desde, hasta);
     }
+
+    /** Retorna todas las reservas vigentes (PENDIENTE_PAGO, PAGADA, EN_CURSO, FINALIZADA) en el rango de fechas. */
 }
