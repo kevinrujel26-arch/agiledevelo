@@ -141,6 +141,15 @@ public class AuthServicio {
         return respuesta;
     }
 
+    /** Obtiene los datos actuales del usuario (incluye tieneCelular y tieneContrasena). */
+    public Map<String, Object> usuarioActual(long usuarioId) {
+        Fila u = usuarios.buscarPorId(usuarioId);
+        if (u == null) {
+            throw ErrorApp.noAutenticado("El usuario no existe");
+        }
+        return usuarioJson(u);
+    }
+
     /** Completa el celular que falta (cuentas creadas con Google o antiguas). */
     public Map<String, Object> actualizarTelefono(long usuarioId, String telefono) {
         return usuarioJson(usuarios.actualizarTelefono(usuarioId, telefono));

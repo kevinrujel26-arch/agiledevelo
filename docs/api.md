@@ -64,6 +64,39 @@ Una cuenta creada con Google no puede entrar por `/auth/login`: responde 401 `"E
 
 **Horas de uso (`horasUso`):** número que devuelven el catálogo, el detalle público y las rutas de administrador. Se calcula solo: `horometroInicial + suma de horas de las reservas FINALIZADAS` de la máquina. Es una **aproximación** (horas alquiladas a través del sistema), no una lectura real del motor. Las reservas `PENDIENTE_PAGO`, `PAGADA` o `CANCELADA` no suman.
 
+## Reservas por horas (HU-06): requiere sesión y celular registrado
+
+| Método | Ruta | Acceso | Descripción |
+|---|---|---|---|
+| POST | `/reservas` | Con sesión y celular | `{ maquinaId, fecha (AAAA-MM-DD), horaInicio (0-23), horas (1+), nombreSolicitante, ruc, telefono, email, ubicacionObra, detalle?, aceptaPolitica }` → 201 `{ datos, codigo }`. Crea una reserva PENDIENTE_PAGO. El operador siempre va incluido y el combustible lo paga el cliente: total = (tarifa por hora + combustible por hora de la máquina) × horas. `datos` incluye `tarifaHora`, `combustibleTotal` y `total` |
+| GET | `/maquinas/:id/disponibilidad/horas?fecha=AAAA-MM-DD` | Público | Horas libres para ese día: `{ maquinaId, fecha, disponible, horas: [{ hora, estado (LIBRE\|RESERVADA\|PREPARACION), horasMaximas }] }` |
+| GET | `/admin/reservas` | Admin | Lista todas las reservas ordenadas por fecha de creación descendente `{ datos: [{ id, codigo, clienteId, clienteNombre, clienteCorreo, maquinaId, maquinaNombre, fechaInicio, fechaFin, horas, tarifaHoraria, montoTotal, combustibleTotal, estado (PENDIENTE_PAGO\|PAGADA\|EN_CURSO\|FINALIZADA\|CANCELADA), nombreSolicitante, ruc, telefonoContacto, emailContacto, ubicacionObra, detalle, creadoEn, canceladaEn }] }` |
+| PATCH | `/admin/reservas/:id/cancelar` | Admin | Cancela una reserva → 204. Libera horas y margen |
+
+**Horario:** 07:00 a 19:00. Mínimo 1 hora. Se puede reservar el mismo día con al menos 2 horas de anticipación (hora de Lima). Una reserva ocupa un solo día y es un rango semiabierto `[inicio, fin)`.
+
+**Margen:** 1 hora obligatoria entre reservas de la misma máquina (antes y después, simétrico). No se cobra. Una reserva puede terminar a las 19:00 sin exigir margen contra el cierre.
+
+**Datos del solicitante:** `nombreSolicitante` (1-160 caracteres), `ruc` (11 dígitos, validado con módulo 11), `telefono` (1-20 caracteres), `email` (formato válido), `ubicacionObra` (1-200 caracteres), `detalle` (0-300, opcional), `aceptaPolitica` (booleano, obligatorio true).
+
+**Máquina:** condiciones informativas: `incluye_operador` (boolean, default true), `combustible_incluido` (boolean, default false). Se muestran en el detalle. La movilización no se calcula: solo se muestra una nota fija.
+
+**Disponibilidad:** "No disponible" solo cuando no queda ninguna hora de inicio válida (al menos 1 hora reservable respetando el margen).
+
+**Límite de pendientes:** máximo 2 reservas `PENDIENTE_PAGO` por usuario a la vez. Intento adicional → 409 `"Tienes reservas pendientes de pago. Págalas o cancélalas antes de reservar otra"`. Las CANCELADAS no cuentan.
+
+**Validaciones (400):**
+- Menos de 1 hora, fecha hoy o pasada, fuera de horario → rechazadas
+- RUC inválido (dígito verificador, prefijo, longitud, letras)
+- Falta nombre, teléfono, email, ubicación de obra, celular registrado
+- Email inválido, detalle > 300, ubicacionObra > 200
+- `aceptaPolitica ≠ true`
+
+**Conflicto (409):**
+- Horario ya ocupado (solapamiento con otra reserva vigente o su margen)
+- Máquina en mantenimiento
+- Máximo 2 PENDIENTE_PAGO alcanzado
+
 ## Administrador (EN-05): requiere rol ADMINISTRADOR
 
 ### Categorías (HU-14)
@@ -80,7 +113,7 @@ Una cuenta creada con Google no puede entrar por `/auth/login`: responde 401 `"E
 |---|---|---|
 | GET | `/admin/maquinas?estado=&q=&categoriaId=&precioMin=&precioMax=&pagina=` | Toda la flota (mismos filtros que el catálogo, más `estado`) |
 | GET | `/admin/maquinas/:id` | Detalle con fotos, `horasUso` y `horometroInicial` |
-| POST | `/admin/maquinas` | Crea en estado BORRADOR. Cuerpo: `{ categoriaId, nombre, marca, modelo, tarifaHoraria, ubicacion, descripcion?, especificaciones?: { "Potencia": "146 HP" }, enMantenimiento?, horometroInicial? }`. `horometroInicial`: horas que ya traía la máquina si es usada (0 a 999999.9, 1 decimal; por defecto 0) |
+| POST | `/admin/maquinas` | Crea en estado BORRADOR. Cuerpo: `{ categoriaId, nombre, marca, modelo, tarifaHoraria, combustiblePorHora?, ubicacion, descripcion?, especificaciones?: { "Potencia": "146 HP" }, enMantenimiento?, horometroInicial? }`. `horometroInicial`: horas que ya traía la máquina si es usada (0 a 999999.9, 1 decimal; por defecto 0). `combustiblePorHora`: costo de combustible por hora en S/ (2 decimales, 0 o más; por defecto 0); lo paga el cliente y se suma a la tarifa |
 | PUT | `/admin/maquinas/:id` | Edita cualquier campo (también si ya está publicada), incluido `horometroInicial` |
 | POST | `/admin/maquinas/:id/publicar` | Requiere foto principal |
 | POST | `/admin/maquinas/:id/retirar` | Sale del catálogo y conserva su historial |
@@ -118,4 +151,5 @@ Cada módulo registra sus rutas en su controlador (`backend/src/main/java/pe/upa
 | `/api/categorias`, `/api/admin/categorias/*` | `categorias/CategoriaControlador.java` |
 | `/api/maquinas`, `/api/admin/maquinas/*` (incluye fotos) | `maquinas/MaquinaControlador.java` |
 | `/api/maquinas/{id}/disponibilidad`, `/api/admin/maquinas/{id}/bloqueos/*` | `disponibilidad/DisponibilidadControlador.java` |
+| `/api/reservas`, `/api/admin/reservas/*` | `reservas/ReservaHoraControlador.java` |
 | `/api/salud` | `Aplicacion.java` |

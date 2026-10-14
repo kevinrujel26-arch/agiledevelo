@@ -82,6 +82,8 @@
   --exito-texto: #9ff0c9;
   --exito-halo: rgba(61, 220, 151, 0.18);
   --resplandor-acento: rgba(255, 138, 31, 0.28);
+  --tabla-fondo: #11141a;
+  --tabla-fondo-hover: #171b22;
   --flotante-fondo: rgba(20, 23, 30, 0.8);
   --acento-tenue-2: rgba(255, 138, 31, 0.15);
   --tarjeta-arriba: rgba(255, 255, 255, 0.06);
@@ -111,6 +113,8 @@
 [data-theme='light'] {
   color-scheme: light;
   --fondo: #faf7f2;
+  --tabla-fondo: #f3efe8;
+  --tabla-fondo-hover: #ebe6dc;
   --superficie: #ffffff;
   --superficie-2: #f3eee6;
   --vidrio: rgba(255, 255, 255, 0.75);

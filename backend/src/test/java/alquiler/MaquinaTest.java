@@ -146,8 +146,8 @@ class MaquinaTest extends PruebaBase {
         long id = crearPublicada("Excavadora 320");
         long adminId = bd().uno("SELECT id FROM usuarios WHERE rol = 'ADMINISTRADOR'").entero("id");
         bd().ejecutar("""
-                INSERT INTO reservas (maquina_id, cliente_id, fecha_inicio, fecha_fin, tarifa_horaria, monto_total, estado)
-                VALUES (?, ?, '2025-01-10', '2025-01-12', 1450, 4350, 'FINALIZADA')""", id, adminId);
+                INSERT INTO reservas (maquina_id, cliente_id, fecha_inicio, fecha_fin, fin_bloqueo, tarifa_horaria, monto_total, estado)
+                VALUES (?, ?, '2025-01-10'::timestamptz, '2025-01-12'::timestamptz, '2025-01-12'::timestamptz + interval '1 hour', 1450, 4350, 'FINALIZADA')""", id, adminId);
 
         assertEquals(200, post("/api/admin/maquinas/" + id + "/retirar", null, token).estado());
         assertEquals(0, get("/api/maquinas", null).lista("datos").size());
@@ -328,8 +328,8 @@ class MaquinaTest extends PruebaBase {
     private static void insertarReserva(long maquinaId, String inicio, String fin, String estado) {
         long clienteId = crearCliente().id();
         bd().ejecutar("""
-                INSERT INTO reservas (maquina_id, cliente_id, fecha_inicio, fecha_fin, tarifa_horaria, monto_total, estado)
-                VALUES (?, ?, ?::timestamptz, ?::timestamptz, 100, 1000, ?)""", maquinaId, clienteId, inicio, fin, estado);
+                INSERT INTO reservas (maquina_id, cliente_id, fecha_inicio, fecha_fin, fin_bloqueo, tarifa_horaria, monto_total, estado)
+                VALUES (?, ?, ?::timestamptz, ?::timestamptz, (?::timestamptz + INTERVAL '1 hour'), 100, 1000, ?)""", maquinaId, clienteId, inicio, fin, fin, estado);
     }
 
     @Test

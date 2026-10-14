@@ -4,13 +4,15 @@ Motor: **PostgreSQL 14+**. Scripts en `database/migrations/` (se aplican en orde
 
 | Migración | Qué hace |
 |---|---|
-| `001_esquema_inicial.sql` | Crea todas las tablas |
+| `001_esquema_inicial.sql` | Crea todas las tablas (incluye RESERVAS por días, para Sprints 3-4) |
 | `002_preparar_rol_proveedor.sql` | (Histórica) reservaba un rol PROVEEDOR; la 004 lo deshace |
 | `003_tarifa_y_fechas_por_hora.sql` | La tarifa pasa a ser por hora (`tarifa_horaria`) y las fechas de bloqueos/reservas pasan a `TIMESTAMPTZ` |
 | `004_quitar_rol_proveedor.sql` | Elimina el rol PROVEEDOR: solo existen CLIENTE y ADMINISTRADOR |
 | `005_telefono_usuario.sql` | Agrega `usuarios.telefono` (celular de 9 dígitos, opcional en la BD para las cuentas antiguas) |
 | `006_horometro_maquina.sql` | Agrega `maquinas.horometro_inicial` (horas de uso que ya traía la máquina, por defecto 0) |
 | `007_login_google.sql` | Agrega `usuarios.google_id` (único) para "Continuar con Google" y permite `contrasena_hash` NULL en cuentas creadas con Google |
+| `008_reservas.sql` | HU-06: Extiende tabla `reservas` con campos de datos del solicitante (nombre, RUC, teléfono, email, ubicación, detalle), código único, `fin_bloqueo` (margen de 1 hora), y estado EN_CURSO. Agrega `maquinas.incluye_operador` y `combustible_incluido`. Reemplaza constraint de exclusión con `tstzrange` y margen. |
+| `009_combustible_por_hora.sql` | Agrega `maquinas.combustible_por_hora` (NUMERIC, >= 0, default 0) y `reservas.combustible_total` para desglosar costo de combustible en la reserva. |
 
 El modelo ya incluye las tablas de los Sprints 3 y 4 (reservas, pagos, reembolsos, auditoría) para que el diseño quede completo desde el inicio, aunque el código que las usa se construye más adelante.
 
@@ -132,7 +134,8 @@ erDiagram
 | Solo una foto principal | HU-08 | Índice único parcial `ux_fotos_una_principal` |
 | Bloqueos sin superponerse | HU-09 | Restricción de exclusión GiST con `daterange` |
 | Dos reservas vigentes no ocupan las mismas fechas | HU-05 | Restricción de exclusión sobre reservas `PENDIENTE_PAGO` o `PAGADA` |
-| Reserva mínima de 1 día | HU-05 | `CHECK (fecha_fin >= fecha_inicio)`; las fechas son inclusivas |
+| Dos reservas vigentes no se solapan (con margen) | HU-06 | Restricción de exclusión GiST sobre `reservas`: `ex_reservas_sin_solapamiento EXCLUDE USING gist (maquina_id WITH =, tstzrange(fecha_inicio, fin_bloqueo, '[)') WITH &&) WHERE (estado <> 'CANCELADA')`. `fin_bloqueo = fecha_fin + 1 hora` (margen automático). |
+| Reserva por horas mínima de 1 hora en el mismo día | HU-06 | `CHECK (fin > inicio)` + validación backend (misma fecha, solo horas 7-19) |
 | Un webhook duplicado no confirma dos veces | HU-06 | Índice único `(proveedor, id_externo)` en pagos |
 | Retirar una máquina no borra su historial | HU-08 | Reservas usan `ON DELETE RESTRICT`; retirar = cambiar `estado` |
 

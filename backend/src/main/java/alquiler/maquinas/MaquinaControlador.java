@@ -147,6 +147,7 @@ public class MaquinaControlador {
         valores.put("descripcion", d.descripcion());
         valores.put("especificaciones", d.especificaciones());
         valores.put("tarifaHoraria", d.tarifaHoraria());
+        valores.put("combustiblePorHora", d.combustiblePorHora() == null ? BigDecimal.ZERO : d.combustiblePorHora());
         valores.put("ubicacion", d.ubicacion());
         valores.put("enMantenimiento", d.enMantenimiento());
         valores.put("horometroInicial", d.horometroInicial() == null ? BigDecimal.ZERO : d.horometroInicial());
@@ -173,6 +174,13 @@ public class MaquinaControlador {
                         TARIFA_MAXIMA_POR_HORA, 2)
                 : null;
         if (tarifa != null) tarifa = tarifa.setScale(2, RoundingMode.UNNECESSARY);
+        // Costo de combustible por hora (se suma al total). Vacío = 0.
+        BigDecimal combustible = v.decimal("combustiblePorHora", "El combustible por hora", false, null, false,
+                TARIFA_MAXIMA_POR_HORA, 2);
+        if (combustible != null && combustible.signum() < 0) {
+            v.error("combustiblePorHora", "El combustible por hora no puede ser negativo");
+        }
+        if (combustible != null) combustible = combustible.setScale(2, RoundingMode.UNNECESSARY);
         String ubicacion = (t || v.tiene("ubicacion"))
                 ? v.lineaConLetra("ubicacion", "La ubicación", 2, 160, "La ubicación es obligatoria") : null;
         Boolean enMantenimiento = v.booleano("enMantenimiento", t ? Boolean.FALSE : null);
@@ -180,7 +188,7 @@ public class MaquinaControlador {
         BigDecimal horometroInicial = v.decimal("horometroInicial", "El horómetro inicial", false, null, false,
                 HOROMETRO_MAXIMO, 1);
         if (horometroInicial != null) horometroInicial = horometroInicial.setScale(1, RoundingMode.UNNECESSARY);
-        return new DatosMaquina(categoriaId, nombre, marca, modelo, descripcion, especificaciones, tarifa, ubicacion,
+        return new DatosMaquina(categoriaId, nombre, marca, modelo, descripcion, especificaciones, tarifa, combustible, ubicacion,
                 enMantenimiento, horometroInicial);
     }
 

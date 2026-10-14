@@ -117,10 +117,13 @@ class DisponibilidadTest extends PruebaBase {
         Resp r = get("/api/maquinas/" + maquinaId + "/disponibilidad", null);
         assertEquals(200, r.estado());
         List<Map<String, Object>> ocupados = r.lista("ocupados");
-        assertEquals(1, ocupados.size());
-        assertEquals(dentroDe(5), ocupados.get(0).get("fechaInicio"));
-        assertEquals(dentroDe(6), ocupados.get(0).get("fechaFin"));
-        assertEquals("BLOQUEO", ocupados.get(0).get("tipo"));
+        List<Map<String, Object>> bloqueos = ocupados.stream()
+                .filter(o -> "BLOQUEO".equals(o.get("tipo")))
+                .toList();
+        assertEquals(1, bloqueos.size());
+        assertEquals(dentroDe(5), bloqueos.get(0).get("fechaInicio"));
+        assertEquals(dentroDe(6), bloqueos.get(0).get("fechaFin"));
+        assertEquals("BLOQUEO", bloqueos.get(0).get("tipo"));
     }
 
     @Test
@@ -128,8 +131,8 @@ class DisponibilidadTest extends PruebaBase {
     void noSobreReservaPagada() {
         Usuario cliente = crearCliente();
         bd().ejecutar("""
-                INSERT INTO reservas (maquina_id, cliente_id, fecha_inicio, fecha_fin, tarifa_horaria, monto_total, estado)
-                VALUES (?, ?, ?::date, (?::date + interval '1 day'), 1000, 3000, 'PAGADA')""", maquinaId, cliente.id(), dentroDe(7), dentroDe(9));
+                INSERT INTO reservas (maquina_id, cliente_id, fecha_inicio, fecha_fin, fin_bloqueo, tarifa_horaria, monto_total, estado)
+                VALUES (?, ?, ?::date, (?::date + interval '1 day'), ((?::date + interval '1 day')::timestamptz + interval '1 hour'), 1000, 3000, 'PAGADA')""", maquinaId, cliente.id(), dentroDe(7), dentroDe(9), dentroDe(9));
 
         Resp r = bloquear(List.of(rango(9, 12)));
         assertEquals(409, r.estado());
@@ -158,6 +161,10 @@ class DisponibilidadTest extends PruebaBase {
         Resp r = bloquear(List.of(rango(1, 2)));
         long bloqueoId = numero(r.lista("datos").get(0).get("id"));
         assertEquals(204, delete("/api/admin/maquinas/" + maquinaId + "/bloqueos/" + bloqueoId, token).estado());
-        assertEquals(0, get("/api/maquinas/" + maquinaId + "/disponibilidad", null).lista("ocupados").size());
+        List<Map<String, Object>> ocupados = get("/api/maquinas/" + maquinaId + "/disponibilidad", null).lista("ocupados");
+        List<Map<String, Object>> bloqueos = ocupados.stream()
+                .filter(o -> "BLOQUEO".equals(o.get("tipo")))
+                .toList();
+        assertEquals(0, bloqueos.size());
     }
 }
