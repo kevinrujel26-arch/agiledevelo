@@ -1,15 +1,17 @@
 -- =====================================================================
--- EN-02: Diseño y creación de la base de datos inicial
--- Sistema de Alquiler de Maquinaria — PostgreSQL 14+
+-- MaquiRenta: esquema inicial de la base de datos (PostgreSQL 14+)
 --
--- Incluye las tablas de TODOS los sprints para que el modelo de datos
--- quede completo desde el inicio:
---   Sprint 1-2: usuarios, sesiones, categorias, maquinas, fotos, bloqueos
---   Sprint 3-4: reservas, pagos, solicitudes de reembolso, auditoría
+-- Reúne en un solo archivo lo que antes eran 9 migraciones y contiene el
+-- esquema completo y actual: usuarios, sesiones, categorías, máquinas,
+-- fotos, bloqueos de disponibilidad, reservas por horas, pagos,
+-- solicitudes de reembolso y auditoría.
+--
+-- Las bases que ya existen (producción) no lo vuelven a ejecutar: el
+-- ejecutor de migraciones lo reconoce como aplicado por su nombre.
 -- =====================================================================
 
--- Permite usar "=" sobre enteros dentro de un índice GiST (restricción
--- de exclusión que impide reservas con fechas superpuestas).
+-- Permite usar "=" sobre enteros dentro de un índice GiST (restricciones
+-- de exclusión que impiden horarios superpuestos).
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 
 -- ---------------------------------------------------------------------
@@ -23,23 +25,30 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ---------------------------------------------------------------------
--- USUARIOS  (HU-01, HU-02, HU-15, EN-03, EN-05)
+-- USUARIOS
+-- Se puede entrar con correo y contraseña o con Google (google_id).
 -- ---------------------------------------------------------------------
 CREATE TABLE usuarios (
   id                  INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   nombre              VARCHAR(120) NOT NULL CHECK (length(trim(nombre)) > 0),
   correo              VARCHAR(160) NOT NULL,
-  contrasena_hash     VARCHAR(100) NOT NULL,          -- PBKDF2-SHA256 con sal, nunca texto plano
+  contrasena_hash     VARCHAR(100),                       -- PBKDF2-SHA256 con sal; NULL si la cuenta solo usa Google
   rol                 VARCHAR(20)  NOT NULL DEFAULT 'CLIENTE'
                         CHECK (rol IN ('CLIENTE', 'ADMINISTRADOR')),
-  activo              BOOLEAN      NOT NULL DEFAULT TRUE,  -- HU-15
-  intentos_fallidos   SMALLINT     NOT NULL DEFAULT 0,     -- HU-02 (bloqueo)
+  activo              BOOLEAN      NOT NULL DEFAULT TRUE,
+  intentos_fallidos   SMALLINT     NOT NULL DEFAULT 0,    -- bloqueo por intentos fallidos
   bloqueado_hasta     TIMESTAMPTZ,
   creado_en           TIMESTAMPTZ  NOT NULL DEFAULT now(),
   actualizado_en      TIMESTAMPTZ  NOT NULL DEFAULT now(),
-  CONSTRAINT ck_usuarios_correo_minusculas CHECK (correo = lower(correo))
+  telefono            VARCHAR(9),                         -- celular peruano normalizado; NULL en cuentas antiguas
+  google_id           VARCHAR(255),                       -- claim "sub" del ID token de Google
+  CONSTRAINT ck_usuarios_correo_minusculas CHECK (correo = lower(correo)),
+  CONSTRAINT ck_usuarios_telefono CHECK (telefono IS NULL OR telefono ~ '^9[0-9]{8}$'),
+  CONSTRAINT ux_usuarios_google_id UNIQUE (google_id),
+  -- Toda cuenta necesita al menos una forma de entrar
+  CONSTRAINT ck_usuarios_forma_de_ingreso CHECK (contrasena_hash IS NOT NULL OR google_id IS NOT NULL)
 );
--- HU-01 criterio 1: el correo no puede repetirse
+-- El correo no puede repetirse
 CREATE UNIQUE INDEX ux_usuarios_correo ON usuarios (correo);
 
 CREATE TRIGGER tg_usuarios_actualizado
@@ -47,7 +56,7 @@ CREATE TRIGGER tg_usuarios_actualizado
   FOR EACH ROW EXECUTE FUNCTION fn_set_actualizado_en();
 
 -- ---------------------------------------------------------------------
--- SESIONES  (HU-02: expiración por inactividad, cerrar sesión, recordarme)
+-- SESIONES (expiración por inactividad, cerrar sesión, recordarme)
 -- Cada token JWT lleva el id de su sesión; al cerrar sesión se revoca aquí.
 -- ---------------------------------------------------------------------
 CREATE TABLE sesiones (
@@ -64,7 +73,7 @@ CREATE TABLE sesiones (
 CREATE INDEX ix_sesiones_usuario ON sesiones (usuario_id);
 
 -- ---------------------------------------------------------------------
--- CATEGORÍAS  (HU-14)
+-- CATEGORÍAS
 -- ---------------------------------------------------------------------
 CREATE TABLE categorias (
   id                  INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -74,7 +83,7 @@ CREATE TABLE categorias (
   creado_en           TIMESTAMPTZ  NOT NULL DEFAULT now(),
   actualizado_en      TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
--- HU-14 criterio 4: nombre no se repite (sin distinguir mayúsculas)
+-- El nombre no se repite (sin distinguir mayúsculas)
 CREATE UNIQUE INDEX ux_categorias_nombre ON categorias (lower(trim(nombre)));
 
 CREATE TRIGGER tg_categorias_actualizado
@@ -82,27 +91,38 @@ CREATE TRIGGER tg_categorias_actualizado
   FOR EACH ROW EXECUTE FUNCTION fn_set_actualizado_en();
 
 -- ---------------------------------------------------------------------
--- MÁQUINAS  (HU-03, HU-04, HU-08)
+-- MÁQUINAS
+-- El alquiler se cobra por hora: total = (tarifa + combustible) x horas.
+-- El operador siempre va incluido; el combustible lo paga el cliente.
 -- ---------------------------------------------------------------------
 CREATE TABLE maquinas (
   id                  INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  -- HU-14 criterio 5: exactamente una categoría (NOT NULL + FK)
+  -- Exactamente una categoría (NOT NULL + FK)
   categoria_id        INTEGER      NOT NULL REFERENCES categorias(id) ON DELETE RESTRICT,
   nombre              VARCHAR(120) NOT NULL CHECK (length(trim(nombre)) > 0),
   marca               VARCHAR(80)  NOT NULL,
   modelo              VARCHAR(80)  NOT NULL,
   descripcion         TEXT,
   especificaciones    JSONB        NOT NULL DEFAULT '{}'::jsonb, -- ej. {"Potencia":"120 HP"}
-  tarifa_diaria       NUMERIC(10,2) NOT NULL CHECK (tarifa_diaria > 0),
+  tarifa_horaria      NUMERIC(10,2) NOT NULL,
   ubicacion           VARCHAR(160) NOT NULL,
   -- BORRADOR -> PUBLICADA -> RETIRADA (y RETIRADA -> PUBLICADA otra vez)
   estado              VARCHAR(20)  NOT NULL DEFAULT 'BORRADOR'
                         CHECK (estado IN ('BORRADOR', 'PUBLICADA', 'RETIRADA')),
-  en_mantenimiento    BOOLEAN      NOT NULL DEFAULT FALSE,   -- HU-04 criterio 5
+  en_mantenimiento    BOOLEAN      NOT NULL DEFAULT FALSE,
   publicada_en        TIMESTAMPTZ,
   creado_por          INTEGER      REFERENCES usuarios(id),
   creado_en           TIMESTAMPTZ  NOT NULL DEFAULT now(),
-  actualizado_en      TIMESTAMPTZ  NOT NULL DEFAULT now()
+  actualizado_en      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  -- Horas de uso de una máquina usada; horasUso se calcula = este valor + horas de reservas FINALIZADAS
+  horometro_inicial   NUMERIC(10,1) NOT NULL DEFAULT 0,
+  incluye_operador    BOOLEAN      NOT NULL DEFAULT TRUE,   -- sin uso: el operador siempre va incluido
+  combustible_incluido BOOLEAN     NOT NULL DEFAULT FALSE,  -- sin uso: el combustible se cobra con combustible_por_hora
+  combustible_por_hora NUMERIC(10,2) NOT NULL DEFAULT 0,    -- S/ por hora, lo paga el cliente
+  -- nombre heredado de cuando la tarifa era diaria
+  CONSTRAINT maquinas_tarifa_diaria_check CHECK (tarifa_horaria > 0),
+  CONSTRAINT ck_maquinas_horometro_inicial CHECK (horometro_inicial >= 0),
+  CONSTRAINT maquinas_combustible_por_hora_check CHECK (combustible_por_hora >= 0)
 );
 CREATE INDEX ix_maquinas_catalogo  ON maquinas (estado, categoria_id);
 CREATE INDEX ix_maquinas_busqueda  ON maquinas (lower(nombre), lower(marca));
@@ -112,7 +132,7 @@ CREATE TRIGGER tg_maquinas_actualizado
   FOR EACH ROW EXECUTE FUNCTION fn_set_actualizado_en();
 
 -- ---------------------------------------------------------------------
--- FOTOS DE MÁQUINA  (HU-08: hasta 5, JPG/PNG, una principal)
+-- FOTOS DE MÁQUINA (hasta 5, JPG/PNG, una principal)
 -- ---------------------------------------------------------------------
 CREATE TABLE fotos_maquina (
   id                  INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -143,65 +163,87 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER tg_fotos_max
   BEFORE INSERT ON fotos_maquina
   FOR EACH ROW EXECUTE FUNCTION fn_max_fotos_maquina();
-
 -- ---------------------------------------------------------------------
--- BLOQUEOS DE DISPONIBILIDAD  (HU-09)
--- Rango de fechas inclusivo [fecha_inicio, fecha_fin]
+-- BLOQUEOS DE DISPONIBILIDAD (mantenimiento u otros motivos)
+-- Rango semiabierto [fecha_inicio, fecha_fin): fecha_fin es la medianoche
+-- del día siguiente al último día bloqueado.
 -- ---------------------------------------------------------------------
 CREATE TABLE bloqueos_disponibilidad (
   id                  INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   maquina_id          INTEGER      NOT NULL REFERENCES maquinas(id) ON DELETE CASCADE,
-  fecha_inicio        DATE         NOT NULL,
-  fecha_fin           DATE         NOT NULL,
+  fecha_inicio        TIMESTAMPTZ  NOT NULL,
+  fecha_fin           TIMESTAMPTZ  NOT NULL,
   motivo              VARCHAR(160),
   creado_por          INTEGER      REFERENCES usuarios(id),
   creado_en           TIMESTAMPTZ  NOT NULL DEFAULT now(),
-  CONSTRAINT ck_bloqueo_rango CHECK (fecha_fin >= fecha_inicio),
+  CONSTRAINT ck_bloqueo_rango CHECK (fecha_fin > fecha_inicio),
   -- Dos bloqueos de la misma máquina no pueden superponerse
   CONSTRAINT ex_bloqueos_sin_superposicion EXCLUDE USING gist (
     maquina_id WITH =,
-    daterange(fecha_inicio, fecha_fin, '[]') WITH &&
+    tstzrange(fecha_inicio, fecha_fin, '[)') WITH &&
   )
 );
 
 -- ---------------------------------------------------------------------
--- RESERVAS  (HU-05, HU-07, HU-10, HU-12)  — se usa desde el Sprint 3
+-- RESERVAS (por horas)
+-- Horario 07:00 a 19:00, mínimo 1 hora entera, una reserva = un solo día.
+-- fin_bloqueo = fin + 1 hora de preparación entre alquileres de la misma
+-- máquina. Las reservas CANCELADAS liberan sus horas.
 -- ---------------------------------------------------------------------
 CREATE TABLE reservas (
   id                  INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   maquina_id          INTEGER      NOT NULL REFERENCES maquinas(id) ON DELETE RESTRICT,
   cliente_id          INTEGER      NOT NULL REFERENCES usuarios(id) ON DELETE RESTRICT,
-  fecha_inicio        DATE         NOT NULL,
-  fecha_fin           DATE         NOT NULL,
+  fecha_inicio        TIMESTAMPTZ  NOT NULL,
+  fecha_fin           TIMESTAMPTZ  NOT NULL,
   -- Se copia la tarifa al reservar para que un cambio de precio no altere reservas previas
-  tarifa_diaria       NUMERIC(10,2) NOT NULL CHECK (tarifa_diaria > 0),
-  dias                INTEGER      GENERATED ALWAYS AS (fecha_fin - fecha_inicio + 1) STORED,
+  tarifa_horaria      NUMERIC(10,2) NOT NULL,
   monto_total         NUMERIC(12,2) NOT NULL CHECK (monto_total > 0),
-  estado              VARCHAR(20)  NOT NULL DEFAULT 'PENDIENTE_PAGO'
-                        CHECK (estado IN ('PENDIENTE_PAGO', 'PAGADA', 'FINALIZADA', 'CANCELADA')),
-  expira_pago_en      TIMESTAMPTZ,              -- HU-05 criterio 5
+  estado              VARCHAR(20)  NOT NULL DEFAULT 'PENDIENTE_PAGO',
+  expira_pago_en      TIMESTAMPTZ,
   cancelada_en        TIMESTAMPTZ,
   motivo_cancelacion  VARCHAR(160),
   creado_en           TIMESTAMPTZ  NOT NULL DEFAULT now(),
   actualizado_en      TIMESTAMPTZ  NOT NULL DEFAULT now(),
-  CONSTRAINT ck_reserva_rango CHECK (fecha_fin >= fecha_inicio),   -- mínimo 1 día
-  -- HU-05 criterio 3: dos reservas vigentes no pueden ocupar las mismas fechas
-  CONSTRAINT ex_reservas_sin_superposicion EXCLUDE USING gist (
+  -- Horas completas de la reserva (se redondea hacia arriba)
+  horas               INTEGER GENERATED ALWAYS AS (
+                        CEIL(EXTRACT(EPOCH FROM (fecha_fin - fecha_inicio)) / 3600.0)
+                      ) STORED,
+  codigo              VARCHAR(20) UNIQUE,            -- código de reserva que ve el cliente
+  -- Datos del solicitante
+  nombre_solicitante  VARCHAR(160),
+  ruc                 VARCHAR(11),
+  telefono_contacto   VARCHAR(20),
+  email_contacto      VARCHAR(160),
+  ubicacion_obra      VARCHAR(200),
+  detalle             VARCHAR(300),
+  acepta_politica     BOOLEAN,
+  fin_bloqueo         TIMESTAMPTZ  NOT NULL,         -- fecha_fin + margen de 1 hora
+  combustible_total   NUMERIC(10,2) NOT NULL DEFAULT 0,  -- parte del monto_total que corresponde a combustible
+  -- nombre heredado de cuando la tarifa era diaria
+  CONSTRAINT reservas_tarifa_diaria_check CHECK (tarifa_horaria > 0),
+  CONSTRAINT reservas_estado_check
+    CHECK (estado IN ('PENDIENTE_PAGO', 'PAGADA', 'FINALIZADA', 'CANCELADA', 'EN_CURSO')),
+  CONSTRAINT ck_reserva_rango CHECK (fecha_fin > fecha_inicio),   -- mínimo 1 hora
+  -- Dos reservas no canceladas de la misma máquina no pueden ocupar el mismo horario (margen incluido)
+  CONSTRAINT ex_reservas_sin_solapamiento EXCLUDE USING gist (
     maquina_id WITH =,
-    daterange(fecha_inicio, fecha_fin, '[]') WITH &&
-  ) WHERE (estado IN ('PENDIENTE_PAGO', 'PAGADA'))
+    tstzrange(fecha_inicio, fin_bloqueo, '[)') WITH &&
+  ) WHERE (estado <> 'CANCELADA')
 );
 CREATE INDEX ix_reservas_cliente ON reservas (cliente_id, creado_en DESC);
 CREATE INDEX ix_reservas_maquina ON reservas (maquina_id, fecha_inicio);
 CREATE INDEX ix_reservas_estado  ON reservas (estado);
+CREATE INDEX ix_reservas_codigo  ON reservas (codigo);
+CREATE INDEX ix_reservas_nombre_solicitante ON reservas (nombre_solicitante);
 
 CREATE TRIGGER tg_reservas_actualizado
   BEFORE UPDATE ON reservas
   FOR EACH ROW EXECUTE FUNCTION fn_set_actualizado_en();
 
 -- ---------------------------------------------------------------------
--- PAGOS  (HU-06, HU-13) — Mercado Pago, se usa desde el Sprint 4
--- La plataforma NO guarda datos de tarjeta (HU-06 criterio 1).
+-- PAGOS (Mercado Pago)
+-- La plataforma NO guarda datos de tarjeta.
 -- ---------------------------------------------------------------------
 CREATE TABLE pagos (
   id                  INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -213,13 +255,13 @@ CREATE TABLE pagos (
                         CHECK (estado IN ('PENDIENTE', 'APROBADO', 'RECHAZADO', 'REEMBOLSADO')),
   monto               NUMERIC(12,2) NOT NULL CHECK (monto > 0),
   moneda              CHAR(3)      NOT NULL DEFAULT 'PEN',
-  numero_comprobante  VARCHAR(30),              -- comprobante interno (HU-13)
+  numero_comprobante  VARCHAR(30),              -- comprobante interno
   respuesta_proveedor JSONB,
   pagado_en           TIMESTAMPTZ,
   creado_en           TIMESTAMPTZ  NOT NULL DEFAULT now(),
   actualizado_en      TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
--- HU-06 criterio 4: un aviso (webhook) duplicado no crea/confirma dos veces
+-- Un aviso (webhook) duplicado no crea ni confirma el pago dos veces
 CREATE UNIQUE INDEX ux_pagos_proveedor_externo ON pagos (proveedor, id_externo)
   WHERE id_externo IS NOT NULL;
 CREATE UNIQUE INDEX ux_pagos_comprobante ON pagos (numero_comprobante)
@@ -229,9 +271,8 @@ CREATE INDEX ix_pagos_reserva ON pagos (reserva_id);
 CREATE TRIGGER tg_pagos_actualizado
   BEFORE UPDATE ON pagos
   FOR EACH ROW EXECUTE FUNCTION fn_set_actualizado_en();
-
 -- ---------------------------------------------------------------------
--- SOLICITUDES DE REEMBOLSO  (HU-12 criterio 2)
+-- SOLICITUDES DE REEMBOLSO
 -- ---------------------------------------------------------------------
 CREATE TABLE solicitudes_reembolso (
   id                  INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -245,7 +286,7 @@ CREATE TABLE solicitudes_reembolso (
 );
 
 -- ---------------------------------------------------------------------
--- AUDITORÍA  (HU-15 criterio 5: qué administrador hizo el cambio y cuándo)
+-- AUDITORÍA (qué administrador hizo el cambio y cuándo)
 -- ---------------------------------------------------------------------
 CREATE TABLE auditoria (
   id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

@@ -1,20 +1,10 @@
 # Base de datos (EN-02)
 
-Motor: **PostgreSQL 14+**. Scripts en `database/migrations/` (se aplican en orden y cada uno una sola vez):
+Motor: **PostgreSQL 14+**. El esquema completo vive en un solo script, `database/migrations/001_esquema_inicial.sql`, que el backend aplica al arrancar si la base de datos aun no lo tiene registrado.
 
-| Migración | Qué hace |
-|---|---|
-| `001_esquema_inicial.sql` | Crea todas las tablas (incluye RESERVAS por días, para Sprints 3-4) |
-| `002_preparar_rol_proveedor.sql` | (Histórica) reservaba un rol PROVEEDOR; la 004 lo deshace |
-| `003_tarifa_y_fechas_por_hora.sql` | La tarifa pasa a ser por hora (`tarifa_horaria`) y las fechas de bloqueos/reservas pasan a `TIMESTAMPTZ` |
-| `004_quitar_rol_proveedor.sql` | Elimina el rol PROVEEDOR: solo existen CLIENTE y ADMINISTRADOR |
-| `005_telefono_usuario.sql` | Agrega `usuarios.telefono` (celular de 9 dígitos, opcional en la BD para las cuentas antiguas) |
-| `006_horometro_maquina.sql` | Agrega `maquinas.horometro_inicial` (horas de uso que ya traía la máquina, por defecto 0) |
-| `007_login_google.sql` | Agrega `usuarios.google_id` (único) para "Continuar con Google" y permite `contrasena_hash` NULL en cuentas creadas con Google |
-| `008_reservas.sql` | HU-06: Extiende tabla `reservas` con campos de datos del solicitante (nombre, RUC, teléfono, email, ubicación, detalle), código único, `fin_bloqueo` (margen de 1 hora), y estado EN_CURSO. Agrega `maquinas.incluye_operador` y `combustible_incluido`. Reemplaza constraint de exclusión con `tstzrange` y margen. |
-| `009_combustible_por_hora.sql` | Agrega `maquinas.combustible_por_hora` (NUMERIC, >= 0, default 0) y `reservas.combustible_total` para desglosar costo de combustible en la reserva. |
+El script crea todas las tablas del sistema: usuarios (con login por correo o Google), sesiones, categorias, maquinas (tarifa y combustible por hora), fotos, bloqueos de disponibilidad, reservas por horas, pagos, solicitudes de reembolso y auditoria. Las reglas de negocio que la base de datos puede garantizar por si sola (horarios que no se superponen, maximo 5 fotos por maquina, una foto principal, correo unico) estan definidas ahi como restricciones.
 
-El modelo ya incluye las tablas de los Sprints 3 y 4 (reservas, pagos, reembolsos, auditoría) para que el diseño quede completo desde el inicio, aunque el código que las usa se construye más adelante.
+Para cambios futuros del esquema se agregan migraciones nuevas (`002_...sql`, `003_...sql`, etc.) y no se edita el `001`. Cada migracion se aplica una sola vez, en orden, y su nombre queda registrado en la tabla `schema_migraciones`.
 
 ## Diagrama entidad-relación
 
