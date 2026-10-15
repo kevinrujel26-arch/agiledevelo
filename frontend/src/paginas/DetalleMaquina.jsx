@@ -8,6 +8,7 @@ import { Icono } from '../componentes/Ilustracion';
 import Calendario from '../componentes/Calendario';
 import FormularioReserva from '../componentes/FormularioReserva';
 import { formatearHoras, formatearMoneda } from '../utils/formato';
+import { HU6_ACTIVA } from '../alcance';
 
 export default function DetalleMaquina() {
   const { id } = useParams();
@@ -18,6 +19,7 @@ export default function DetalleMaquina() {
   const [fotoActiva, setFotoActiva] = useState(0);
   const [error, setError] = useState('');
   const [mostrarFormularioReserva, setMostrarFormularioReserva] = useState(false);
+  const [avisoReserva, setAvisoReserva] = useState(false);
 
   useEffect(() => {
     let vigente = true;
@@ -25,6 +27,7 @@ export default function DetalleMaquina() {
     setError('');
     setFotoActiva(0);
     setMostrarFormularioReserva(false);
+    setAvisoReserva(false);
     Promise.all([api.get(`/maquinas/${id}`), api.get(`/maquinas/${id}/disponibilidad`)])
       .then(([m, d]) => {
         if (!vigente) return;
@@ -73,6 +76,11 @@ export default function DetalleMaquina() {
     }
     if (!usuario.tieneCelular) {
       navegar('/completar-registro', { state: { desde: `/maquinas/${id}` } });
+      return;
+    }
+    // HU6 apagada (ALCANCE_HU < 6): con sesión iniciada solo se avisa, no se abre el formulario
+    if (!HU6_ACTIVA) {
+      setAvisoReserva(true);
       return;
     }
     setMostrarFormularioReserva(true);
@@ -182,10 +190,15 @@ export default function DetalleMaquina() {
           {!usuario && !cargando && (
             <p className="ayuda centrado" style={{ margin: '10px 0 0' }}>Necesitas iniciar sesión para reservar.</p>
           )}
+          {avisoReserva && (
+            <p className="ayuda centrado" role="status" style={{ margin: '10px 0 0' }}>
+              La reserva en línea estará disponible próximamente.
+            </p>
+          )}
         </aside>
       </div>
 
-      {mostrarFormularioReserva && maquina && (
+      {HU6_ACTIVA && mostrarFormularioReserva && maquina && (
         <div
           className="modal-overlay"
           onClick={() => setMostrarFormularioReserva(false)}

@@ -524,7 +524,7 @@ class ReservasTest extends PruebaBase {
         // Calcular la primera hora de inicio que SÍ cumple con la anticipación (al menos 3 horas)
         Instant proximaHoraValida = ahora.plus(3, ChronoUnit.HOURS);
         int horaValida = proximaHoraValida.atZone(zonaLima).getHour();
-        if (horaValida >= 18) {  // 18 porque 18+1=19 que es cierre
+        if (horaValida >= 18 || horaValida < 7) {  // fuera del horario de reservas 07:00-19:00
             org.junit.jupiter.api.Assumptions.assumeTrue(false, "Es demasiado tarde para este test");
         }
 

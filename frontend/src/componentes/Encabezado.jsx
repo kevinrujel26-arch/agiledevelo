@@ -2,6 +2,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth, panelSegunRol } from '../contexto/AuthContext';
 import { NOMBRE_APP } from '../utils/formato';
 import { useTema } from '../utils/tema';
+import { HU5_ACTIVA } from '../alcance';
 import { Icono, LogoMarca } from './Ilustracion';
 
 function BotonTema() {
@@ -43,7 +44,7 @@ export default function Encabezado() {
               Inicio
             </NavLink>
             <NavLink to="/catalogo">Catálogo</NavLink>
-            {esAdmin && <NavLink to="/admin">Administración</NavLink>}
+            {esAdmin && HU5_ACTIVA && <NavLink to="/admin">Administración</NavLink>}
             {usuario && !esAdmin && <NavLink to="/mi-cuenta">Mi cuenta</NavLink>}
           </nav>
         )}

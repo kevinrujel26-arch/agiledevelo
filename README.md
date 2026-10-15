@@ -41,6 +41,20 @@ Los roles son `CLIENTE` y `ADMINISTRADOR`; el acceso se valida en el backend.
 | 2 | Panel de administración (HU-06), reservar (HU-07), pagar (HU-08) | En curso |
 | 3 y 4 | Ver el Sprint Backlog del equipo | Pendiente |
 
+## Alcance del Milestone 1 (congelado hasta la HU4)
+
+La entrega incluye **HU1 a HU4** (inicio, registro e inicio de sesión, catálogo y detalle de máquina). **HU5** (panel de administración: registrar y publicar máquinas) y **HU6** (reservar máquina por horas) están **apagadas, no borradas**, con un interruptor de alcance:
+
+| Variable | Dónde | Valor por defecto |
+|---|---|---|
+| `ALCANCE_HU` | Backend (`backend/.env` o variables de Render) | `4` |
+| `VITE_ALCANCE_HU` | Frontend (`frontend/.env` o variables de Vercel) | `4` |
+
+- `4` = Milestone 1 (HU1-HU4) · `5` = suma HU5 · `6` = suma HU6. Los dos valores deben coincidir.
+- Con `4`, la API responde 404 en `/api/admin/**`, `POST /api/reservas` y `GET /api/maquinas/{id}/disponibilidad/horas`; en la web desaparece el panel `/admin` y, con sesión iniciada, "Reservar" solo avisa que la reserva estará disponible próximamente.
+- El administrador, tras iniciar sesión, va al inicio (su panel es HU5).
+- Backend: `seguridad/FiltroAlcance.java` · Frontend: `src/alcance.js` · Prueba: `AlcanceHu4Test`.
+
 ## Estructura del repositorio
 
 ```

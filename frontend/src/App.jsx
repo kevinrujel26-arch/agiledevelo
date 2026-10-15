@@ -19,6 +19,7 @@ import AdminDisponibilidad from './paginas/admin/AdminDisponibilidad';
 import AdminReservas from './paginas/admin/AdminReservas';
 import { NOMBRE_APP, CONTACTO } from './utils/formato';
 import { LogoMarca } from './componentes/Ilustracion';
+import { HU5_ACTIVA, HU6_ACTIVA } from './alcance';
 
 function GuardGlobal() {
   const { usuario, cargando } = useAuth();
@@ -66,23 +67,26 @@ export default function App() {
             }
           />
 
-          {/* Administrador (EN-05) */}
-          <Route
-            path="/admin"
-            element={
-              <RutaProtegida roles={['ADMINISTRADOR']}>
-                <AdminLayout />
-              </RutaProtegida>
-            }
-          >
-            <Route index element={<Navigate to="maquinas" replace />} />
-            <Route path="maquinas" element={<AdminMaquinas />} />
-            <Route path="maquinas/nueva" element={<AdminMaquinaForm />} />
-            <Route path="maquinas/:id" element={<AdminMaquinaForm />} />
-            <Route path="maquinas/:id/disponibilidad" element={<AdminDisponibilidad />} />
-            <Route path="categorias" element={<AdminCategorias />} />
-            <Route path="reservas" element={<AdminReservas />} />
-          </Route>
+          {/* Administrador (EN-05) · HU5: apagado hasta ALCANCE_HU >= 5 (ver src/alcance.js) */}
+          {HU5_ACTIVA && (
+            <Route
+              path="/admin"
+              element={
+                <RutaProtegida roles={['ADMINISTRADOR']}>
+                  <AdminLayout />
+                </RutaProtegida>
+              }
+            >
+              <Route index element={<Navigate to="maquinas" replace />} />
+              <Route path="maquinas" element={<AdminMaquinas />} />
+              <Route path="maquinas/nueva" element={<AdminMaquinaForm />} />
+              <Route path="maquinas/:id" element={<AdminMaquinaForm />} />
+              <Route path="maquinas/:id/disponibilidad" element={<AdminDisponibilidad />} />
+              <Route path="categorias" element={<AdminCategorias />} />
+              {/* HU6: la lista de reservas recibidas solo existe con ALCANCE_HU >= 6 */}
+              {HU6_ACTIVA && <Route path="reservas" element={<AdminReservas />} />}
+            </Route>
+          )}
 
           <Route path="*" element={<NoEncontrado />} />
         </Routes>

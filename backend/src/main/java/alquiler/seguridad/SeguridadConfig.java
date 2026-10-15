@@ -32,6 +32,7 @@ import java.util.List;
  *  - /api/auth/yo y /api/auth/logout → cualquier usuario con sesión.
  *  - Todo lo demás es público (catálogo, categorías, login, registro, login con Google, fotos).
  *  - CORS: solo los orígenes de CORS_ORIGIN.
+ *  - ALCANCE_HU: las rutas de HU5 (admin) y HU6 (reservas) responden 404 mientras el alcance sea menor (FiltroAlcance).
  */
 @Configuration
 @EnableWebSecurity
@@ -69,7 +70,8 @@ public class SeguridadConfig {
                         .frameOptions(f -> f.sameOrigin())
                         .referrerPolicy(r -> r.policy(ReferrerPolicy.NO_REFERRER))
                         .crossOriginResourcePolicy(c -> c.policy(CrossOriginResourcePolicy.CROSS_ORIGIN))) // deja mostrar las fotos desde el frontend
-                .addFilterBefore(new FiltroJwt(autenticador, config), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(new FiltroJwt(autenticador, config), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new FiltroAlcance(config.alcanceHu), FiltroJwt.class);
         return http.build();
     }
 

@@ -24,6 +24,14 @@ public final class Config {
     public final boolean esPrueba;
     public final int puerto;
 
+    /**
+     * Alcance funcional de la entrega: hasta qué historia de usuario (HU) está habilitada.
+     * 4 = Milestone 1 (HU1-HU4: inicio, registro/login, catálogo, detalle).
+     * 5 = suma HU5 (panel de administración: registrar y publicar máquinas).
+     * 6 = suma HU6 (reservar máquina por horas). Ver seguridad/FiltroAlcance.
+     */
+    public final int alcanceHu;
+
     public final String jdbcUrl;
     public final Properties propiedadesBd;
     public final int maxConexiones;
@@ -64,6 +72,7 @@ public final class Config {
         this.entorno = valor("APP_ENV", "development");
         this.esPrueba = "test".equals(entorno);
         this.puerto = Integer.parseInt(valor("PORT", "3000"));
+        this.alcanceHu = Math.max(4, Math.min(6, Integer.parseInt(valor("ALCANCE_HU", "4"))));
 
         String urlBd = esPrueba ? requerido("DATABASE_URL_TEST") : requerido("DATABASE_URL");
         boolean ssl = "true".equalsIgnoreCase(valor("DB_SSL", "false"));

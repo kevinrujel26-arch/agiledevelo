@@ -37,7 +37,7 @@ import java.util.UUID;
  */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = {"APP_ENV=test", "MIGRAR_AL_INICIAR=false"})
+        properties = {"APP_ENV=test", "MIGRAR_AL_INICIAR=false", "ALCANCE_HU=6"})
 public abstract class PruebaBase {
 
     private static final HttpClient CLIENTE = HttpClient.newHttpClient();

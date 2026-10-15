@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { api, almacenToken } from '../api/cliente';
+import { HU5_ACTIVA } from '../alcance';
 
 const AuthContext = createContext(null);
 
@@ -108,7 +109,11 @@ export function useAuth() {
   return contexto;
 }
 
-/** Ruta del panel según el rol (HU-02 criterio 1) */
+/**
+ * Ruta del panel según el rol (HU-02 criterio 1).
+ * El panel de administración es HU5: mientras esté apagada, el administrador va al inicio.
+ */
 export function panelSegunRol(usuario) {
-  return usuario?.rol === 'ADMINISTRADOR' ? '/admin/maquinas' : '/mi-cuenta';
+  if (usuario?.rol === 'ADMINISTRADOR') return HU5_ACTIVA ? '/admin/maquinas' : '/';
+  return '/mi-cuenta';
 }
