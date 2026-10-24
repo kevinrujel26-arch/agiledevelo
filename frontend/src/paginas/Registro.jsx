@@ -2,7 +2,7 @@
 import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/cliente';
-import { panelSegunRol, useAuth } from '../contexto/AuthContext';
+import { useAuth } from '../contexto/AuthContext';
 import { Alerta, Campo } from '../componentes/comunes';
 import { CampoContrasena } from '../componentes/CampoContrasena';
 import {
@@ -43,7 +43,7 @@ function RequisitosContrasena({ valor, tocado }) {
 
 export default function Registro() {
   const navegar = useNavigate();
-  const { iniciarSesionGoogle } = useAuth();
+  const { iniciarSesion, iniciarSesionGoogle } = useAuth();
   const formulario = useRef(null);
   const [datos, setDatos] = useState({ nombre: '', correo: '', telefono: '', contrasena: '', confirmar: '' });
   const { hayErrores, tocados, errorDe, esValido, tocar, editado, tocarTodos, setErroresServidor } = useValidacion(
@@ -85,8 +85,14 @@ export default function Registro() {
         telefono: datos.telefono,
         contrasena: datos.contrasena,
       });
-      // HU-01 criterio 6: mensaje de confirmación
-      navegar('/login', { state: { mensaje: r.mensaje, correo: r.usuario.correo } });
+      // Cuenta creada: inicia sesión sola y entra a la pantalla de inicio
+      try {
+        await iniciarSesion({ correo: datos.correo, contrasena: datos.contrasena, recordarme: false });
+        navegar('/', { replace: true });
+      } catch {
+        // Si el inicio automático fallara, la cuenta ya existe: que entre desde el login
+        navegar('/login', { state: { mensaje: r.mensaje, correo: r.usuario.correo } });
+      }
     } catch (err) {
       setErroresServidor(err.porCampo || {});
       setErrorGeneral(err.message);
@@ -100,8 +106,8 @@ export default function Registro() {
     setErrorGeneral('');
     setEnviando(true);
     try {
-      const { usuario: u } = await iniciarSesionGoogle({ credential });
-      navegar(panelSegunRol(u), { replace: true });
+      await iniciarSesionGoogle({ credential });
+      navegar('/', { replace: true });
     } catch (err) {
       setErrorGeneral(err.message);
     } finally {

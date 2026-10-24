@@ -50,6 +50,7 @@ CREATE TABLE usuarios (
 );
 -- El correo no puede repetirse
 CREATE UNIQUE INDEX ux_usuarios_correo ON usuarios (correo);
+CREATE UNIQUE INDEX ux_usuarios_telefono ON usuarios (telefono) WHERE telefono IS NOT NULL;
 
 CREATE TRIGGER tg_usuarios_actualizado
   BEFORE UPDATE ON usuarios

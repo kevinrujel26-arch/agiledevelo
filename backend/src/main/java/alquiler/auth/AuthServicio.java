@@ -14,13 +14,22 @@ import java.time.Instant;
 import java.util.Locale;
 import java.util.Map;
 
-/** HU-01 Registrar cliente · HU-02 Iniciar y cerrar sesión · EN-03 Autenticación base */
+/**
+ * HU-01 Registrar cliente · HU-02 Iniciar y cerrar sesión · EN-03 Autenticación
+ * base
+ */
 @Service
 public class AuthServicio {
 
-    /** HU-02 criterio 2: el mismo mensaje si el correo no existe o la contraseña es incorrecta. */
+    /**
+     * HU-02 criterio 2: el mismo mensaje si el correo no existe o la contraseña es
+     * incorrecta.
+     */
     public static final String MENSAJE_CREDENCIALES = "Correo o contraseña incorrectos";
-    /** Cuenta creada con Google: no tiene contraseña, así que el login normal no la acepta. */
+    /**
+     * Cuenta creada con Google: no tiene contraseña, así que el login normal no la
+     * acepta.
+     */
     public static final String MENSAJE_CUENTA_GOOGLE = "Esta cuenta usa Google. Ingresa con el botón \"Continuar con Google\"";
 
     private static final int MAX_NOMBRE = 120;
@@ -32,11 +41,14 @@ public class AuthServicio {
     private final Jwt jwt;
     private final Config config;
     private final VerificadorGoogle google;
-    /** Hash de relleno: si el correo no existe igual se compara, para que la respuesta tarde lo mismo. */
+    /**
+     * Hash de relleno: si el correo no existe igual se compara, para que la
+     * respuesta tarde lo mismo.
+     */
     private final String hashRelleno;
 
     public AuthServicio(UsuarioRepositorio usuarios, SesionRepositorio sesiones,
-                        Contrasenas contrasenas, Jwt jwt, Config config, VerificadorGoogle google) {
+            Contrasenas contrasenas, Jwt jwt, Config config, VerificadorGoogle google) {
         this.usuarios = usuarios;
         this.sesiones = sesiones;
         this.contrasenas = contrasenas;
@@ -53,17 +65,31 @@ public class AuthServicio {
                 "tieneContrasena", u.texto("contrasena_hash") != null);
     }
 
+    public static final String MENSAJE_CELULAR_REPETIDO = "Este celular ya está registrado en otra cuenta";
+
+    /**
+     * Cada celular pertenece a una sola cuenta (409 con el error en el campo
+     * "telefono").
+     */
+    private void exigirCelularLibre(String telefono, long usuarioId) {
+        if (usuarios.existeTelefono(telefono, usuarioId)) {
+            throw new ErrorApp(409, MENSAJE_CELULAR_REPETIDO,
+                    java.util.List.of(Json.obj("campo", "telefono", "mensaje", MENSAJE_CELULAR_REPETIDO)));
+        }
+    }
+
     /** HU-01: el rol siempre es CLIENTE (criterio 5), aunque envíen otro. */
     public Map<String, Object> registrarCliente(String nombre, String correo, String telefono, String contrasena) {
         if (usuarios.existeCorreo(correo)) {
             throw ErrorApp.conflicto("Ya existe una cuenta registrada con ese correo");
         }
+        exigirCelularLibre(telefono, 0);
         String hash = contrasenas.cifrar(contrasena);
         return usuarioJson(usuarios.crear(nombre, correo, telefono, hash, Rol.CLIENTE.name()));
     }
 
     public Map<String, Object> iniciarSesion(String correo, String contrasena, boolean recordarme,
-                                             String ip, String agenteUsuario) {
+            String ip, String agenteUsuario) {
         Fila u = usuarios.buscarPorCorreo(correo);
         if (u == null) {
             contrasenas.verificar(contrasena, hashRelleno);
@@ -82,7 +108,8 @@ public class AuthServicio {
         }
 
         if (!contrasenas.verificar(contrasena, u.texto("contrasena_hash"))) {
-            Fila estado = usuarios.registrarIntentoFallido(u.entero("id"), config.maxIntentosFallidos, config.minutosBloqueo);
+            Fila estado = usuarios.registrarIntentoFallido(u.entero("id"), config.maxIntentosFallidos,
+                    config.minutosBloqueo);
             if (estado.instante("bloqueado_hasta") != null) {
                 throw ErrorApp.bloqueado("Cuenta bloqueada temporalmente por " + config.maxIntentosFallidos
                         + " intentos fallidos. Intenta de nuevo en " + config.minutosBloqueo + " minutos");
@@ -96,13 +123,16 @@ public class AuthServicio {
     }
 
     /**
-     * "Continuar con Google": verifica el ID token y abre la misma sesión que el login normal.
-     *  - Si ya hay una cuenta con ese correo, la vincula (guarda google_id) y entra con ella.
-     *  - Si no, crea un CLIENTE sin contraseña y sin celular (se le pide luego en "Mi cuenta").
+     * "Continuar con Google": verifica el ID token y abre la misma sesión que el
+     * login normal.
+     * - Si ya hay una cuenta con ese correo, la vincula (guarda google_id) y entra
+     * con ella.
+     * - Si no, crea un CLIENTE sin contraseña y sin celular (se le pide luego en
+     * "Mi cuenta").
      * Un ADMINISTRADOR nunca se crea por aquí: ese rol solo se asigna por SQL.
      */
     public Map<String, Object> iniciarSesionGoogle(String credencial, boolean recordarme,
-                                                   String ip, String agenteUsuario) {
+            String ip, String agenteUsuario) {
         if (!google.configurado()) {
             throw new ErrorApp(503, "El inicio de sesión con Google no está disponible");
         }
@@ -111,7 +141,8 @@ public class AuthServicio {
             throw ErrorApp.noAutenticado("No se pudo verificar tu cuenta de Google. Intenta nuevamente");
         }
         if (!cuenta.correoVerificado() || cuenta.correo() == null || cuenta.correo().isBlank()) {
-            throw ErrorApp.noAutenticado("Tu correo de Google no está verificado. Verifícalo en Google o regístrate con correo y contraseña");
+            throw ErrorApp.noAutenticado(
+                    "Tu correo de Google no está verificado. Verifícalo en Google o regístrate con correo y contraseña");
         }
         String correo = cuenta.correo().trim().toLowerCase(Locale.ROOT);
         if (correo.length() > MAX_CORREO) {
@@ -123,7 +154,8 @@ public class AuthServicio {
         if (u == null) {
             u = usuarios.buscarPorCorreo(correo);
             if (u == null) {
-                u = usuarios.crearConGoogle(nombreDesdeGoogle(cuenta.nombre(), correo), correo, cuenta.id(), Rol.CLIENTE.name());
+                u = usuarios.crearConGoogle(nombreDesdeGoogle(cuenta.nombre(), correo), correo, cuenta.id(),
+                        Rol.CLIENTE.name());
                 nuevo = true;
             } else {
                 if (u.texto("google_id") != null) {
@@ -131,7 +163,8 @@ public class AuthServicio {
                 }
                 exigirActivo(u);
                 u = usuarios.vincularGoogle(u.entero("id"), cuenta.id());
-                if (u == null) throw ErrorApp.conflicto("Este correo ya está vinculado a otra cuenta de Google");
+                if (u == null)
+                    throw ErrorApp.conflicto("Este correo ya está vinculado a otra cuenta de Google");
             }
         }
         exigirActivo(u);
@@ -141,7 +174,10 @@ public class AuthServicio {
         return respuesta;
     }
 
-    /** Obtiene los datos actuales del usuario (incluye tieneCelular y tieneContrasena). */
+    /**
+     * Obtiene los datos actuales del usuario (incluye tieneCelular y
+     * tieneContrasena).
+     */
     public Map<String, Object> usuarioActual(long usuarioId) {
         Fila u = usuarios.buscarPorId(usuarioId);
         if (u == null) {
@@ -152,6 +188,7 @@ public class AuthServicio {
 
     /** Completa el celular que falta (cuentas creadas con Google o antiguas). */
     public Map<String, Object> actualizarTelefono(long usuarioId, String telefono) {
+        exigirCelularLibre(telefono, usuarioId);
         return usuarioJson(usuarios.actualizarTelefono(usuarioId, telefono));
     }
 
@@ -193,10 +230,14 @@ public class AuthServicio {
         }
     }
 
-    /** El nombre de Google se limpia (sin < >, sin caracteres de control) y se recorta; si falta, se usa el correo. */
+    /**
+     * El nombre de Google se limpia (sin < >, sin caracteres de control) y se
+     * recorta; si falta, se usa el correo.
+     */
     static String nombreDesdeGoogle(String nombre, String correo) {
         String limpio = nombre == null ? "" : nombre.replaceAll("[\\p{Cc}<>]", " ").replaceAll("\\s+", " ").trim();
-        if (limpio.isEmpty()) limpio = correo.substring(0, Math.max(1, correo.indexOf('@')));
+        if (limpio.isEmpty())
+            limpio = correo.substring(0, Math.max(1, correo.indexOf('@')));
         return limpio.length() > MAX_NOMBRE ? limpio.substring(0, MAX_NOMBRE).trim() : limpio;
     }
 
@@ -211,7 +252,8 @@ public class AuthServicio {
         String agente = agenteUsuario == null ? null
                 : agenteUsuario.substring(0, Math.min(255, agenteUsuario.length()));
         String sesionId = sesiones.crear(u.entero("id"), recordarme, expiraEn, ip, agente);
-        String token = jwt.firmar(Json.obj("sid", sesionId, "rol", u.texto("rol")), String.valueOf(u.entero("id")), expiraEn);
+        String token = jwt.firmar(Json.obj("sid", sesionId, "rol", u.texto("rol")), String.valueOf(u.entero("id")),
+                expiraEn);
 
         return Json.obj(
                 "token", token,

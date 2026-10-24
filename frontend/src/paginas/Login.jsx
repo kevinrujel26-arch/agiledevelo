@@ -1,7 +1,7 @@
 // HU-02 Iniciar sesión
 import { useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth, panelSegunRol } from '../contexto/AuthContext';
+import { useAuth } from '../contexto/AuthContext';
 import { Alerta, Campo } from '../componentes/comunes';
 import { CampoContrasena } from '../componentes/CampoContrasena';
 import PantallaAuth from '../componentes/PantallaAuth';
@@ -29,11 +29,9 @@ export default function Login() {
   const [error, setError] = useState('');
   const [enviando, setEnviando] = useState(false);
 
-  // Si venía de una página protegida, vuelve a ella; si no, a su panel según el rol
+  // Si venía de una página protegida, vuelve a ella; si no, a la pantalla de inicio
   const destinoPara = (u) =>
-    state?.desde && (u.rol === 'ADMINISTRADOR' || !state.desde.startsWith('/admin'))
-      ? state.desde
-      : panelSegunRol(u);
+    state?.desde && (u.rol === 'ADMINISTRADOR' || !state.desde.startsWith('/admin')) ? state.desde : '/';
 
   const alSalir = (e) => tocar(e.target.name);
   const cambiar = (e) => {
@@ -80,7 +78,7 @@ export default function Login() {
     limpiarAviso();
     try {
       const { usuario: u, nuevo } = await iniciarSesionGoogle({ credential, recordarme });
-      navegar(nuevo ? panelSegunRol(u) : destinoPara(u), { replace: true });
+      navegar(destinoPara(u), { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {

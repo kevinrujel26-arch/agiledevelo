@@ -20,7 +20,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
-/** Pruebas de aceptación: registrarse e iniciar sesión con Google (ID token simulado). */
+/**
+ * Pruebas de aceptación: registrarse e iniciar sesión con Google (ID token
+ * simulado).
+ */
 class GoogleTest extends PruebaBase {
 
     private static final String TOKEN = "token-de-google";
@@ -115,7 +118,8 @@ class GoogleTest extends PruebaBase {
         assertTrue(bd().uno("SELECT expira_en > now() + interval '20 days' AS larga FROM sesiones").bool("larga"));
     }
 
-    // ------------------------------------------------------------ Usuario existente
+    // ------------------------------------------------------------ Usuario
+    // existente
     @Test
     @DisplayName("Google: si el correo ya existe, vincula la cuenta y conserva rol, nombre y celular")
     void vinculaUsuarioExistente() {
@@ -126,7 +130,8 @@ class GoogleTest extends PruebaBase {
         assertEquals(200, r.estado(), String.valueOf(r.cuerpo()));
         assertEquals(false, r.json().get("nuevo"));
         assertEquals(u.id(), numero(r.objeto("usuario").get("id")));
-        assertEquals("987654321", r.objeto("usuario").get("telefono"));
+        assertEquals(bd().uno("SELECT telefono FROM usuarios WHERE id = ?", u.id()).texto("telefono"),
+                r.objeto("usuario").get("telefono"));
         assertEquals(1L, cuantosUsuarios());
         Fila f = bd().uno("SELECT google_id, nombre, contrasena_hash FROM usuarios WHERE id = ?", u.id());
         assertEquals("g-200", f.texto("google_id"));
@@ -134,7 +139,8 @@ class GoogleTest extends PruebaBase {
         assertNotNull(f.texto("contrasena_hash"));
 
         // El login normal sigue funcionando con su contraseña
-        assertEquals(200, post("/api/auth/login", Json.obj("correo", u.correo(), "contrasena", u.contrasena()), null).estado());
+        assertEquals(200,
+                post("/api/auth/login", Json.obj("correo", u.correo(), "contrasena", u.contrasena()), null).estado());
     }
 
     @Test
@@ -167,7 +173,8 @@ class GoogleTest extends PruebaBase {
         assertNull(bd().uno("SELECT google_id FROM usuarios").texto("google_id"));
     }
 
-    // ------------------------------------------------------------ Token inválido / correo sin verificar
+    // ------------------------------------------------------------ Token inválido /
+    // correo sin verificar
     @Test
     @DisplayName("Google: un token inválido responde 401 con mensaje claro y no crea nada")
     void tokenInvalido() {
@@ -218,13 +225,14 @@ class GoogleTest extends PruebaBase {
         googleResponde("g-100", "luis@gmail.com", true, "Luis");
         entrarConGoogle();
 
-        for (String clave : new String[]{"cualquiera1", "x", "null", "contrasena-de-relleno"}) {
+        for (String clave : new String[] { "cualquiera1", "x", "null", "contrasena-de-relleno" }) {
             Resp r = post("/api/auth/login", Json.obj("correo", "luis@gmail.com", "contrasena", clave), null);
             assertEquals(401, r.estado(), clave);
             assertEquals(AuthServicio.MENSAJE_CUENTA_GOOGLE, r.error(), clave);
         }
         // Contraseña vacía: ni siquiera pasa la validación
-        assertEquals(400, post("/api/auth/login", Json.obj("correo", "luis@gmail.com", "contrasena", ""), null).estado());
+        assertEquals(400,
+                post("/api/auth/login", Json.obj("correo", "luis@gmail.com", "contrasena", ""), null).estado());
         // Esos intentos no bloquean la cuenta: con Google sigue entrando
         assertEquals(0L, bd().uno("SELECT intentos_fallidos AS n FROM usuarios").entero("n"));
         assertEquals(200, entrarConGoogle().estado());
@@ -262,7 +270,8 @@ class GoogleTest extends PruebaBase {
         assertEquals("ux_usuarios_google_id", e.getRestriccion());
     }
 
-    // ------------------------------------------------------------ Completar el celular
+    // ------------------------------------------------------------ Completar el
+    // celular
     @Test
     @DisplayName("Mi cuenta: quien entró con Google completa su celular con la misma validación de 9 dígitos")
     void completarCelular() {

@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { useAuth, panelSegunRol } from '../contexto/AuthContext';
+import { useAuth } from '../contexto/AuthContext';
 import { Alerta, Campo } from '../componentes/comunes';
 import { CampoContrasena } from '../componentes/CampoContrasena';
 import PantallaAuth from '../componentes/PantallaAuth';
@@ -38,9 +38,9 @@ export default function CompletarRegistro() {
   };
 
   if (!usuario) return <Navigate to="/login" replace />;
-  if (usuario.tieneCelular) return <Navigate to={panelSegunRol(usuario)} replace />;
+  if (usuario.tieneCelular) return <Navigate to="/" replace />;
   // Los administradores no quedan atrapados aquí
-  if (usuario.rol === 'ADMINISTRADOR') return <Navigate to={panelSegunRol(usuario)} replace />;
+  if (usuario.rol === 'ADMINISTRADOR') return <Navigate to="/" replace />;
 
   async function enviar(e) {
     e.preventDefault();
@@ -51,8 +51,8 @@ export default function CompletarRegistro() {
     setEnviando(true);
     setError('');
     try {
-      const u = await guardarCelular(datos.telefono);
-      navegar(panelSegunRol(u), { replace: true });
+      await guardarCelular(datos.telefono);
+      navegar('/', { replace: true });
     } catch (err) {
       setErroresServidor(err.porCampo || {});
       setError(err.message);

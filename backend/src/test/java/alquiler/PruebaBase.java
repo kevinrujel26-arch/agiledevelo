@@ -35,9 +35,8 @@ import java.util.UUID;
  * pruebas no necesitan internet ni credenciales. Lo mismo con Google: el
  * verificador del ID token es simulado (cada prueba decide qué responde).
  */
-@SpringBootTest(
-        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = {"APP_ENV=test", "MIGRAR_AL_INICIAR=false"})
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = { "APP_ENV=test",
+        "MIGRAR_AL_INICIAR=false" })
 public abstract class PruebaBase {
 
     private static final HttpClient CLIENTE = HttpClient.newHttpClient();
@@ -48,8 +47,8 @@ public abstract class PruebaBase {
     private static int contador = 0;
 
     /** PNG y JPG mínimos con la firma correcta de cada formato. */
-    protected static final byte[] PNG = {(byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0};
-    protected static final byte[] JPG = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0, 0, 0x10, 0x4A, 0x46};
+    protected static final byte[] PNG = { (byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0 };
+    protected static final byte[] JPG = { (byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0, 0, 0x10, 0x4A, 0x46 };
 
     @Autowired
     private Bd bdInyectada;
@@ -107,9 +106,12 @@ public abstract class PruebaBase {
             return cuerpo instanceof Map<?, ?> m ? (String) m.get("error") : null;
         }
 
-        /** Mensaje del primer detalle de ese campo, o null si el campo no tiene error. */
+        /**
+         * Mensaje del primer detalle de ese campo, o null si el campo no tiene error.
+         */
         public String errorDe(String campo) {
-            if (!(cuerpo instanceof Map<?, ?> m) || !(m.get("detalles") instanceof List<?> detalles)) return null;
+            if (!(cuerpo instanceof Map<?, ?> m) || !(m.get("detalles") instanceof List<?> detalles))
+                return null;
             return detalles.stream()
                     .map(d -> (Map<?, ?>) d)
                     .filter(d -> campo.equals(d.get("campo")))
@@ -173,7 +175,8 @@ public abstract class PruebaBase {
 
     private static HttpRequest.Builder peticion(String ruta, String token) {
         HttpRequest.Builder b = HttpRequest.newBuilder(URI.create(base + ruta));
-        if (token != null) b.header("Authorization", "Bearer " + token);
+        if (token != null)
+            b.header("Authorization", "Bearer " + token);
         return b;
     }
 
@@ -186,7 +189,8 @@ public abstract class PruebaBase {
 
     private static Resp enviar(HttpRequest.Builder b) {
         try {
-            HttpResponse<String> r = CLIENTE.send(b.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            HttpResponse<String> r = CLIENTE.send(b.build(),
+                    HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
             Object cuerpo = r.body() == null || r.body().isEmpty() ? null : Json.leer(r.body());
             return new Resp(r.statusCode(), cuerpo);
         } catch (Exception e) {
@@ -200,7 +204,8 @@ public abstract class PruebaBase {
 
     protected static Descarga descargar(String ruta) {
         try {
-            HttpResponse<byte[]> r = CLIENTE.send(peticion(ruta, null).GET().build(), HttpResponse.BodyHandlers.ofByteArray());
+            HttpResponse<byte[]> r = CLIENTE.send(peticion(ruta, null).GET().build(),
+                    HttpResponse.BodyHandlers.ofByteArray());
             return new Descarga(r.statusCode(), r.headers().firstValue("Content-Type").orElse(""), r.body());
         } catch (Exception e) {
             throw new IllegalStateException("Falló la descarga: " + e.getMessage(), e);
@@ -220,7 +225,8 @@ public abstract class PruebaBase {
         String hash = new Contrasenas(1000).cifrar(clave);
         long id = bd().uno("""
                 INSERT INTO usuarios (nombre, correo, telefono, contrasena_hash, rol, activo)
-                VALUES (?, ?, ?, ?, ?, ?) RETURNING id""", "Usuario " + contador, correo, "987654321", hash, rol, activo).entero("id");
+                VALUES (?, ?, ?, ?, ?, ?) RETURNING id""", "Usuario " + contador, correo,
+                String.format("9%08d", contador), hash, rol, activo).entero("id");
         return new Usuario(id, correo, clave);
     }
 
@@ -229,8 +235,10 @@ public abstract class PruebaBase {
     }
 
     protected static String token(Usuario u, boolean recordarme) {
-        Resp r = post("/api/auth/login", Json.obj("correo", u.correo(), "contrasena", u.contrasena(), "recordarme", recordarme), null);
-        if (r.estado() != 200) throw new IllegalStateException("No se pudo iniciar sesión: " + r.cuerpo());
+        Resp r = post("/api/auth/login",
+                Json.obj("correo", u.correo(), "contrasena", u.contrasena(), "recordarme", recordarme), null);
+        if (r.estado() != 200)
+            throw new IllegalStateException("No se pudo iniciar sesión: " + r.cuerpo());
         return (String) r.json().get("token");
     }
 
@@ -239,7 +247,8 @@ public abstract class PruebaBase {
     }
 
     protected static long crearCategoria(String nombre, boolean activa) {
-        return bd().uno("INSERT INTO categorias (nombre, activa) VALUES (?, ?) RETURNING id", nombre, activa).entero("id");
+        return bd().uno("INSERT INTO categorias (nombre, activa) VALUES (?, ?) RETURNING id", nombre, activa)
+                .entero("id");
     }
 
     protected static Map<String, Object> datosMaquina(long categoriaId) {
