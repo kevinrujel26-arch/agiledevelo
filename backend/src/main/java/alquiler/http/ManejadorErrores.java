@@ -30,13 +30,15 @@ public class ManejadorErrores {
 
     // Restricciones de la BD -> mensaje entendible para el usuario
     private static final Map<String, Object[]> MENSAJES_RESTRICCION = Map.of(
-            "ux_usuarios_correo", new Object[]{409, "Ya existe una cuenta registrada con ese correo"},
-            "ux_usuarios_google_id", new Object[]{409, "Esa cuenta de Google ya está vinculada a otro usuario"},
-            "ux_categorias_nombre", new Object[]{409, CategoriaServicio.NOMBRE_REPETIDO},
-            "ux_fotos_una_principal", new Object[]{409, "La máquina ya tiene una foto principal"},
-            "ck_max_5_fotos", new Object[]{400, "Una máquina puede tener como máximo 5 fotos"},
-            "ex_bloqueos_sin_superposicion", new Object[]{409, "El rango se superpone con otro bloqueo existente de esta máquina"},
-            "ex_reservas_sin_superposicion", new Object[]{409, "Las fechas elegidas ya están ocupadas"});
+            "ux_usuarios_correo", new Object[] { 409, "Ya existe una cuenta registrada con ese correo" },
+            "ux_usuarios_telefono", new Object[] { 409, "Este celular ya está registrado en otra cuenta" },
+            "ux_usuarios_google_id", new Object[] { 409, "Esa cuenta de Google ya está vinculada a otro usuario" },
+            "ux_categorias_nombre", new Object[] { 409, CategoriaServicio.NOMBRE_REPETIDO },
+            "ux_fotos_una_principal", new Object[] { 409, "La máquina ya tiene una foto principal" },
+            "ck_max_5_fotos", new Object[] { 400, "Una máquina puede tener como máximo 5 fotos" },
+            "ex_bloqueos_sin_superposicion",
+            new Object[] { 409, "El rango se superpone con otro bloqueo existente de esta máquina" },
+            "ex_reservas_sin_superposicion", new Object[] { 409, "Las fechas elegidas ya están ocupadas" });
 
     private final Config config;
 
@@ -44,13 +46,20 @@ public class ManejadorErrores {
         this.config = config;
     }
 
-    /** Ruta que no existe (o método no permitido): 404 con el mismo mensaje de siempre. */
-    @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class, HttpRequestMethodNotSupportedException.class})
+    /**
+     * Ruta que no existe (o método no permitido): 404 con el mismo mensaje de
+     * siempre.
+     */
+    @ExceptionHandler({ NoResourceFoundException.class, NoHandlerFoundException.class,
+            HttpRequestMethodNotSupportedException.class })
     public ResponseEntity<Object> rutaInexistente(Exception e, HttpServletRequest peticion) {
         return ResponseEntity.status(404).body(Json.obj("error", mensajeRutaInexistente(peticion)));
     }
 
-    /** También lo usa SeguridadConfig para las rutas que rechaza el firewall (p. ej. con "../"). */
+    /**
+     * También lo usa SeguridadConfig para las rutas que rechaza el firewall (p. ej.
+     * con "../").
+     */
     public static String mensajeRutaInexistente(HttpServletRequest peticion) {
         String ruta = peticion.getRequestURI();
         return ruta.startsWith("/uploads/")
@@ -64,26 +73,32 @@ public class ManejadorErrores {
         return ResponseEntity.status(t.estado()).body(t.cuerpo());
     }
 
-    /** También la usa el filtro de seguridad, que corre antes que los controladores. */
+    /**
+     * También la usa el filtro de seguridad, que corre antes que los controladores.
+     */
     public static Traduccion traducir(Throwable error, Config config) {
         if (error instanceof ErrorApp e) {
             Map<String, Object> cuerpo = new LinkedHashMap<>();
             cuerpo.put("error", e.getMessage());
-            if (e.getDetalles() != null) cuerpo.put("detalles", e.getDetalles());
+            if (e.getDetalles() != null)
+                cuerpo.put("detalles", e.getDetalles());
             return new Traduccion(e.getEstadoHttp(), cuerpo);
         }
         if (error instanceof ErrorBd e) {
             Object[] conocido = e.getRestriccion() == null ? null : MENSAJES_RESTRICCION.get(e.getRestriccion());
-            if (conocido != null) return new Traduccion((Integer) conocido[0], Json.obj("error", conocido[1]));
+            if (conocido != null)
+                return new Traduccion((Integer) conocido[0], Json.obj("error", conocido[1]));
             if ("23503".equals(e.getEstadoSql())) {
-                return new Traduccion(409, Json.obj("error", "El registro está relacionado con otros datos y no se puede modificar así"));
+                return new Traduccion(409,
+                        Json.obj("error", "El registro está relacionado con otros datos y no se puede modificar así"));
             }
         }
         // Errores propios de Spring MVC (por ejemplo un tipo de contenido no soportado)
         if (error instanceof ErrorResponse e && e.getStatusCode().is4xxClientError()) {
             return new Traduccion(e.getStatusCode().value(), Json.obj("error", "La solicitud no es válida"));
         }
-        if (!config.esPrueba) error.printStackTrace();
+        if (!config.esPrueba)
+            error.printStackTrace();
         return new Traduccion(500, Json.obj("error", "Ocurrió un error inesperado. Intenta nuevamente"));
     }
 }

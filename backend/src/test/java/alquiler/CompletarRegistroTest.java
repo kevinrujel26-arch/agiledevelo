@@ -13,7 +13,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
-/** Pruebas de completar registro tras entrar con Google (PATCH /api/auth/yo con celular). */
+/**
+ * Pruebas de completar registro tras entrar con Google (PATCH /api/auth/yo con
+ * celular).
+ */
 class CompletarRegistroTest extends PruebaBase {
 
     private static final String TOKEN = "token-google";
@@ -105,5 +108,21 @@ class CompletarRegistroTest extends PruebaBase {
         Map<String, Object> usuario = r.objeto("usuario");
         assertEquals("987654321", usuario.get("telefono"));
         assertTrue((Boolean) usuario.get("tieneCelular"));
+    }
+
+    @Test
+    @DisplayName("Completar celular: no se puede usar el celular de otra cuenta, pero sí volver a guardar el propio")
+    void celularDeOtraCuenta() {
+        String token = obtenToken();
+        bd().ejecutar("""
+                INSERT INTO usuarios (nombre, correo, telefono, contrasena_hash, rol)
+                VALUES ('Otra Persona', 'otra@prueba.pe', '987654321', 'x', 'CLIENTE')""");
+
+        Resp r = patch("/api/auth/yo", Json.obj("telefono", "987654321"), token);
+        assertEquals(409, r.estado(), String.valueOf(r.cuerpo()));
+        assertEquals("Este celular ya está registrado en otra cuenta", r.errorDe("telefono"));
+
+        assertEquals(200, patch("/api/auth/yo", Json.obj("telefono", "912345678"), token).estado());
+        assertEquals(200, patch("/api/auth/yo", Json.obj("telefono", "912345678"), token).estado());
     }
 }

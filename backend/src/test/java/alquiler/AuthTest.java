@@ -62,6 +62,29 @@ class AuthTest extends PruebaBase {
     }
 
     @Test
+    @DisplayName("HU-02: el celular no se puede repetir entre cuentas (aunque venga con otro formato)")
+    void celularRepetido() {
+        assertEquals(201, post("/api/auth/registro", registroValido(), null).estado());
+        Map<String, Object> otro = registroValido();
+        otro.put("correo", "otra@correo.com");
+        otro.put("telefono", "+51 987-654-321");
+        Resp r = post("/api/auth/registro", otro, null);
+        assertEquals(409, r.estado(), String.valueOf(r.cuerpo()));
+        assertEquals("Este celular ya está registrado en otra cuenta", r.errorDe("telefono"));
+        assertEquals(1L, bd().uno("SELECT count(*) AS n FROM usuarios").entero("n"));
+    }
+
+    @Test
+    @DisplayName("HU-02: la BD también impide dos cuentas con el mismo celular (índice único)")
+    void bdRechazaCelularRepetido() {
+        assertEquals(201, post("/api/auth/registro", registroValido(), null).estado());
+        ErrorBd e = assertThrows(ErrorBd.class, () -> bd().ejecutar("""
+                INSERT INTO usuarios (nombre, correo, telefono, contrasena_hash, rol)
+                VALUES ('Otra', 'otra@prueba.pe', '987654321', 'x', 'CLIENTE')"""));
+        assertEquals("ux_usuarios_telefono", e.getRestriccion());
+    }
+
+    @Test
     @DisplayName("HU-01: un correo con formato inválido no permite continuar")
     void correoInvalido() {
         Map<String, Object> datos = registroValido();
@@ -72,14 +95,15 @@ class AuthTest extends PruebaBase {
     @Test
     @DisplayName("HU-01: nombre, correo, celular y contraseña son obligatorios")
     void camposObligatorios() {
-        for (String campo : new String[]{"nombre", "correo", "telefono", "contrasena"}) {
+        for (String campo : new String[] { "nombre", "correo", "telefono", "contrasena" }) {
             Map<String, Object> datos = registroValido();
             datos.remove(campo);
             assertEquals(400, post("/api/auth/registro", datos, null).estado(), "sin " + campo);
         }
     }
 
-    // ------------------------------------------------------------ HU-02 (v7): celular
+    // ------------------------------------------------------------ HU-02 (v7):
+    // celular
     @Test
     @DisplayName("HU-02: registrarse sin celular responde 400 con el detalle del campo")
     void registroSinTelefono() {
@@ -94,7 +118,7 @@ class AuthTest extends PruebaBase {
     @Test
     @DisplayName("HU-02: un celular inválido responde 400")
     void telefonoInvalido() {
-        for (String malo : new String[]{"887654321", "98765432", "9876543210", "98765432a", "+52 987654321"}) {
+        for (String malo : new String[] { "887654321", "98765432", "9876543210", "98765432a", "+52 987654321" }) {
             Map<String, Object> datos = registroValido();
             datos.put("telefono", malo);
             Resp r = post("/api/auth/registro", datos, null);
@@ -149,7 +173,8 @@ class AuthTest extends PruebaBase {
         assertEquals("ck_usuarios_telefono", e.getRestriccion());
     }
 
-    // ------------------------------------------------------------ Validaciones del registro
+    // ------------------------------------------------------------ Validaciones del
+    // registro
     private Resp registrarCon(String campo, Object valor) {
         Map<String, Object> datos = registroValido();
         datos.put(campo, valor);
@@ -191,7 +216,8 @@ class AuthTest extends PruebaBase {
     @DisplayName("Validación: el correo no admite espacios, dominios sin punto ni más de 160 caracteres")
     void correoReglas() {
         assertEquals("El correo no tiene un formato válido", registrarCon("correo", "a@b").errorDe("correo"));
-        assertEquals("El correo no puede contener espacios", registrarCon("correo", "ana torres@correo.com").errorDe("correo"));
+        assertEquals("El correo no puede contener espacios",
+                registrarCon("correo", "ana torres@correo.com").errorDe("correo"));
         assertEquals("El correo debe tener como máximo 160 caracteres",
                 registrarCon("correo", "a".repeat(150) + "@correo.com").errorDe("correo"));
         assertEquals("El correo es obligatorio", registrarCon("correo", "   ").errorDe("correo"));
@@ -211,7 +237,8 @@ class AuthTest extends PruebaBase {
                 "clave12", "La contraseña debe tener al menos 8 caracteres",
                 "a1".repeat(37), "La contraseña debe tener como máximo 72 caracteres",
                 "", "La contraseña es obligatoria");
-        casos.forEach((mala, mensaje) -> assertEquals(mensaje, registrarCon("contrasena", mala).errorDe("contrasena"), mala));
+        casos.forEach(
+                (mala, mensaje) -> assertEquals(mensaje, registrarCon("contrasena", mala).errorDe("contrasena"), mala));
         assertEquals(201, registrarCon("contrasena", "mi clave 123").estado());
     }
 
@@ -284,7 +311,8 @@ class AuthTest extends PruebaBase {
     void bloqueoPorIntentos() {
         Usuario u = crearCliente();
         Map<String, Object> mala = Json.obj("correo", u.correo(), "contrasena", "incorrecta");
-        for (int i = 0; i < 4; i++) assertEquals(401, post("/api/auth/login", mala, null).estado());
+        for (int i = 0; i < 4; i++)
+            assertEquals(401, post("/api/auth/login", mala, null).estado());
         assertEquals(423, post("/api/auth/login", mala, null).estado());
         // Aun con la contraseña correcta, sigue bloqueada
         Resp correcta = post("/api/auth/login", Json.obj("correo", u.correo(), "contrasena", u.contrasena()), null);
@@ -296,8 +324,10 @@ class AuthTest extends PruebaBase {
     void reiniciaIntentos() {
         Usuario u = crearCliente();
         Map<String, Object> mala = Json.obj("correo", u.correo(), "contrasena", "incorrecta");
-        for (int i = 0; i < 4; i++) post("/api/auth/login", mala, null);
-        assertEquals(200, post("/api/auth/login", Json.obj("correo", u.correo(), "contrasena", u.contrasena()), null).estado());
+        for (int i = 0; i < 4; i++)
+            post("/api/auth/login", mala, null);
+        assertEquals(200,
+                post("/api/auth/login", Json.obj("correo", u.correo(), "contrasena", u.contrasena()), null).estado());
         assertEquals(401, post("/api/auth/login", mala, null).estado());
     }
 
@@ -334,7 +364,8 @@ class AuthTest extends PruebaBase {
     @DisplayName("HU-15: un usuario desactivado no puede iniciar sesión")
     void usuarioDesactivado() {
         Usuario u = crearUsuario("CLIENTE", false);
-        assertEquals(403, post("/api/auth/login", Json.obj("correo", u.correo(), "contrasena", u.contrasena()), null).estado());
+        assertEquals(403,
+                post("/api/auth/login", Json.obj("correo", u.correo(), "contrasena", u.contrasena()), null).estado());
     }
 
     // ------------------------------------------------------------ EN-05
@@ -358,7 +389,8 @@ class AuthTest extends PruebaBase {
         assertEquals(401, get("/api/auth/yo", token + "x").estado());
     }
 
-    // ------------------------------------------------------------ GET /api/auth/yo: tieneCelular y tieneContrasena
+    // ------------------------------------------------------------ GET
+    // /api/auth/yo: tieneCelular y tieneContrasena
     @Test
     @DisplayName("GET /api/auth/yo incluye tieneCelular=true si hay teléfono")
     void yoIncluyeTieneCelularVerdaderoSiHayTelefono() {
@@ -397,7 +429,8 @@ class AuthTest extends PruebaBase {
         assertEquals(200, yo.estado());
         Map<String, Object> usuarioYo = yo.objeto("usuario");
 
-        for (String campo : new String[]{"id", "nombre", "correo", "telefono", "rol", "tieneCelular", "tieneContrasena"}) {
+        for (String campo : new String[] { "id", "nombre", "correo", "telefono", "rol", "tieneCelular",
+                "tieneContrasena" }) {
             assertEquals(usuarioLogin.get(campo), usuarioYo.get(campo), "Campo " + campo + " no coincide");
         }
     }

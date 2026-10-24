@@ -18,6 +18,13 @@ public class UsuarioRepositorio {
         return bd.uno("SELECT 1 FROM usuarios WHERE correo = ?", correo) != null;
     }
 
+    /**
+     * ¿Otra cuenta (distinta de excluirId; usa 0 para ninguna) ya usa este celular?
+     */
+    public boolean existeTelefono(String telefono, long excluirId) {
+        return bd.uno("SELECT 1 FROM usuarios WHERE telefono = ? AND id <> ?", telefono, excluirId) != null;
+    }
+
     /** El teléfono llega ya normalizado (9 dígitos). */
     public Fila crear(String nombre, String correo, String telefono, String hash, String rol) {
         return bd.uno("""
@@ -34,7 +41,10 @@ public class UsuarioRepositorio {
         return bd.uno("SELECT * FROM usuarios WHERE google_id = ?", googleId);
     }
 
-    /** Cuenta creada con Google: sin contraseña (contrasena_hash NULL) y sin celular. */
+    /**
+     * Cuenta creada con Google: sin contraseña (contrasena_hash NULL) y sin
+     * celular.
+     */
     public Fila crearConGoogle(String nombre, String correo, String googleId, String rol) {
         return bd.uno("""
                 INSERT INTO usuarios (nombre, correo, google_id, rol)
@@ -42,20 +52,23 @@ public class UsuarioRepositorio {
                 RETURNING *""", nombre, correo, googleId, rol);
     }
 
-    /** Vincula Google a una cuenta existente. Devuelve null si otra petición ya la vinculó. */
+    /**
+     * Vincula Google a una cuenta existente. Devuelve null si otra petición ya la
+     * vinculó.
+     */
     public Fila vincularGoogle(long usuarioId, String googleId) {
         return bd.uno("""
-                UPDATE usuarios SET google_id = ?
-                 WHERE id = ? AND google_id IS NULL
-             RETURNING *""", googleId, usuarioId);
+                   UPDATE usuarios SET google_id = ?
+                    WHERE id = ? AND google_id IS NULL
+                RETURNING *""", googleId, usuarioId);
     }
 
     /** El teléfono llega ya normalizado (9 dígitos). */
     public Fila actualizarTelefono(long usuarioId, String telefono) {
         return bd.uno("""
-                UPDATE usuarios SET telefono = ?
-                 WHERE id = ?
-             RETURNING id, nombre, correo, telefono, rol""", telefono, usuarioId);
+                   UPDATE usuarios SET telefono = ?
+                    WHERE id = ?
+                RETURNING id, nombre, correo, telefono, rol""", telefono, usuarioId);
     }
 
     /**
@@ -64,17 +77,17 @@ public class UsuarioRepositorio {
      */
     public Fila registrarIntentoFallido(long usuarioId, int maxIntentos, int minutosBloqueo) {
         return bd.uno("""
-                UPDATE usuarios u
-                   SET intentos_fallidos = n.nuevo,
-                       bloqueado_hasta = CASE WHEN n.nuevo >= ?
-                                              THEN now() + make_interval(mins => ?::int)
-                                              ELSE NULL END
-                  FROM (SELECT id,
-                               CASE WHEN bloqueado_hasta IS NOT NULL AND bloqueado_hasta <= now()
-                                    THEN 1 ELSE intentos_fallidos + 1 END AS nuevo
-                          FROM usuarios WHERE id = ?) n
-                 WHERE u.id = n.id
-             RETURNING u.intentos_fallidos, u.bloqueado_hasta""", maxIntentos, minutosBloqueo, usuarioId);
+                   UPDATE usuarios u
+                      SET intentos_fallidos = n.nuevo,
+                          bloqueado_hasta = CASE WHEN n.nuevo >= ?
+                                                 THEN now() + make_interval(mins => ?::int)
+                                                 ELSE NULL END
+                     FROM (SELECT id,
+                                  CASE WHEN bloqueado_hasta IS NOT NULL AND bloqueado_hasta <= now()
+                                       THEN 1 ELSE intentos_fallidos + 1 END AS nuevo
+                             FROM usuarios WHERE id = ?) n
+                    WHERE u.id = n.id
+                RETURNING u.intentos_fallidos, u.bloqueado_hasta""", maxIntentos, minutosBloqueo, usuarioId);
     }
 
     public void reiniciarIntentos(long usuarioId) {
@@ -87,8 +100,8 @@ public class UsuarioRepositorio {
 
     public Fila cambiarContrasena(long usuarioId, String hash) {
         return bd.uno("""
-                UPDATE usuarios SET contrasena_hash = ?
-                 WHERE id = ?
-             RETURNING *""", hash, usuarioId);
+                   UPDATE usuarios SET contrasena_hash = ?
+                    WHERE id = ?
+                RETURNING *""", hash, usuarioId);
     }
 }
