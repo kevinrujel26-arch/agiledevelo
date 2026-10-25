@@ -105,4 +105,16 @@ public class ReservaHoraRepositorio {
                 WHERE id = ?""",
                 EstadoReserva.CANCELADA.name(), id);
     }
+
+    /**
+     * Cancela las reservas pendientes de pago cuyo plazo de 2 horas ya venció (libera el horario).
+     */
+    public int cancelarVencidas() {
+        return bd.ejecutar("""
+                UPDATE reservas
+                   SET estado = 'CANCELADA', cancelada_en = now(),
+                       motivo_cancelacion = 'No se pagó dentro de las 2 horas'
+                 WHERE estado = 'PENDIENTE_PAGO'
+                   AND expira_pago_en IS NOT NULL AND expira_pago_en <= now()""");
+    }
 }

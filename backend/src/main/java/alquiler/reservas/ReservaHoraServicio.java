@@ -443,4 +443,9 @@ public class ReservaHoraServicio {
                 "creadoEn", f.instante("creado_en"),
                 "canceladaEn", f.instante("cancelada_en"));
     }
+
+    /** HU-07 criterio 5: cancela las reservas que no se pagaron en 2 horas. Devuelve cuántas canceló. */
+    public int cancelarVencidas() {
+        return reservas.cancelarVencidas();
+    }
 }

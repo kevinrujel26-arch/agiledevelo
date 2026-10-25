@@ -48,6 +48,20 @@ export default function FormularioReserva({ maquina, ocupados, onExito, onCerrar
   const [errorEnvio, setErrorEnvio] = useState('');
   const [codigoReserva, setCodigoReserva] = useState('');
   const [reservaCreada, setReservaCreada] = useState(null);
+  const [pagando, setPagando] = useState(false);
+
+  // HU-07: manda al cliente a pagar en Mercado Pago
+  async function pagarAhora() {
+    setPagando(true);
+    setErrorEnvio('');
+    try {
+      const r = await api.post(`/reservas/${reservaCreada.id}/pagar`, {});
+      window.location.assign(r.datos.urlPago);
+    } catch (e) {
+      setErrorEnvio(e.message);
+      setPagando(false);
+    }
+  }
   const [verTerminos, setVerTerminos] = useState(false);
 
   // Efecto: auto-seleccionar primer día con hora LIBRE
@@ -408,6 +422,7 @@ export default function FormularioReserva({ maquina, ocupados, onExito, onCerrar
 
       setCodigoReserva(res.codigo);
       setReservaCreada({
+        id: res.datos?.id,
         fecha: diaSeleccionado,
         horaInicio: horaSeleccionada,
         horas: cantidadHoras,
@@ -480,11 +495,16 @@ export default function FormularioReserva({ maquina, ocupados, onExito, onCerrar
         </div>
 
         <div className="confirmacion-aviso">
-          Tu reserva está pendiente de pago. Guarda este código para identificarla. El pago estará disponible próximamente.
+          Tu reserva está pendiente de pago. Tienes 2 horas para pagarla; pasado ese tiempo se cancela y el horario queda libre. Guarda este código para identificarla.
         </div>
 
+        {errorEnvio && <Alerta>{errorEnvio}</Alerta>}
+
         <div className="acciones-centrado">
-          <button type="button" onClick={onExito} className="boton boton-primario">
+          <button type="button" onClick={pagarAhora} disabled={pagando} className="boton boton-primario">
+            {pagando ? 'Redirigiendo…' : 'Pagar ahora'}
+          </button>
+          <button type="button" onClick={onExito} className="boton boton-secundario">
             Volver al catálogo
           </button>
           <button type="button" onClick={onCerrar} className="boton boton-secundario">

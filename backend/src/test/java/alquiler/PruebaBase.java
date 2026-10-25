@@ -12,6 +12,7 @@ import alquiler.bd.Bd;
 import alquiler.bd.Migraciones;
 import alquiler.config.Config;
 import alquiler.json.Json;
+import alquiler.pagos.PasarelaPago;
 import alquiler.seguridad.Contrasenas;
 
 import java.io.ByteArrayOutputStream;
@@ -59,6 +60,10 @@ public abstract class PruebaBase {
     /** Simulado: sin configurar, responde como si faltara GOOGLE_CLIENT_ID. */
     @MockBean
     protected VerificadorGoogle verificadorGoogle;
+
+    /** Simulado: las pruebas no llaman a Mercado Pago (sin configurar por defecto). */
+    @MockBean
+    protected PasarelaPago pasarela;
 
     private static Path crearCarpetaTemporal() {
         try {
