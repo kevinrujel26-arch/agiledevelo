@@ -3,6 +3,17 @@ package alquiler.util;
 /** Valida números de RUC peruano. */
 public class ValidadorRuc {
 
+    /** Documento del solicitante: DNI (8 digitos, boleta) o RUC (11 digitos validados, factura). */
+    public static boolean esDocumentoValido(String documento) {
+        if (documento == null) {
+            return false;
+        }
+        if (documento.matches("\\d{8}")) {
+            return true;
+        }
+        return esValido(documento);
+    }
+
     private static final int[] PESOS = {5, 4, 3, 2, 7, 6, 5, 4, 3, 2};
     private static final String[] PREFIJOS_VALIDOS = {"10", "15", "17", "20"};
 

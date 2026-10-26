@@ -33,3 +33,10 @@ export function validarRuc(ruc) {
 
   return '';
 }
+
+export function validarDni(dni) {
+  const texto = (dni || '').trim();
+  if (!texto) return 'El DNI es obligatorio';
+  if (!/^\d{8}$/.test(texto)) return 'El DNI debe tener 8 d\u00edgitos';
+  return '';
+}
