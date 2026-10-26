@@ -299,8 +299,8 @@ public class ReservaHoraServicio {
             throw ErrorApp.solicitudInvalida("El nombre no puede exceder 160 caracteres");
         }
 
-        if (!ValidadorRuc.esValido(ruc)) {
-            throw ErrorApp.solicitudInvalida("RUC no válido");
+        if (!ValidadorRuc.esDocumentoValido(ruc)) {
+            throw ErrorApp.solicitudInvalida("Documento (DNI o RUC) no válido");
         }
 
         if (telefono == null || telefono.trim().isEmpty()) {

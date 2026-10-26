@@ -50,7 +50,7 @@ public class ReservaHoraControlador {
         int horaInicio = v.entero("horaInicio", -1, 0, 23);
         int horas = v.entero("horas", -1, 1, 12);
         String nombreSolicitante = v.linea("nombreSolicitante", "Nombre completo", 1, 160, true, null);
-        String ruc = v.texto("ruc", 11, 11, true, "RUC requerido");
+        String ruc = v.texto("ruc", 8, 11, true, "Documento requerido");
         String telefono = v.linea("telefono", "Teléfono", 1, 20, true, null);
         String email = v.correo("email");
         String ubicacionObra = v.linea("ubicacionObra", "Ubicación de la obra", 1, 200, true, null);

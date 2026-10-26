@@ -129,7 +129,7 @@ export default function AdminReservas() {
         >
           <input
             type="search"
-            placeholder="Buscar por código, solicitante, RUC, máquina o cliente"
+            placeholder="Buscar por código, solicitante, DNI/RUC, máquina o cliente"
             value={busqueda}
             maxLength={BUSQUEDA_MAX}
             onChange={(e) => setBusqueda(e.target.value)}
@@ -186,7 +186,7 @@ export default function AdminReservas() {
                       </td>
                       <td className="col-solicitante">
                         <strong>{r.nombreSolicitante}</strong>
-                        <div className="texto-suave">{r.ruc}</div>
+                        <div className="texto-suave">{(r.ruc || "").length === 8 ? "DNI" : "RUC"} {r.ruc}</div>
                       </td>
                       <td className="col-fecha">
                         <div>{fecha}</div>

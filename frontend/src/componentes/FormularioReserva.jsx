@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { api, ErrorApi } from '../api/cliente';
 import { useAuth } from '../contexto/AuthContext';
 import { hoyISO, formatearMoneda } from '../utils/formato';
-import { validarRuc } from '../utils/validadorRuc';
+import { validarRuc, validarDni } from '../utils/validadorRuc';
 import { validarLinea, normalizarCelular, validarCelular, validarCorreo, normalizarTexto } from '../utils/validaciones';
 import { Icono } from './Ilustracion';
 import { Alerta } from './comunes';
@@ -36,6 +36,7 @@ export default function FormularioReserva({ maquina, ocupados, onExito, onCerrar
   const [formulario, setFormulario] = useState({
     nombreSolicitante: '',
     ruc: '',
+    tipoDoc: 'RUC',
     telefono: usuario?.telefono || '',
     email: usuario?.correo || '',
     ubicacionObra: '',
@@ -375,7 +376,7 @@ export default function FormularioReserva({ maquina, ocupados, onExito, onCerrar
     });
     if (nombreError) nuevosErrores.nombreSolicitante = nombreError;
 
-    const rucError = validarRuc(formulario.ruc);
+    const rucError = formulario.tipoDoc === 'DNI' ? validarDni(formulario.ruc) : validarRuc(formulario.ruc);
     if (rucError) nuevosErrores.ruc = rucError;
 
     const telefonoError = validarCelular(formulario.telefono);
@@ -598,14 +599,19 @@ export default function FormularioReserva({ maquina, ocupados, onExito, onCerrar
             </div>
 
             <div className={`campo ${errores.ruc ? 'campo-error' : ''}`}>
-              <label htmlFor="ruc">RUC *</label>
+              <label htmlFor="tipoDoc">Comprobante *</label>
+              <select id="tipoDoc" value={formulario.tipoDoc} onChange={(e) => cambiarCampo('tipoDoc', e.target.value)}>
+                <option value="RUC">Factura (con RUC)</option>
+                <option value="DNI">Boleta (con DNI)</option>
+              </select>
+              <label htmlFor="ruc">{formulario.tipoDoc === 'DNI' ? 'DNI *' : 'RUC *'}</label>
               <input
                 id="ruc"
                 type="text"
                 value={formulario.ruc}
-                onChange={(e) => cambiarCampo('ruc', e.target.value.replace(/\D/g, '').slice(0, 11))}
-                placeholder="Ej. 20123456789"
-                maxLength="11"
+                onChange={(e) => cambiarCampo('ruc', e.target.value.replace(/\D/g, '').slice(0, formulario.tipoDoc === 'DNI' ? 8 : 11))}
+                placeholder={formulario.tipoDoc === 'DNI' ? 'Ej. 12345678' : 'Ej. 20123456789'}
+                maxLength={formulario.tipoDoc === 'DNI' ? 8 : 11}
                 aria-invalid={!!errores.ruc}
               />
               {errores.ruc && <span className="mensaje-error" role="alert" aria-live="polite">{errores.ruc}</span>}
