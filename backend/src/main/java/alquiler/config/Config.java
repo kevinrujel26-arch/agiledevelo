@@ -1,6 +1,7 @@
 package alquiler.config;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
@@ -51,6 +52,14 @@ public final class Config {
     // "Continuar con Google": Client ID (público) de Google Identity Services. Sin él, el botón no funciona
     public final String googleClientId;
 
+    // HU-07: Mercado Pago (Checkout Pro). Sin Access Token el pago en línea queda desactivado
+    public final String mpAccessToken;
+    public final String urlFrontend;   // a dónde vuelve el cliente después de pagar
+    public final String urlBackend;    // dirección pública de esta API (Mercado Pago avisa aquí del pago)
+    public final String mpPublicKey;   // clave pública de Mercado Pago (formulario de tarjeta)
+    public final BigDecimal mpYapeMaximo; // sobre este monto (S/) no se ofrece Yape
+    public final boolean mpPagoEnPagina;  // true: formulario de tarjeta dentro de la página; false: redirige a Mercado Pago
+
     public final List<String> corsOrigenes;
     public final Path dirSubidas;
     public final String zonaHoraria;
@@ -86,6 +95,14 @@ public final class Config {
         this.cloudinaryApiSecret = valor("CLOUDINARY_API_SECRET", null);
 
         this.googleClientId = valor("GOOGLE_CLIENT_ID", null);
+
+        this.mpAccessToken = valor("MP_ACCESS_TOKEN", null);
+        this.urlFrontend = valor("FRONTEND_URL", corsOrigenes.isEmpty() ? "http://localhost:5173" : corsOrigenes.get(0))
+                .replaceAll("/+$", "");
+        this.urlBackend = valor("BACKEND_URL", "http://localhost:" + puerto).replaceAll("/+$", "");
+        this.mpYapeMaximo = new BigDecimal(valor("MP_YAPE_MAX", "500"));
+        this.mpPublicKey = valor("MP_PUBLIC_KEY", null);
+        this.mpPagoEnPagina = "true".equalsIgnoreCase(valor("MP_PAGO_EN_PAGINA", "false"));
     }
 
     /** Configuración normal: variables de entorno + archivo .env */

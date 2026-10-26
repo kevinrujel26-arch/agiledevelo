@@ -217,7 +217,7 @@ export default function DetalleMaquina() {
           left: 0;
           right: 0;
           bottom: 0;
-          background: rgba(0, 0, 0, 0.5);
+          background: rgba(0, 0, 0, 0.7);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -232,7 +232,7 @@ export default function DetalleMaquina() {
           to { opacity: 1; }
         }
         .modal-contenido {
-          background: var(--panel-arriba);
+          background: var(--superficie-2);
           border: 1px solid var(--borde);
           border-radius: var(--radio);
           padding: 28px;

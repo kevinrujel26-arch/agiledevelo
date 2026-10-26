@@ -10,6 +10,7 @@ import Registro from './paginas/Registro';
 import Login from './paginas/Login';
 import CompletarRegistro from './paginas/CompletarRegistro';
 import MiCuenta from './paginas/MiCuenta';
+import PagoResultado from './paginas/PagoResultado';
 import NoEncontrado from './paginas/NoEncontrado';
 import AdminLayout from './paginas/admin/AdminLayout';
 import AdminCategorias from './paginas/admin/AdminCategorias';
@@ -55,6 +56,14 @@ export default function App() {
           <Route path="/registro" element={<Registro />} />
           <Route path="/login" element={<Login />} />
           <Route path="/completar-registro" element={<CompletarRegistro />} />
+          <Route
+            path="/pago/resultado"
+            element={
+              <RutaProtegida roles={['CLIENTE']}>
+                <PagoResultado />
+              </RutaProtegida>
+            }
+          />
 
           {/* Cliente */}
           <Route

@@ -6,6 +6,7 @@ import { validarRuc } from '../utils/validadorRuc';
 import { validarLinea, normalizarCelular, validarCelular, validarCorreo, normalizarTexto } from '../utils/validaciones';
 import { Icono } from './Ilustracion';
 import { Alerta } from './comunes';
+import PagoTarjeta from './PagoTarjeta';
 import { createPortal } from 'react-dom';
 import { TEXTO_TERMINOS } from '../utils/textoTerminos';
 
@@ -48,6 +49,34 @@ export default function FormularioReserva({ maquina, ocupados, onExito, onCerrar
   const [errorEnvio, setErrorEnvio] = useState('');
   const [codigoReserva, setCodigoReserva] = useState('');
   const [reservaCreada, setReservaCreada] = useState(null);
+  // HU-07: formulario de tarjeta dentro de la página (si el servidor lo activa) o redirección a Mercado Pago
+  const [pagando, setPagando] = useState(false);
+  const [verPago, setVerPago] = useState(false);
+  const [pagoHecho, setPagoHecho] = useState(false);
+
+  async function pagarAhora() {
+    setPagando(true);
+    setErrorEnvio('');
+    try {
+      let enPagina = false;
+      try {
+        const c = await api.get('/pagos/config');
+        enPagina = c.datos?.pagoEnPagina === true;
+      } catch {
+        enPagina = false;
+      }
+      if (enPagina) {
+        setVerPago(true);
+        setPagando(false);
+        return;
+      }
+      const r = await api.post(`/reservas/${reservaCreada.id}/pagar`, {});
+      window.location.assign(r.datos.urlPago);
+    } catch (e) {
+      setErrorEnvio(e.message);
+      setPagando(false);
+    }
+  }
   const [verTerminos, setVerTerminos] = useState(false);
 
   // Efecto: auto-seleccionar primer día con hora LIBRE
@@ -408,6 +437,7 @@ export default function FormularioReserva({ maquina, ocupados, onExito, onCerrar
 
       setCodigoReserva(res.codigo);
       setReservaCreada({
+        id: res.datos?.id,
         fecha: diaSeleccionado,
         horaInicio: horaSeleccionada,
         horas: cantidadHoras,
@@ -480,11 +510,20 @@ export default function FormularioReserva({ maquina, ocupados, onExito, onCerrar
         </div>
 
         <div className="confirmacion-aviso">
-          Tu reserva está pendiente de pago. Guarda este código para identificarla. El pago estará disponible próximamente.
+          {pagoHecho ? '¡Pago recibido! Tu reserva quedó confirmada y la máquina está asegurada para ti.' : 'Tu reserva está pendiente de pago. Tienes 2 horas para pagarla; pasado ese tiempo se cancela y el horario queda libre. Guarda este código para identificarla.'}
         </div>
 
+        {errorEnvio && <Alerta>{errorEnvio}</Alerta>}
+
+        {verPago && !pagoHecho && (
+          <PagoTarjeta reservaId={reservaCreada.id} total={reservaCreada.total} onPagado={() => setPagoHecho(true)} />
+        )}
+
         <div className="acciones-centrado">
-          <button type="button" onClick={onExito} className="boton boton-primario">
+          <button type="button" onClick={pagarAhora} disabled={pagando || verPago} style={verPago ? { display: 'none' } : undefined} className="boton boton-primario">
+            {pagando ? 'Procesando…' : 'Pagar ahora'}
+          </button>
+          <button type="button" onClick={onExito} className="boton boton-secundario">
             Volver al catálogo
           </button>
           <button type="button" onClick={onCerrar} className="boton boton-secundario">
