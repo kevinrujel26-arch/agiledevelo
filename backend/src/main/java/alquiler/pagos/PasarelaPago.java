@@ -28,4 +28,15 @@ public interface PasarelaPago {
 
     /** Consulta un pago a Mercado Pago. Devuelve null si no existe. */
     Pago consultarPago(String idPago);
+
+    /** Datos del formulario de tarjeta de Mercado Pago: la tarjeta ya viene convertida en un token de un solo uso. */
+    record DatosTarjeta(String token, String metodoPagoId, String emisorId, String correo,
+                        String tipoDocumento, String numeroDocumento) {
+    }
+
+    /** Crea el pago con el token de la tarjeta (en 1 cuota). Devuelve el pago creado, aprobado o rechazado. */
+    Pago pagarConTarjeta(String referencia, String descripcion, BigDecimal monto, DatosTarjeta tarjeta);
+
+    /** Clave pública de Mercado Pago (no es secreta: la usa el formulario de tarjeta). null si no está configurada. */
+    String clavePublica();
 }

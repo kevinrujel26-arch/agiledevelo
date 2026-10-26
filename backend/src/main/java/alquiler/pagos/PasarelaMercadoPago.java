@@ -90,6 +90,43 @@ public class PasarelaMercadoPago implements PasarelaPago {
                 monto == null ? null : new BigDecimal(monto.toString()));
     }
 
+    @Override
+    public String clavePublica() {
+        return config.mpPublicKey;
+    }
+
+    @Override
+    public Pago pagarConTarjeta(String referencia, String descripcion, BigDecimal monto, DatosTarjeta t) {
+        Map<String, Object> pagador = Json.obj("email", t.correo());
+        if (t.tipoDocumento() != null && t.numeroDocumento() != null) {
+            pagador.put("identification", Json.obj("type", t.tipoDocumento(), "number", t.numeroDocumento()));
+        }
+        Map<String, Object> cuerpo = Json.obj(
+                "transaction_amount", monto,
+                "token", t.token(),
+                "description", descripcion,
+                "installments", 1,
+                "payment_method_id", t.metodoPagoId(),
+                "payer", pagador,
+                "external_reference", referencia);
+        if (t.emisorId() != null) cuerpo.put("issuer_id", Long.valueOf(t.emisorId()));
+        // Mercado Pago no acepta direcciones locales como notification_url en los pagos
+        if (config.urlBackend.startsWith("https://")) {
+            cuerpo.put("notification_url", config.urlBackend + "/api/pagos/webhook");
+        }
+
+        Map<String, Object> r = pedir(HttpRequest.newBuilder(URI.create(API + "/v1/payments"))
+                .header("Content-Type", "application/json")
+                .header("X-Idempotency-Key", java.util.UUID.randomUUID().toString())
+                .POST(HttpRequest.BodyPublishers.ofString(Json.escribir(cuerpo))));
+        if (r == null || r.get("id") == null) {
+            throw new ErrorApp(502, "No se pudo procesar el pago. Intenta nuevamente");
+        }
+        Object pagado = r.get("transaction_amount");
+        return new Pago(String.valueOf(r.get("id")), texto(r.get("status")), texto(r.get("status_detail")),
+                texto(r.get("external_reference")), pagado == null ? null : new BigDecimal(pagado.toString()));
+    }
+
     /** Envía la petición. Devuelve el JSON de respuesta, o null si Mercado Pago responde 404. */
     @SuppressWarnings("unchecked")
     private Map<String, Object> pedir(HttpRequest.Builder constructor) {
@@ -108,7 +145,8 @@ public class PasarelaMercadoPago implements PasarelaPago {
         }
         if (respuesta.statusCode() == 404) return null;
         if (respuesta.statusCode() / 100 != 2) {
-            LOG.warn("Mercado Pago respondió {} a {} {}", respuesta.statusCode(), peticion.method(), peticion.uri().getPath());
+            String detalle = respuesta.body() == null ? "" : respuesta.body().substring(0, Math.min(400, respuesta.body().length()));
+            LOG.warn("Mercado Pago respondió {} a {} {}: {}", respuesta.statusCode(), peticion.method(), peticion.uri().getPath(), detalle);
             throw new ErrorApp(502, "Mercado Pago no pudo procesar la solicitud. Intenta nuevamente");
         }
         try {

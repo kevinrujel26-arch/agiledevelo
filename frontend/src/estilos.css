@@ -1043,3 +1043,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: non
   line-height: 1.5;
   font-size: 0.92rem;
 }
+
+/* HU-07: el formulario de tarjeta de Mercado Pago es claro; sus selectores nativos también */
+#contenedor-pago-tarjeta { color-scheme: light; }
+#contenedor-pago-tarjeta select,
+#contenedor-pago-tarjeta option { background-color: #ffffff; color: #1b1d22; }

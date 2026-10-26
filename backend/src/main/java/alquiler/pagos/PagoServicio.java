@@ -135,6 +135,40 @@ public class PagoServicio {
                 "motivo", motivo);
     }
 
+    /** Pago dentro de la página: el formulario de tarjeta de Mercado Pago entrega un token y aquí se crea el pago. */
+    public Map<String, Object> pagarConTarjeta(long usuarioId, long reservaId, PasarelaPago.DatosTarjeta tarjeta) {
+        if (!pasarela.configurada()) {
+            throw new ErrorApp(503, "El pago en línea no está disponible por ahora");
+        }
+        Fila r = reservaDelCliente(usuarioId, reservaId);
+        if (!"PENDIENTE_PAGO".equals(r.texto("estado"))) {
+            throw ErrorApp.conflicto("La reserva ya no está pendiente de pago");
+        }
+        Instant vence = r.instante("expira_pago_en");
+        if (vence != null && !vence.isAfter(Instant.now())) {
+            reservas.cancelarVencidas();
+            throw ErrorApp.conflicto("Pasaron más de 2 horas sin pagar: la reserva fue cancelada y el horario liberado");
+        }
+        // El monto sale de la reserva, nunca de lo que mande el navegador
+        PasarelaPago.Pago creado = pasarela.pagarConTarjeta(
+                String.valueOf(reservaId),
+                "Reserva " + r.texto("codigo") + " - " + r.texto("maquina_nombre"),
+                r.decimal("monto_total"),
+                tarjeta);
+        if (creado == null || creado.id() == null) {
+            throw new ErrorApp(502, "No se pudo procesar el pago. Intenta nuevamente");
+        }
+        registrarPago(creado.id(), reservaId);
+        return estado(usuarioId, reservaId);
+    }
+
+    /** Clave pública para el formulario de tarjeta; 503 si no está configurada. */
+    public String clavePublica() {
+        String clave = pasarela.clavePublica();
+        if (clave == null || clave.isBlank()) throw new ErrorApp(503, "El pago en línea no está disponible por ahora");
+        return clave;
+    }
+
     private static Long idDeReserva(String referencia) {
         try {
             return referencia == null ? null : Long.valueOf(referencia);

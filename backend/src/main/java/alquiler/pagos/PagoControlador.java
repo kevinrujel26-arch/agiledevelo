@@ -1,9 +1,11 @@
 package alquiler.pagos;
 
+import alquiler.config.Config;
 import alquiler.http.Respuesta;
 import alquiler.http.Solicitud;
 import alquiler.json.Json;
 import alquiler.util.ErrorApp;
+import alquiler.util.Validador;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,9 +22,38 @@ public class PagoControlador {
     private static final Pattern ID_PAGO = Pattern.compile("\\d{1,20}");
 
     private final PagoServicio servicio;
+    private final Config config;
 
-    public PagoControlador(PagoServicio servicio) {
+    public PagoControlador(PagoServicio servicio, Config config) {
         this.servicio = servicio;
+        this.config = config;
+    }
+
+    /** GET /api/pagos/config (público) -> { publicKey, pagoEnPagina }: clave pública y si el formulario de tarjeta va dentro de la página. */
+    @GetMapping("/api/pagos/config")
+    public ResponseEntity<Object> configuracion() {
+        return Respuesta.ok(Json.obj("datos", Json.obj("publicKey", servicio.clavePublica(), "pagoEnPagina", config.mpPagoEnPagina)));
+    }
+
+    /**
+     * POST /api/reservas/{id}/pagar-con-tarjeta
+     * { token, metodoPagoId, emisorId?, correo, tipoDocumento?, numeroDocumento? }
+     * El formulario de Mercado Pago convierte la tarjeta en un token: los datos de la tarjeta nunca llegan aquí.
+     */
+    @PostMapping("/api/reservas/{id}/pagar-con-tarjeta")
+    public ResponseEntity<Object> pagarConTarjeta(HttpServletRequest peticion) {
+        Solicitud s = Solicitud.de(peticion);
+        Validador v = Validador.de(s.json());
+        String token = v.texto("token", 8, 200, true, "Falta el token de la tarjeta");
+        String metodo = v.texto("metodoPagoId", 2, 40, true, "Falta el medio de pago");
+        String emisor = v.texto("emisorId", 1, 10, false, null);
+        String correo = v.correo("correo");
+        String tipoDoc = v.texto("tipoDocumento", 2, 10, false, null);
+        String numeroDoc = v.texto("numeroDocumento", 5, 20, false, null);
+        if (emisor != null && !emisor.matches("\\d{1,10}")) v.error("emisorId", "No es válido");
+        v.validar();
+        PasarelaPago.DatosTarjeta tarjeta = new PasarelaPago.DatosTarjeta(token, metodo, emisor, correo, tipoDoc, numeroDoc);
+        return Respuesta.ok(Json.obj("datos", servicio.pagarConTarjeta(s.usuario().id(), s.id("id"), tarjeta)));
     }
 
     /** POST /api/reservas/{id}/pagar -> { urlPago }: el cliente va a esa dirección a pagar. */

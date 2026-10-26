@@ -56,7 +56,9 @@ public final class Config {
     public final String mpAccessToken;
     public final String urlFrontend;   // a dónde vuelve el cliente después de pagar
     public final String urlBackend;    // dirección pública de esta API (Mercado Pago avisa aquí del pago)
+    public final String mpPublicKey;   // clave pública de Mercado Pago (formulario de tarjeta)
     public final BigDecimal mpYapeMaximo; // sobre este monto (S/) no se ofrece Yape
+    public final boolean mpPagoEnPagina;  // true: formulario de tarjeta dentro de la página; false: redirige a Mercado Pago
 
     public final List<String> corsOrigenes;
     public final Path dirSubidas;
@@ -99,6 +101,8 @@ public final class Config {
                 .replaceAll("/+$", "");
         this.urlBackend = valor("BACKEND_URL", "http://localhost:" + puerto).replaceAll("/+$", "");
         this.mpYapeMaximo = new BigDecimal(valor("MP_YAPE_MAX", "500"));
+        this.mpPublicKey = valor("MP_PUBLIC_KEY", null);
+        this.mpPagoEnPagina = "true".equalsIgnoreCase(valor("MP_PAGO_EN_PAGINA", "false"));
     }
 
     /** Configuración normal: variables de entorno + archivo .env */

@@ -86,6 +86,83 @@ class PagosTest extends PruebaBase {
         assertEquals("APROBADO", bd().uno("SELECT estado FROM pagos WHERE reserva_id = ?", reservaId).texto("estado"));
     }
 
+    private Map<String, Object> datosTarjeta() {
+        return Json.obj("token", "tok_1234567890abcdef", "metodoPagoId", "master", "emisorId", "24",
+                "correo", "comprador@test.com", "tipoDocumento", "DNI", "numeroDocumento", "12345678");
+    }
+
+    /** Mercado Pago cobra con la tarjeta y responde con este estado; luego se consulta igual que con el aviso. */
+    private void mercadoPagoCobra(String idPago, String estado, String detalle) {
+        PasarelaPago.Pago pago = new PasarelaPago.Pago(idPago, estado, detalle, String.valueOf(reservaId), new BigDecimal("200.00"));
+        when(pasarela.pagarConTarjeta(eq(String.valueOf(reservaId)), anyString(), any(BigDecimal.class), any(PasarelaPago.DatosTarjeta.class)))
+                .thenReturn(pago);
+        when(pasarela.consultarPago(idPago)).thenReturn(pago);
+    }
+
+    @Test
+    @DisplayName("Tarjeta: el pago aprobado confirma la reserva sin salir de la página")
+    void pagarConTarjetaAprobado() {
+        mercadoPagoCobra("777", "approved", "accredited");
+
+        Resp r = post("/api/reservas/" + reservaId + "/pagar-con-tarjeta", datosTarjeta(), token);
+
+        assertEquals(200, r.estado(), String.valueOf(r.cuerpo()));
+        assertEquals("PAGADA", r.objeto("datos").get("estadoReserva"));
+        assertEquals("APROBADO", r.objeto("datos").get("estadoPago"));
+        assertEquals("PAGADA", estadoReserva(reservaId));
+        assertEquals(1L, cantidadPagos("777"));
+    }
+
+    @Test
+    @DisplayName("Tarjeta: si el pago es rechazado, se informa el motivo, la reserva sigue pendiente y se puede reintentar")
+    void pagarConTarjetaRechazado() {
+        mercadoPagoCobra("778", "rejected", "cc_rejected_insufficient_amount");
+        String ruta = "/api/reservas/" + reservaId + "/pagar-con-tarjeta";
+
+        Resp r = post(ruta, datosTarjeta(), token);
+
+        assertEquals(200, r.estado(), String.valueOf(r.cuerpo()));
+        assertEquals("RECHAZADO", r.objeto("datos").get("estadoPago"));
+        assertEquals("La tarjeta no tiene fondos suficientes", r.objeto("datos").get("motivo"));
+        assertEquals("PENDIENTE_PAGO", estadoReserva(reservaId));
+
+        mercadoPagoCobra("779", "approved", "accredited");
+        Resp reintento = post(ruta, datosTarjeta(), token);
+        assertEquals("PAGADA", reintento.objeto("datos").get("estadoReserva"));
+    }
+
+    @Test
+    @DisplayName("Tarjeta: valida sesión, dueño, datos, estado de la reserva y configuración")
+    void pagarConTarjetaValidaDatos() {
+        mercadoPagoCobra("777", "approved", "accredited");
+        String ruta = "/api/reservas/" + reservaId + "/pagar-con-tarjeta";
+        String otro = token(crearCliente(), false);
+
+        assertEquals(401, post(ruta, datosTarjeta(), null).estado());
+        assertEquals(404, post(ruta, datosTarjeta(), otro).estado());
+        assertEquals(400, post(ruta, Json.obj("token", "tok_1234567890abcdef", "metodoPagoId", "master", "correo", "no-es-correo"), token).estado());
+        assertEquals(400, post(ruta, Json.obj("correo", "comprador@test.com"), token).estado());
+        bd().ejecutar("UPDATE reservas SET estado = 'PAGADA' WHERE id = ?", reservaId);
+        assertEquals(409, post(ruta, datosTarjeta(), token).estado());
+        when(pasarela.configurada()).thenReturn(false);
+        assertEquals(503, post(ruta, datosTarjeta(), token).estado());
+        assertEquals(0L, bd().uno("SELECT count(*) AS n FROM pagos").entero("n"));
+    }
+
+    @Test
+    @DisplayName("Tarjeta: la clave pública para el formulario es pública y responde 503 si falta")
+    void clavePublicaParaElFormulario() {
+        when(pasarela.clavePublica()).thenReturn("APP_USR-clave-publica-de-prueba");
+
+        Resp r = get("/api/pagos/config", null);
+
+        assertEquals(200, r.estado(), String.valueOf(r.cuerpo()));
+        assertEquals("APP_USR-clave-publica-de-prueba", r.objeto("datos").get("publicKey"));
+        assertEquals(false, r.objeto("datos").get("pagoEnPagina"));
+        when(pasarela.clavePublica()).thenReturn(null);
+        assertEquals(503, get("/api/pagos/config", null).estado());
+    }
+
     private String estadoReserva(long id) {
         return bd().uno("SELECT estado FROM reservas WHERE id = ?", id).texto("estado");
     }
