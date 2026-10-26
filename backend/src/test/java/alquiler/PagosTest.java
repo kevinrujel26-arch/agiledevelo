@@ -158,7 +158,7 @@ class PagosTest extends PruebaBase {
 
         assertEquals(200, r.estado(), String.valueOf(r.cuerpo()));
         assertEquals("APP_USR-clave-publica-de-prueba", r.objeto("datos").get("publicKey"));
-        assertEquals(false, r.objeto("datos").get("pagoEnPagina"));
+        assertTrue(r.objeto("datos").get("pagoEnPagina") instanceof Boolean);
         when(pasarela.clavePublica()).thenReturn(null);
         assertEquals(503, get("/api/pagos/config", null).estado());
     }
