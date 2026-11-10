@@ -117,4 +117,17 @@ public class ReservaHoraRepositorio {
                  WHERE estado = 'PENDIENTE_PAGO'
                    AND expira_pago_en IS NOT NULL AND expira_pago_en <= now()""");
     }
+
+    public List<Fila> listarPorClienteConMaquina(long clienteId, String estado) {
+        String filtro = estado == null ? "" : " AND r.estado = ?";
+        Object[] parametros = estado == null ? new Object[]{clienteId} : new Object[]{clienteId, estado};
+        return bd.consultar("""
+                SELECT r.id, r.codigo, r.fecha_inicio, r.fecha_fin, r.monto_total, r.estado,
+                       r.expira_pago_en, m.nombre AS maquina_nombre
+                FROM reservas r
+                JOIN maquinas m ON m.id = r.maquina_id
+                WHERE r.cliente_id = ?""" + filtro + """
+
+                ORDER BY r.creado_en DESC, r.id DESC""", parametros);
+    }
 }
