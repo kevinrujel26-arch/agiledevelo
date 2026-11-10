@@ -9,7 +9,9 @@ import DetalleMaquina from './paginas/DetalleMaquina';
 import Registro from './paginas/Registro';
 import Login from './paginas/Login';
 import CompletarRegistro from './paginas/CompletarRegistro';
-import MiCuenta from './paginas/MiCuenta';
+import MiCuenta, { Seguridad } from './paginas/MiCuenta';
+import CuentaLayout from './paginas/CuentaLayout';
+import MisReservas from './paginas/MisReservas';
 import PagoResultado from './paginas/PagoResultado';
 import NoEncontrado from './paginas/NoEncontrado';
 import AdminLayout from './paginas/admin/AdminLayout';
@@ -70,10 +72,14 @@ export default function App() {
             path="/mi-cuenta"
             element={
               <RutaProtegida roles={['CLIENTE']}>
-                <MiCuenta />
+                <CuentaLayout />
               </RutaProtegida>
             }
-          />
+          >
+            <Route index element={<MiCuenta />} />
+            <Route path="reservas" element={<MisReservas />} />
+            <Route path="seguridad" element={<Seguridad />} />
+          </Route>
 
           {/* Administrador (EN-05) */}
           <Route

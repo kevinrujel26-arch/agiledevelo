@@ -1,12 +1,14 @@
 // Panel del cliente (HU-02: destino tras iniciar sesión con rol Cliente)
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexto/AuthContext';
 import { Alerta, Campo } from '../componentes/comunes';
 import { CampoContrasena } from '../componentes/CampoContrasena';
 import { formatearCelular } from '../utils/formato';
 import { validarCelular, validarContrasenaNueva, validarConfirmacion } from '../utils/validaciones';
 import { useValidacion } from '../utils/useValidacion';
+
+const capitalizar = (texto) => texto.toLowerCase().replace(/(^|\s)\S/g, (letra) => letra.toUpperCase());
 
 const REGLAS_CELULAR = { telefono: validarCelular };
 const REGLAS_CONTRASENA = { actual: (v) => v && v.length > 0 ? null : 'Ingresa tu contraseña actual', nueva: validarContrasenaNueva, confirmacion: (v, d) => validarConfirmacion(v, d.nueva) };
@@ -154,32 +156,45 @@ function CambiarContrasena() {
 export default function MiCuenta() {
   const { usuario } = useAuth();
   return (
-    <div className="contenedor contenedor-angosto">
-      <div className="panel">
-        <h1>Hola, {usuario.nombre.split(' ')[0]} 👋</h1>
-        <p className="texto-suave">{usuario.correo}</p>
-        <p className="texto-suave">
-          Celular: {usuario.telefono ? formatearCelular(usuario.telefono) : 'sin registrar'}
-        </p>
-        {!usuario.telefono && <CompletarCelular />}
-        {usuario.tieneContrasena && <CambiarContrasena />}
-        {!usuario.tieneContrasena && (
-          <section className="sin-contrasena" aria-labelledby="titulo-sin-contrasena">
-            <h2 id="titulo-sin-contrasena">Contraseña</h2>
-            <p className="texto-suave">Tu cuenta usa Google para iniciar sesión. No tienes una contraseña asignada.</p>
-          </section>
-        )}
-        <div className="tarjetas-accion">
-          <Link to="/catalogo" className="tarjeta-accion">
-            <strong>Explorar catálogo</strong>
-            <span>Revisa la maquinaria disponible y sus tarifas.</span>
-          </Link>
-          <div className="tarjeta-accion deshabilitada" title="Disponible en el Sprint 3">
-            <strong>Mis reservas</strong>
-            <span>Próximamente: aquí verás tus reservas y su estado.</span>
-          </div>
+    <div className="panel">
+      <div className="perfil-cabecera">
+        <span className="perfil-avatar">{usuario.nombre.charAt(0).toUpperCase()}</span>
+        <div>
+          <h1>{capitalizar(usuario.nombre)}</h1>
+          <p className="texto-suave">Cliente</p>
         </div>
       </div>
+      <dl className="perfil-datos">
+        <div>
+          <dt>Correo</dt>
+          <dd>{usuario.correo}</dd>
+        </div>
+        <div>
+          <dt>Celular</dt>
+          <dd>{usuario.telefono ? formatearCelular(usuario.telefono) : 'Sin registrar'}</dd>
+        </div>
+        <div>
+          <dt>Acceso</dt>
+          <dd>{usuario.tieneContrasena ? 'Correo y contraseña' : 'Google'}</dd>
+        </div>
+      </dl>
+      {!usuario.telefono && <CompletarCelular />}
+    </div>
+  );
+}
+
+export function Seguridad() {
+  const { usuario } = useAuth();
+  return (
+    <div className="panel">
+      {usuario.tieneContrasena ? (
+        <CambiarContrasena />
+      ) : (
+        <section className="sin-contrasena" aria-labelledby="titulo-sin-contrasena">
+          <h2 id="titulo-sin-contrasena">Contraseña</h2>
+          <p className="texto-suave">Tu cuenta usa Google para iniciar sesión. No tienes una contraseña asignada.</p>
+        </section>
+      )}
     </div>
   );
 }

@@ -107,4 +107,12 @@ public class ReservaHoraControlador {
         servicio.cancelar(id);
         return Respuesta.sinContenido();
     }
+
+    @GetMapping("/api/reservas/mias")
+    public ResponseEntity<Object> listarMias(HttpServletRequest peticion) {
+        Solicitud s = Solicitud.de(peticion);
+        String estado = s.query().get("estado");
+        if (estado != null && estado.isBlank()) estado = null;
+        return Respuesta.ok(Json.obj("datos", servicio.listarDelCliente(s.usuario().id(), estado)));
+    }
 }

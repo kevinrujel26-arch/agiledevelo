@@ -188,7 +188,6 @@ export default function DetalleMaquina() {
       {mostrarFormularioReserva && maquina && (
         <div
           className="modal-overlay"
-          onClick={() => setMostrarFormularioReserva(false)}
           role="dialog"
           aria-modal="true"
           aria-labelledby="modal-titulo"

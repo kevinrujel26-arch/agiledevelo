@@ -1,5 +1,9 @@
 package alquiler.reservas;
 
+import java.util.Map;
+import java.util.List;
+import alquiler.modelo.EstadoReserva;
+import alquiler.util.ErrorApp;
 import alquiler.bd.*;
 import alquiler.config.Config;
 import alquiler.json.Json;
@@ -447,5 +451,26 @@ public class ReservaHoraServicio {
     /** HU-07 criterio 5: cancela las reservas que no se pagaron en 2 horas. Devuelve cuántas canceló. */
     public int cancelarVencidas() {
         return reservas.cancelarVencidas();
+    }
+
+    public List<Map<String, Object>> listarDelCliente(long clienteId, String estado) {
+        if (estado != null) {
+            try {
+                EstadoReserva.valueOf(estado);
+            } catch (IllegalArgumentException e) {
+                throw ErrorApp.solicitudInvalida("Estado no válido");
+            }
+        }
+        return reservas.listarPorClienteConMaquina(clienteId, estado).stream()
+                .<Map<String, Object>>map(f -> Json.obj(
+                        "id", f.entero("id"),
+                        "codigo", f.texto("codigo"),
+                        "maquinaNombre", f.texto("maquina_nombre"),
+                        "inicio", f.instante("fecha_inicio"),
+                        "fin", f.instante("fecha_fin"),
+                        "total", f.decimal("monto_total"),
+                        "estado", f.texto("estado"),
+                        "expiraPagoEn", f.instante("expira_pago_en")))
+                .toList();
     }
 }

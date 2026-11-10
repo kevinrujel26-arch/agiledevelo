@@ -714,8 +714,9 @@ a.contacto-item:hover { border-color: var(--acento-borde-fuerte); }
   .pie-rejilla { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 600px) {
-  .encabezado-interior { gap: 10px; min-height: 60px; flex-wrap: nowrap; justify-content: space-between; }
-  .nav-principal { display: none; }
+  .encabezado-interior { gap: 6px 10px; min-height: 60px; flex-wrap: wrap; justify-content: space-between; }
+  .nav-principal { order: 3; flex: 0 0 100%; overflow-x: auto; padding-bottom: 8px; }
+  .nav-principal a { white-space: nowrap; }
   .nav-usuario { gap: 6px; }
   .nav-usuario .boton-chico { padding: 7px 12px; font-size: 0.82rem; }
   .nombre-usuario .nombre-texto, .nombre-usuario .insignia { display: none; }
@@ -1048,3 +1049,28 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: non
 #contenedor-pago-tarjeta { color-scheme: light; }
 #contenedor-pago-tarjeta select,
 #contenedor-pago-tarjeta option { background-color: #ffffff; color: #1b1d22; }
+
+.perfil-cabecera { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+.perfil-cabecera h1 { margin: 0; font-size: 1.5rem; }
+.perfil-cabecera p { margin: 2px 0 0; }
+.perfil-avatar { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--degradado); color: var(--sobre-acento); font-weight: 700; font-size: 1.4rem; }
+.perfil-datos { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin: 0; }
+.perfil-datos div { padding: 14px 16px; border: 1px solid var(--borde); border-radius: var(--radio-chico); background: var(--vidrio); }
+.perfil-datos dt { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--texto-tenue); margin-bottom: 4px; }
+.perfil-datos dd { margin: 0; font-weight: 500; word-break: break-word; }
+
+.contenedor.admin { padding-top: 28px; }
+@media (max-width: 600px) {
+  .perfil-datos { grid-template-columns: 1fr 1fr; }
+  .perfil-datos div:first-child { grid-column: 1 / -1; }
+}
+
+.contador-pendiente { margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: var(--degradado); color: var(--sobre-acento); font-size: 0.75rem; font-weight: 700; }
+
+.modal-contenido { width: 100%; max-width: 860px; }
+.modal-contenido .formulario-reserva { font-size: 1.05rem; }
+.modal-contenido input, .modal-contenido select, .modal-contenido textarea { font-size: 1.05rem; }
+
+.modal-overlay .modal-contenido { width: 95%; max-width: 1000px; }
+.modal-overlay .modal-contenido .formulario-reserva { font-size: 1.1rem; }
+.modal-overlay .modal-contenido input, .modal-overlay .modal-contenido select, .modal-overlay .modal-contenido textarea { font-size: 1.1rem; }
