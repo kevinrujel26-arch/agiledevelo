@@ -163,6 +163,52 @@ class PagosTest extends PruebaBase {
         assertEquals(503, get("/api/pagos/config", null).estado());
     }
 
+    private void cobrarConDocumento(String idPago, String documento) {
+        bd().ejecutar("UPDATE reservas SET ruc = ?, nombre_solicitante = 'Constructora Prueba' WHERE id = ?", documento, reservaId);
+        mercadoPagoCobra(idPago, "approved", "accredited");
+        assertEquals(200, post("/api/reservas/" + reservaId + "/pagar-con-tarjeta", datosTarjeta(), token).estado());
+    }
+
+    @Test
+    @DisplayName("HU-08: al aprobarse el pago con DNI se emite una boleta simulada aceptada")
+    void pagoAprobadoEmiteBoleta() {
+        cobrarConDocumento("801", "12345678");
+
+        var c = bd().uno("SELECT * FROM comprobantes WHERE reserva_id = ?", reservaId);
+
+        assertEquals("BOLETA", c.texto("tipo"));
+        assertEquals("B001", c.texto("serie"));
+        assertEquals("12345678", c.texto("documento_cliente"));
+        assertEquals("ACEPTADO", c.texto("estado"));
+        assertNotNull(c.texto("codigo_hash"));
+        assertEquals(0, new BigDecimal("200.00").compareTo(c.decimal("total")));
+        assertEquals(0, new BigDecimal("169.49").compareTo(c.decimal("valor_venta")));
+        assertEquals(0, new BigDecimal("30.51").compareTo(c.decimal("igv")));
+    }
+
+    @Test
+    @DisplayName("HU-08: al aprobarse el pago con RUC se emite una factura simulada")
+    void pagoAprobadoEmiteFactura() {
+        cobrarConDocumento("802", "20123456789");
+
+        var c = bd().uno("SELECT * FROM comprobantes WHERE reserva_id = ?", reservaId);
+
+        assertEquals("FACTURA", c.texto("tipo"));
+        assertEquals("F001", c.texto("serie"));
+        assertEquals("20123456789", c.texto("documento_cliente"));
+        assertEquals("ACEPTADO", c.texto("estado"));
+    }
+
+    @Test
+    @DisplayName("HU-08: un aviso repetido del pago no crea un segundo comprobante")
+    void avisoRepetidoNoDuplicaComprobante() {
+        cobrarConDocumento("803", "12345678");
+
+        assertEquals(200, avisoDeMercadoPago("803").estado());
+        assertEquals(200, avisoDeMercadoPago("803").estado());
+
+        assertEquals(1L, bd().uno("SELECT count(*) AS n FROM comprobantes WHERE reserva_id = ?", reservaId).entero("n"));
+    }
     private String estadoReserva(long id) {
         return bd().uno("SELECT estado FROM reservas WHERE id = ?", id).texto("estado");
     }
