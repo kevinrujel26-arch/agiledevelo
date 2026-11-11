@@ -151,12 +151,19 @@ public class PasarelaMercadoPago implements PasarelaPago {
                         "id", t.metodoPagoId(),
                         "type", tipo,
                         "token", t.token(),
-                        "installments", 1));
+                        "installments", 1,
+                        "statement_descriptor", "MAQUIRENTA"));
         Map<String, Object> cuerpo = Json.obj(
                 "type", "online",
                 "processing_mode", "automatic",
                 "total_amount", importe,
                 "external_reference", referencia,
+                "description", descripcion,
+                "items", List.of(Json.obj(
+                        "title", descripcion,
+                        "unit_price", importe,
+                        "quantity", 1,
+                        "description", "Alquiler de maquinaria pesada por horas")),
                 "transactions", Json.obj("payments", List.of(pago)),
                 "payer", t.tipoDocumento() == null || t.tipoDocumento().isBlank()
                         || t.numeroDocumento() == null || t.numeroDocumento().isBlank()
