@@ -299,3 +299,38 @@ CREATE TABLE auditoria (
   creado_en           TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 CREATE INDEX ix_auditoria_entidad ON auditoria (entidad, entidad_id);
+
+CREATE SEQUENCE seq_boleta;
+CREATE SEQUENCE seq_factura;
+
+CREATE TABLE comprobantes (
+  id                INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  reserva_id        INTEGER       NOT NULL UNIQUE REFERENCES reservas(id) ON DELETE RESTRICT,
+  pago_id           INTEGER       NOT NULL REFERENCES pagos(id) ON DELETE RESTRICT,
+  tipo              VARCHAR(10)   NOT NULL CHECK (tipo IN ('BOLETA', 'FACTURA')),
+  serie             CHAR(4)       NOT NULL,
+  numero            INTEGER       NOT NULL,
+  documento_cliente VARCHAR(11)   NOT NULL,
+  nombre_cliente    VARCHAR(160)  NOT NULL,
+  valor_venta       NUMERIC(12,2) NOT NULL CHECK (valor_venta > 0),
+  igv               NUMERIC(12,2) NOT NULL CHECK (igv >= 0),
+  total             NUMERIC(12,2) NOT NULL CHECK (total > 0),
+  moneda            CHAR(3)       NOT NULL DEFAULT 'PEN',
+  estado            VARCHAR(12)   NOT NULL DEFAULT 'PENDIENTE'
+                      CHECK (estado IN ('PENDIENTE', 'ACEPTADO', 'RECHAZADO')),
+  motivo            VARCHAR(200),
+  codigo_hash       VARCHAR(64),
+  intentos          INTEGER       NOT NULL DEFAULT 0,
+  proximo_intento   TIMESTAMPTZ,
+  emitido_en        TIMESTAMPTZ,
+  creado_en         TIMESTAMPTZ   NOT NULL DEFAULT now(),
+  actualizado_en    TIMESTAMPTZ   NOT NULL DEFAULT now(),
+  CONSTRAINT ux_comprobantes_serie_numero UNIQUE (serie, numero),
+  CONSTRAINT ck_comprobantes_importes CHECK (total = valor_venta + igv)
+);
+
+CREATE INDEX ix_comprobantes_pendientes ON comprobantes (proximo_intento) WHERE estado = 'PENDIENTE';
+
+CREATE TRIGGER tg_comprobantes_actualizado
+  BEFORE UPDATE ON comprobantes
+  FOR EACH ROW EXECUTE FUNCTION fn_set_actualizado_en();

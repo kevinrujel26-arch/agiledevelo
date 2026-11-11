@@ -77,6 +77,26 @@ async function peticion(metodo, ruta, { cuerpo, query, formData } = {}) {
   return datos;
 }
 
+export async function descargarArchivo(ruta, nombre) {
+  const token = almacenToken.obtener();
+  let respuesta;
+  try {
+    respuesta = await fetch(`${BASE_URL}/api${ruta}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  } catch {
+    throw new ErrorApi(0, 'No se pudo conectar con el servidor. Revisa tu conexión');
+  }
+  if (!respuesta.ok) {
+    const datos = await respuesta.json().catch(() => ({}));
+    throw new ErrorApi(respuesta.status, datos.error || 'Ocurrió un error inesperado', datos.detalles);
+  }
+  const objeto = URL.createObjectURL(await respuesta.blob());
+  const enlace = document.createElement('a');
+  enlace.href = objeto;
+  enlace.download = nombre;
+  enlace.click();
+  URL.revokeObjectURL(objeto);
+}
+
 export const api = {
   get: (ruta, query) => peticion('GET', ruta, { query }),
   post: (ruta, cuerpo) => peticion('POST', ruta, { cuerpo }),

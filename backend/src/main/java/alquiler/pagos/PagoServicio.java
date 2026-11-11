@@ -3,6 +3,7 @@ package alquiler.pagos;
 import alquiler.bd.Bd;
 import alquiler.bd.Fila;
 import alquiler.json.Json;
+import alquiler.comprobantes.ComprobanteServicio;
 import alquiler.reservas.ReservaHoraRepositorio;
 import alquiler.util.ErrorApp;
 import org.slf4j.Logger;
@@ -23,11 +24,13 @@ public class PagoServicio {
     private final Bd bd;
     private final PasarelaPago pasarela;
     private final ReservaHoraRepositorio reservas;
+    private final ComprobanteServicio comprobantes;
 
-    public PagoServicio(Bd bd, PasarelaPago pasarela, ReservaHoraRepositorio reservas) {
+    public PagoServicio(Bd bd, PasarelaPago pasarela, ReservaHoraRepositorio reservas, ComprobanteServicio comprobantes) {
         this.bd = bd;
         this.pasarela = pasarela;
         this.reservas = reservas;
+        this.comprobantes = comprobantes;
     }
 
     /** Criterio 1: crea el pago en Mercado Pago y devuelve la dirección a la que hay que mandar al cliente. */
@@ -79,7 +82,7 @@ public class PagoServicio {
             default -> "PENDIENTE";
         };
 
-        return bd.transaccion(tx -> {
+        boolean registrado = bd.transaccion(tx -> {
             Fila r = tx.uno("SELECT * FROM reservas WHERE id = ? FOR UPDATE", reservaId);
             if (r == null) return false;
             if (info.monto() == null || info.monto().compareTo(r.decimal("monto_total")) != 0) {
@@ -110,6 +113,14 @@ public class PagoServicio {
             }
             return true;
         });
+        if (registrado && "APROBADO".equals(estadoPago)) {
+            try {
+                comprobantes.emitir(reservaId);
+            } catch (RuntimeException e) {
+                LOG.warn("No se pudo emitir el comprobante de la reserva {}: {}", reservaId, e.getMessage());
+            }
+        }
+        return registrado;
     }
 
     /** Estado actual de la reserva y de su último pago (lo usa la pantalla a la que vuelve el cliente). */

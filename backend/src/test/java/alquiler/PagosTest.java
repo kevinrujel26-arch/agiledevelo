@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
@@ -163,6 +164,76 @@ class PagosTest extends PruebaBase {
         assertEquals(503, get("/api/pagos/config", null).estado());
     }
 
+    private void cobrarConDocumento(String idPago, String documento) {
+        bd().ejecutar("UPDATE reservas SET ruc = ?, nombre_solicitante = 'Constructora Prueba' WHERE id = ?", documento, reservaId);
+        mercadoPagoCobra(idPago, "approved", "accredited");
+        assertEquals(200, post("/api/reservas/" + reservaId + "/pagar-con-tarjeta", datosTarjeta(), token).estado());
+    }
+
+    @Test
+    @DisplayName("HU-08: al aprobarse el pago con DNI se emite una boleta simulada aceptada")
+    void pagoAprobadoEmiteBoleta() {
+        cobrarConDocumento("801", "12345678");
+
+        var c = bd().uno("SELECT * FROM comprobantes WHERE reserva_id = ?", reservaId);
+
+        assertEquals("BOLETA", c.texto("tipo"));
+        assertEquals("B001", c.texto("serie"));
+        assertEquals("12345678", c.texto("documento_cliente"));
+        assertEquals("ACEPTADO", c.texto("estado"));
+        assertNotNull(c.texto("codigo_hash"));
+        assertEquals(0, new BigDecimal("200.00").compareTo(c.decimal("total")));
+        assertEquals(0, new BigDecimal("169.49").compareTo(c.decimal("valor_venta")));
+        assertEquals(0, new BigDecimal("30.51").compareTo(c.decimal("igv")));
+    }
+
+    @Test
+    @DisplayName("HU-08: al aprobarse el pago con RUC se emite una factura simulada")
+    void pagoAprobadoEmiteFactura() {
+        cobrarConDocumento("802", "20123456789");
+
+        var c = bd().uno("SELECT * FROM comprobantes WHERE reserva_id = ?", reservaId);
+
+        assertEquals("FACTURA", c.texto("tipo"));
+        assertEquals("F001", c.texto("serie"));
+        assertEquals("20123456789", c.texto("documento_cliente"));
+        assertEquals("ACEPTADO", c.texto("estado"));
+    }
+
+    @Test
+    @DisplayName("HU-08: un aviso repetido del pago no crea un segundo comprobante")
+    void avisoRepetidoNoDuplicaComprobante() {
+        cobrarConDocumento("803", "12345678");
+
+        assertEquals(200, avisoDeMercadoPago("803").estado());
+        assertEquals(200, avisoDeMercadoPago("803").estado());
+
+        assertEquals(1L, bd().uno("SELECT count(*) AS n FROM comprobantes WHERE reserva_id = ?", reservaId).entero("n"));
+    }
+    @Test
+    @DisplayName("HU-08: el cliente descarga su comprobante en PDF y XML; otros no pueden")
+    void descargaDelComprobante() {
+        String ruta = "/api/reservas/" + reservaId + "/comprobante";
+        assertEquals(404, descargar(ruta, token).estado());
+
+        cobrarConDocumento("804", "12345678");
+
+        Descarga pdf = descargar(ruta + "?formato=pdf", token);
+        assertEquals(200, pdf.estado());
+        assertTrue(pdf.tipo().contains("application/pdf"));
+        assertEquals("%PDF", new String(pdf.datos(), 0, 4, StandardCharsets.US_ASCII));
+
+        Descarga xml = descargar(ruta + "?formato=xml", token);
+        assertEquals(200, xml.estado());
+        assertTrue(xml.tipo().contains("xml"));
+        String contenido = new String(xml.datos(), StandardCharsets.UTF_8);
+        assertTrue(contenido.contains("B001-"));
+        assertTrue(contenido.contains("Comprobante simulado, sin validez tributaria"));
+
+        assertEquals(404, descargar(ruta, token(crearCliente(), false)).estado());
+        assertEquals(401, descargar(ruta, null).estado());
+        assertEquals(400, descargar(ruta + "?formato=doc", token).estado());
+    }
     private String estadoReserva(long id) {
         return bd().uno("SELECT estado FROM reservas WHERE id = ?", id).texto("estado");
     }
