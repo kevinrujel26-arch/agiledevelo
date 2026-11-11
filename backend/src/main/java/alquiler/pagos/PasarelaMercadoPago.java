@@ -163,10 +163,14 @@ public class PasarelaMercadoPago implements PasarelaPago {
                         ? Json.obj("email", t.correo())
                         : Json.obj("email", t.correo(),
                                 "identification", Json.obj("type", t.tipoDocumento(), "number", t.numeroDocumento())));
-        Map<String, Object> r = pedir(HttpRequest.newBuilder(URI.create(API + "/v1/orders"))
+        HttpRequest.Builder peticion = HttpRequest.newBuilder(URI.create(API + "/v1/orders"))
                 .header("Content-Type", "application/json")
                 .header("X-Idempotency-Key", java.util.UUID.randomUUID().toString())
-                .POST(HttpRequest.BodyPublishers.ofString(Json.escribir(cuerpo))), true);
+                .POST(HttpRequest.BodyPublishers.ofString(Json.escribir(cuerpo)));
+        if (t.dispositivoId() != null && !t.dispositivoId().isBlank()) {
+            peticion.header("X-meli-session-id", t.dispositivoId());
+        }
+        Map<String, Object> r = pedir(peticion, true);
         if (r == null || r.get("id") == null) {
             throw new ErrorApp(502, "No se pudo procesar el pago. Intenta nuevamente");
         }
