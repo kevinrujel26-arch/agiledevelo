@@ -118,7 +118,7 @@ public class PasarelaMercadoPago implements PasarelaPago {
         }
         Object total = o.get("total_amount");
         return new Pago(texto(o.get("id")), estado, detalleFinal, texto(o.get("external_reference")),
-                total == null ? null : new BigDecimal(total.toString()));
+                total == null ? null : new BigDecimal(total.toString()), urlDesafio(o));
     }
 
     /** Respuesta 402 de Orders: la orden viene en "data" y el motivo en errors[0].details. */
@@ -166,6 +166,10 @@ public class PasarelaMercadoPago implements PasarelaPago {
                         "description", "Alquiler de maquinaria pesada por horas")),
                 "transactions", Json.obj("payments", List.of(pago)));
         cuerpo.put("payer", pagador(t));
+        if (!"false".equalsIgnoreCase(config.valor("MP_3DS", "true"))) {
+            cuerpo.put("config", Json.obj("online", Json.obj("transaction_security",
+                    Json.obj("validation", "on_fraud_risk", "liability_shift", "required"))));
+        }
         HttpRequest.Builder peticion = HttpRequest.newBuilder(URI.create(API + "/v1/orders"))
                 .header("Content-Type", "application/json")
                 .header("X-Idempotency-Key", java.util.UUID.randomUUID().toString())
@@ -230,6 +234,17 @@ public class PasarelaMercadoPago implements PasarelaPago {
             p.put("phone", Json.obj("area_code", "51", "number", t.telefono()));
         }
         return p;
+    }
+
+    private static String urlDesafio(Map<String, Object> o) {
+        if (o.get("transactions") instanceof Map<?, ?> tr && tr.get("payments") instanceof List<?> ps
+                && !ps.isEmpty() && ps.get(0) instanceof Map<?, ?> p0
+                && "pending_challenge".equals(texto(p0.get("status_detail")))
+                && p0.get("payment_method") instanceof Map<?, ?> pm
+                && pm.get("transaction_security") instanceof Map<?, ?> ts && ts.get("url") != null) {
+            return texto(ts.get("url"));
+        }
+        return null;
     }
 
     private static String texto(Object v) {

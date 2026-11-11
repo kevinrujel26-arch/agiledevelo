@@ -188,7 +188,9 @@ public class PagoServicio {
             throw new ErrorApp(502, "No se pudo procesar el pago. Intenta nuevamente");
         }
         registrarPago(creado.id(), reservaId);
-        return estado(usuarioId, reservaId);
+        Map<String, Object> resultado = estado(usuarioId, reservaId);
+        if (creado.urlDesafio() != null) resultado.put("urlDesafio", creado.urlDesafio());
+        return resultado;
     }
 
     /** Clave pública para el formulario de tarjeta; 503 si no está configurada. */
@@ -196,6 +198,14 @@ public class PagoServicio {
         String clave = pasarela.clavePublica();
         if (clave == null || clave.isBlank()) throw new ErrorApp(503, "El pago en línea no está disponible por ahora");
         return clave;
+    }
+
+    public void reconsultarPendiente(long reservaId) {
+        Fila p = bd.uno("""
+                SELECT id_externo FROM pagos
+                 WHERE reserva_id = ? AND estado = 'PENDIENTE' AND id_externo LIKE 'ORD%'
+                 ORDER BY id DESC LIMIT 1""", reservaId);
+        if (p != null) registrarPago(p.texto("id_externo"), reservaId);
     }
 
     private static Long idDeReserva(String referencia) {
@@ -227,6 +237,7 @@ public class PagoServicio {
             case "cc_rejected_call_for_authorize" -> "Debes autorizar el pago con tu banco";
             case "cc_rejected_card_disabled" -> "La tarjeta está inactiva. Actívala o usa otra";
             case "cc_rejected_max_attempts" -> "Llegaste al límite de intentos. Prueba con otra tarjeta";
+            case "cc_rejected_3ds_challenge" -> "No se pudo verificar tu identidad con el banco. Intenta nuevamente o usa otra tarjeta";
             default -> MOTIVO_GENERICO;
         };
     }

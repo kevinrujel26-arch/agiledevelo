@@ -86,6 +86,8 @@ public class PagoControlador {
             String id = idPago.toString();
             if (!ID_PAGO.matcher(id).matches()) throw ErrorApp.solicitudInvalida("paymentId: no es válido");
             servicio.registrarPago(id, reservaId);
+        } else {
+            servicio.reconsultarPendiente(reservaId);
         }
         return Respuesta.ok(Json.obj("datos", servicio.estado(usuarioId, reservaId)));
     }
