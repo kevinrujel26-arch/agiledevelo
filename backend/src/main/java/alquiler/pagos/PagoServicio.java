@@ -123,6 +123,24 @@ public class PagoServicio {
         return registrado;
     }
 
+    private PasarelaPago.DatosTarjeta conDatosDelSolicitante(PasarelaPago.DatosTarjeta tarjeta, long reservaId) {
+        Fila s = bd.uno("SELECT nombre_solicitante, ruc, telefono_contacto FROM reservas WHERE id = ?", reservaId);
+        if (s == null) return tarjeta;
+        String nombre = null;
+        String apellido = null;
+        String documento = s.texto("ruc");
+        String completo = s.texto("nombre_solicitante");
+        if (completo != null && !completo.isBlank() && (documento == null || documento.length() != 11)) {
+            String[] partes = completo.trim().split("\\s+", 2);
+            nombre = partes[0];
+            apellido = partes.length > 1 ? partes[1] : null;
+        }
+        String celular = s.texto("telefono_contacto");
+        String digitos = celular == null ? "" : celular.replaceAll("\\D", "");
+        if (digitos.length() == 11 && digitos.startsWith("51")) digitos = digitos.substring(2);
+        return tarjeta.conComprador(nombre, apellido, digitos.matches("9\\d{8}") ? digitos : null);
+    }
+
     /** Estado actual de la reserva y de su último pago (lo usa la pantalla a la que vuelve el cliente). */
     public Map<String, Object> estado(long usuarioId, long reservaId) {
         Fila r = reservaDelCliente(usuarioId, reservaId);
@@ -165,7 +183,7 @@ public class PagoServicio {
                 String.valueOf(reservaId),
                 "Reserva " + r.texto("codigo") + " - " + r.texto("maquina_nombre"),
                 r.decimal("monto_total"),
-                tarjeta);
+                conDatosDelSolicitante(tarjeta, reservaId));
         if (creado == null || creado.id() == null) {
             throw new ErrorApp(502, "No se pudo procesar el pago. Intenta nuevamente");
         }

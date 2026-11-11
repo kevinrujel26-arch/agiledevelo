@@ -164,12 +164,8 @@ public class PasarelaMercadoPago implements PasarelaPago {
                         "unit_price", importe,
                         "quantity", 1,
                         "description", "Alquiler de maquinaria pesada por horas")),
-                "transactions", Json.obj("payments", List.of(pago)),
-                "payer", t.tipoDocumento() == null || t.tipoDocumento().isBlank()
-                        || t.numeroDocumento() == null || t.numeroDocumento().isBlank()
-                        ? Json.obj("email", t.correo())
-                        : Json.obj("email", t.correo(),
-                                "identification", Json.obj("type", t.tipoDocumento(), "number", t.numeroDocumento())));
+                "transactions", Json.obj("payments", List.of(pago)));
+        cuerpo.put("payer", pagador(t));
         HttpRequest.Builder peticion = HttpRequest.newBuilder(URI.create(API + "/v1/orders"))
                 .header("Content-Type", "application/json")
                 .header("X-Idempotency-Key", java.util.UUID.randomUUID().toString())
@@ -220,6 +216,20 @@ public class PasarelaMercadoPago implements PasarelaPago {
         } catch (Json.JsonInvalidoException e) {
             throw new ErrorApp(502, "Mercado Pago respondió algo inesperado. Intenta nuevamente");
         }
+    }
+
+    private static Map<String, Object> pagador(DatosTarjeta t) {
+        Map<String, Object> p = Json.obj("email", t.correo());
+        if (t.tipoDocumento() != null && !t.tipoDocumento().isBlank()
+                && t.numeroDocumento() != null && !t.numeroDocumento().isBlank()) {
+            p.put("identification", Json.obj("type", t.tipoDocumento(), "number", t.numeroDocumento()));
+        }
+        if (t.nombre() != null && !t.nombre().isBlank()) p.put("first_name", t.nombre());
+        if (t.apellido() != null && !t.apellido().isBlank()) p.put("last_name", t.apellido());
+        if (t.telefono() != null && !t.telefono().isBlank()) {
+            p.put("phone", Json.obj("area_code", "51", "number", t.telefono()));
+        }
+        return p;
     }
 
     private static String texto(Object v) {
