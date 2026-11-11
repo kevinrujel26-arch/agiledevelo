@@ -470,7 +470,8 @@ public class ReservaHoraServicio {
                         "fin", f.instante("fecha_fin"),
                         "total", f.decimal("monto_total"),
                         "estado", f.texto("estado"),
-                        "expiraPagoEn", f.instante("expira_pago_en")))
+                        "expiraPagoEn", f.instante("expira_pago_en"),
+                        "comprobante", f.texto("comprobante")))
                 .toList();
     }
 }

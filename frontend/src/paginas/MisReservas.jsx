@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api } from '../api/cliente';
+import { api, descargarArchivo } from '../api/cliente';
 import { Alerta, Cargando } from '../componentes/comunes';
 import PagoTarjeta from '../componentes/PagoTarjeta';
 import { formatearMoneda } from '../utils/formato';
@@ -74,6 +74,15 @@ export default function MisReservas() {
     }
   }
 
+  async function descargar(reserva, formato) {
+    setError('');
+    try {
+      await descargarArchivo(`/reservas/${reserva.id}/comprobante?formato=${formato}`, `${reserva.comprobante}.${formato}`);
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   return (
     <div>
       <div className="panel">
@@ -111,6 +120,17 @@ export default function MisReservas() {
                   </button>
                 )}
                 {r.estado === 'PENDIENTE_PAGO' && !puedePagar(r) && <p className="texto-suave">El plazo de pago venció.</p>}
+                {r.comprobante && (
+                  <p>
+                    Comprobante {r.comprobante}{' '}
+                    <button type="button" className="boton" onClick={() => descargar(r, 'pdf')}>
+                      PDF
+                    </button>{' '}
+                    <button type="button" className="boton" onClick={() => descargar(r, 'xml')}>
+                      XML
+                    </button>
+                  </p>
+                )}
                 {tarjetaId === r.id && (
                   <PagoTarjeta
                     reservaId={r.id}

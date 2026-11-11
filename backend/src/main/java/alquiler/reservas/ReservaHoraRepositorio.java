@@ -123,7 +123,9 @@ public class ReservaHoraRepositorio {
         Object[] parametros = estado == null ? new Object[]{clienteId} : new Object[]{clienteId, estado};
         return bd.consultar("""
                 SELECT r.id, r.codigo, r.fecha_inicio, r.fecha_fin, r.monto_total, r.estado,
-                       r.expira_pago_en, m.nombre AS maquina_nombre
+                       r.expira_pago_en, m.nombre AS maquina_nombre,
+                          (SELECT c.serie || '-' || lpad(c.numero::text, 8, '0') FROM comprobantes c
+                            WHERE c.reserva_id = r.id AND c.estado = 'ACEPTADO') AS comprobante
                 FROM reservas r
                 JOIN maquinas m ON m.id = r.maquina_id
                 WHERE r.cliente_id = ?""" + filtro + """
