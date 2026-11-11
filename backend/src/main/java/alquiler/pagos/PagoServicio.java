@@ -123,6 +123,24 @@ public class PagoServicio {
         return registrado;
     }
 
+    private PasarelaPago.DatosTarjeta conDatosDelSolicitante(PasarelaPago.DatosTarjeta tarjeta, long reservaId) {
+        Fila s = bd.uno("SELECT nombre_solicitante, ruc, telefono_contacto FROM reservas WHERE id = ?", reservaId);
+        if (s == null) return tarjeta;
+        String nombre = null;
+        String apellido = null;
+        String documento = s.texto("ruc");
+        String completo = s.texto("nombre_solicitante");
+        if (completo != null && !completo.isBlank() && (documento == null || documento.length() != 11)) {
+            String[] partes = completo.trim().split("\\s+", 2);
+            nombre = partes[0];
+            apellido = partes.length > 1 ? partes[1] : null;
+        }
+        String celular = s.texto("telefono_contacto");
+        String digitos = celular == null ? "" : celular.replaceAll("\\D", "");
+        if (digitos.length() == 11 && digitos.startsWith("51")) digitos = digitos.substring(2);
+        return tarjeta.conComprador(nombre, apellido, digitos.matches("9\\d{8}") ? digitos : null);
+    }
+
     /** Estado actual de la reserva y de su último pago (lo usa la pantalla a la que vuelve el cliente). */
     public Map<String, Object> estado(long usuarioId, long reservaId) {
         Fila r = reservaDelCliente(usuarioId, reservaId);
@@ -165,12 +183,14 @@ public class PagoServicio {
                 String.valueOf(reservaId),
                 "Reserva " + r.texto("codigo") + " - " + r.texto("maquina_nombre"),
                 r.decimal("monto_total"),
-                tarjeta);
+                conDatosDelSolicitante(tarjeta, reservaId));
         if (creado == null || creado.id() == null) {
             throw new ErrorApp(502, "No se pudo procesar el pago. Intenta nuevamente");
         }
         registrarPago(creado.id(), reservaId);
-        return estado(usuarioId, reservaId);
+        Map<String, Object> resultado = estado(usuarioId, reservaId);
+        if (creado.urlDesafio() != null) resultado.put("urlDesafio", creado.urlDesafio());
+        return resultado;
     }
 
     /** Clave pública para el formulario de tarjeta; 503 si no está configurada. */
@@ -178,6 +198,14 @@ public class PagoServicio {
         String clave = pasarela.clavePublica();
         if (clave == null || clave.isBlank()) throw new ErrorApp(503, "El pago en línea no está disponible por ahora");
         return clave;
+    }
+
+    public void reconsultarPendiente(long reservaId) {
+        Fila p = bd.uno("""
+                SELECT id_externo FROM pagos
+                 WHERE reserva_id = ? AND estado = 'PENDIENTE' AND id_externo LIKE 'ORD%'
+                 ORDER BY id DESC LIMIT 1""", reservaId);
+        if (p != null) registrarPago(p.texto("id_externo"), reservaId);
     }
 
     private static Long idDeReserva(String referencia) {
@@ -209,6 +237,7 @@ public class PagoServicio {
             case "cc_rejected_call_for_authorize" -> "Debes autorizar el pago con tu banco";
             case "cc_rejected_card_disabled" -> "La tarjeta está inactiva. Actívala o usa otra";
             case "cc_rejected_max_attempts" -> "Llegaste al límite de intentos. Prueba con otra tarjeta";
+            case "cc_rejected_3ds_challenge" -> "No se pudo verificar tu identidad con el banco. Intenta nuevamente o usa otra tarjeta";
             default -> MOTIVO_GENERICO;
         };
     }

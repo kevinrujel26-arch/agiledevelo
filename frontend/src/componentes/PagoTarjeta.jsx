@@ -83,6 +83,7 @@ export default function PagoTarjeta({ reservaId, total, onPagado }) {
   const [error, setError] = useState('');
   const [aviso, setAviso] = useState('');
   const [cargando, setCargando] = useState(true);
+  const [desafio, setDesafio] = useState('');
   const alPagar = useRef(onPagado);
   alPagar.current = onPagado;
 
@@ -106,6 +107,10 @@ export default function PagoTarjeta({ reservaId, total, onPagado }) {
           dispositivoId: window.MP_DEVICE_SESSION_ID || undefined,
         });
         const estado = r.datos;
+        if (estado.urlDesafio) {
+          setDesafio(estado.urlDesafio);
+          return;
+        }
         if (estado.estadoReserva === 'PAGADA') {
           alPagar.current(estado);
           return;
@@ -161,6 +166,53 @@ export default function PagoTarjeta({ reservaId, total, onPagado }) {
     };
   }, [reservaId, total]);
 
+  useEffect(() => {
+    if (!desafio) return undefined;
+    let activo = true;
+
+    async function confirmar() {
+      setError('');
+      setAviso('Confirmando tu pago con el banco…');
+      try {
+        for (let i = 0; i < 10 && activo; i += 1) {
+          const r = await api.post(`/reservas/${reservaId}/pago/verificar`, {});
+          const estado = r.datos;
+          if (estado.estadoReserva === 'PAGADA') {
+            setDesafio('');
+            alPagar.current(estado);
+            return;
+          }
+          if (estado.estadoPago === 'RECHAZADO') {
+            setDesafio('');
+            setAviso('');
+            setError(estado.motivo || 'El pago fue rechazado. Prueba con otra tarjeta');
+            return;
+          }
+          await new Promise((siguiente) => setTimeout(siguiente, 2000));
+        }
+        setDesafio('');
+        setAviso('Mercado Pago sigue revisando tu pago. Cuando lo confirme, tu reserva quedará pagada.');
+      } catch (e) {
+        setDesafio('');
+        setAviso('');
+        setError(e.message || 'No se pudo confirmar el pago. Intenta nuevamente');
+      }
+    }
+
+    function alTerminar(evento) {
+      if (!String(evento.origin).includes('mercadopago')) return;
+      if (evento.data?.status !== 'COMPLETE') return;
+      window.removeEventListener('message', alTerminar);
+      confirmar();
+    }
+
+    window.addEventListener('message', alTerminar);
+    return () => {
+      activo = false;
+      window.removeEventListener('message', alTerminar);
+    };
+  }, [desafio, reservaId]);
+
   return (
     <div style={{ textAlign: 'left', marginBottom: 24 }}>
       <h3 style={{ marginBottom: 4 }}>Paga con tarjeta</h3>
@@ -172,6 +224,13 @@ export default function PagoTarjeta({ reservaId, total, onPagado }) {
       <Alerta>{error}</Alerta>
       <Alerta tipo="aviso">{aviso}</Alerta>
       <div id="contenedor-pago-tarjeta" />
+      {desafio && (
+        <iframe
+          title="Verificación del banco"
+          src={desafio}
+          style={{ width: '100%', height: 480, border: 0, borderRadius: 12, background: '#fff', marginTop: 12 }}
+        />
+      )}
     </div>
   );
 }
