@@ -208,8 +208,12 @@ public abstract class PruebaBase {
     }
 
     protected static Descarga descargar(String ruta) {
+        return descargar(ruta, null);
+    }
+
+    protected static Descarga descargar(String ruta, String token) {
         try {
-            HttpResponse<byte[]> r = CLIENTE.send(peticion(ruta, null).GET().build(),
+            HttpResponse<byte[]> r = CLIENTE.send(peticion(ruta, token).GET().build(),
                     HttpResponse.BodyHandlers.ofByteArray());
             return new Descarga(r.statusCode(), r.headers().firstValue("Content-Type").orElse(""), r.body());
         } catch (Exception e) {

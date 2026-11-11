@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
@@ -208,6 +209,30 @@ class PagosTest extends PruebaBase {
         assertEquals(200, avisoDeMercadoPago("803").estado());
 
         assertEquals(1L, bd().uno("SELECT count(*) AS n FROM comprobantes WHERE reserva_id = ?", reservaId).entero("n"));
+    }
+    @Test
+    @DisplayName("HU-08: el cliente descarga su comprobante en PDF y XML; otros no pueden")
+    void descargaDelComprobante() {
+        String ruta = "/api/reservas/" + reservaId + "/comprobante";
+        assertEquals(404, descargar(ruta, token).estado());
+
+        cobrarConDocumento("804", "12345678");
+
+        Descarga pdf = descargar(ruta + "?formato=pdf", token);
+        assertEquals(200, pdf.estado());
+        assertTrue(pdf.tipo().contains("application/pdf"));
+        assertEquals("%PDF", new String(pdf.datos(), 0, 4, StandardCharsets.US_ASCII));
+
+        Descarga xml = descargar(ruta + "?formato=xml", token);
+        assertEquals(200, xml.estado());
+        assertTrue(xml.tipo().contains("xml"));
+        String contenido = new String(xml.datos(), StandardCharsets.UTF_8);
+        assertTrue(contenido.contains("B001-"));
+        assertTrue(contenido.contains("Comprobante simulado, sin validez tributaria"));
+
+        assertEquals(404, descargar(ruta, token(crearCliente(), false)).estado());
+        assertEquals(401, descargar(ruta, null).estado());
+        assertEquals(400, descargar(ruta + "?formato=doc", token).estado());
     }
     private String estadoReserva(long id) {
         return bd().uno("SELECT estado FROM reservas WHERE id = ?", id).texto("estado");

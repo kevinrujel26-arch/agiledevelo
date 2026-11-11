@@ -58,7 +58,12 @@
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
     </dependency>
-  </dependencies>
+      <dependency>
+            <groupId>com.github.librepdf</groupId>
+            <artifactId>openpdf</artifactId>
+            <version>1.3.43</version>
+        </dependency>
+    </dependencies>
 
   <build>
     <!-- "mvn package" genera target/alquiler-backend.jar ejecutable con java -jar -->

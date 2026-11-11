@@ -2,6 +2,7 @@ package alquiler.comprobantes;
 
 import alquiler.bd.Bd;
 import alquiler.bd.Fila;
+import alquiler.util.ErrorApp;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -56,8 +57,19 @@ public class ComprobanteServicio {
         if (c != null) enviar(c);
     }
 
-    public int reintentarPendientes() {
-        List<Fila> pendientes = bd.consultar("SELECT * FROM comprobantes WHERE estado = 'PENDIENTE' AND proximo_intento <= now() ORDER BY id");
+    public Fila delCliente(long usuarioId, long reservaId) {
+        Fila c = bd.uno("""
+                SELECT c.*, r.codigo AS reserva_codigo, m.nombre AS maquina_nombre
+                  FROM comprobantes c
+                  JOIN reservas r ON r.id = c.reserva_id
+                  JOIN maquinas m ON m.id = r.maquina_id
+                 WHERE c.reserva_id = ? AND r.cliente_id = ?""", reservaId, usuarioId);
+        if (c == null) throw new ErrorApp(404, "Comprobante no encontrado");
+        if (!"ACEPTADO".equals(c.texto("estado"))) throw ErrorApp.conflicto("El comprobante todavía no fue emitido");
+        return c;
+    }
+
+    public int reintentarPendientes() {        List<Fila> pendientes = bd.consultar("SELECT * FROM comprobantes WHERE estado = 'PENDIENTE' AND proximo_intento <= now() ORDER BY id");
         pendientes.forEach(this::enviar);
         return pendientes.size();
     }
