@@ -50,9 +50,10 @@ public class PagoControlador {
         String correo = v.correo("correo");
         String tipoDoc = v.texto("tipoDocumento", 2, 10, false, null);
         String numeroDoc = v.texto("numeroDocumento", 5, 20, false, null);
+        String dispositivo = v.texto("dispositivoId", 1, 1000, false, null);
         if (emisor != null && !emisor.matches("\\d{1,10}")) v.error("emisorId", "No es válido");
         v.validar();
-        PasarelaPago.DatosTarjeta tarjeta = new PasarelaPago.DatosTarjeta(token, metodo, emisor, correo, tipoDoc, numeroDoc);
+        PasarelaPago.DatosTarjeta tarjeta = new PasarelaPago.DatosTarjeta(token, metodo, emisor, correo, tipoDoc, numeroDoc, dispositivo);
         return Respuesta.ok(Json.obj("datos", servicio.pagarConTarjeta(s.usuario().id(), s.id("id"), tarjeta)));
     }
 

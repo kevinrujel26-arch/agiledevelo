@@ -69,6 +69,16 @@ function cargarSdk() {
   return sdkPendiente;
 }
 
+const URL_SEGURIDAD = 'https://www.mercadopago.com/v2/security.js';
+
+function cargarSeguridad() {
+  if (document.querySelector(`script[src="${URL_SEGURIDAD}"]`)) return;
+  const script = document.createElement('script');
+  script.src = URL_SEGURIDAD;
+  script.setAttribute('view', 'checkout');
+  script.async = true;
+  document.head.appendChild(script);
+}
 export default function PagoTarjeta({ reservaId, total, onPagado }) {
   const [error, setError] = useState('');
   const [aviso, setAviso] = useState('');
@@ -93,6 +103,7 @@ export default function PagoTarjeta({ reservaId, total, onPagado }) {
           correo: datos.payer?.email,
           tipoDocumento: datos.payer?.identification?.type,
           numeroDocumento: datos.payer?.identification?.number ? String(datos.payer.identification.number) : undefined,
+          dispositivoId: window.MP_DEVICE_SESSION_ID || undefined,
         });
         const estado = r.datos;
         if (estado.estadoReserva === 'PAGADA') {
@@ -118,6 +129,7 @@ export default function PagoTarjeta({ reservaId, total, onPagado }) {
 
     (async () => {
       try {
+        cargarSeguridad();
         const [config] = await Promise.all([api.get('/pagos/config'), cargarSdk()]);
         if (cancelado) return;
         const mp = new window.MercadoPago(config.datos.publicKey, { locale: 'es-PE' });
