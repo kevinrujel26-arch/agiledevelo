@@ -158,7 +158,11 @@ public class PasarelaMercadoPago implements PasarelaPago {
                 "total_amount", importe,
                 "external_reference", referencia,
                 "transactions", Json.obj("payments", List.of(pago)),
-                "payer", Json.obj("email", t.correo()));
+                "payer", t.tipoDocumento() == null || t.tipoDocumento().isBlank()
+                        || t.numeroDocumento() == null || t.numeroDocumento().isBlank()
+                        ? Json.obj("email", t.correo())
+                        : Json.obj("email", t.correo(),
+                                "identification", Json.obj("type", t.tipoDocumento(), "number", t.numeroDocumento())));
         Map<String, Object> r = pedir(HttpRequest.newBuilder(URI.create(API + "/v1/orders"))
                 .header("Content-Type", "application/json")
                 .header("X-Idempotency-Key", java.util.UUID.randomUUID().toString())
