@@ -71,6 +71,7 @@ public class PagoServicio {
         Long idReserva = idDeReserva(info.referencia());
         if (idReserva == null) return false;
         final long reservaId = idReserva;
+        final String proveedor = info.id() != null && info.id().startsWith("chr_") ? "CULQI" : "MERCADO_PAGO";
         if (reservaEsperada != null && reservaEsperada != reservaId) {
             throw ErrorApp.conflicto("El pago no corresponde a esta reserva");
         }
@@ -92,12 +93,12 @@ public class PagoServicio {
 
             tx.ejecutar("""
                     INSERT INTO pagos (reserva_id, proveedor, id_externo, estado, monto, respuesta_proveedor, pagado_en)
-                    VALUES (?, 'MERCADO_PAGO', ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT (proveedor, id_externo) WHERE id_externo IS NOT NULL
                     DO UPDATE SET estado = EXCLUDED.estado,
                                   respuesta_proveedor = EXCLUDED.respuesta_proveedor,
                                   pagado_en = COALESCE(pagos.pagado_en, EXCLUDED.pagado_en)""",
-                    reservaId, info.id(), estadoPago, r.decimal("monto_total"),
+                    reservaId, proveedor, info.id(), estadoPago, r.decimal("monto_total"),
                     Json.escribir(Json.obj("estado", info.estado(), "detalle", info.detalle())),
                     "APROBADO".equals(estadoPago) ? Instant.now() : null);
 
@@ -184,6 +185,11 @@ public class PagoServicio {
                 "Reserva " + r.texto("codigo") + " - " + r.texto("maquina_nombre"),
                 r.decimal("monto_total"),
                 conDatosDelSolicitante(tarjeta, reservaId));
+        if (creado != null && creado.id() == null && creado.urlDesafio() != null) {
+            Map<String, Object> pendiente = estado(usuarioId, reservaId);
+            pendiente.put("urlDesafio", creado.urlDesafio());
+            return pendiente;
+        }
         if (creado == null || creado.id() == null) {
             throw new ErrorApp(502, "No se pudo procesar el pago. Intenta nuevamente");
         }

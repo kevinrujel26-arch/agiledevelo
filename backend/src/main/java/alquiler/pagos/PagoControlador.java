@@ -32,7 +32,7 @@ public class PagoControlador {
     /** GET /api/pagos/config (público) -> { publicKey, pagoEnPagina }: clave pública y si el formulario de tarjeta va dentro de la página. */
     @GetMapping("/api/pagos/config")
     public ResponseEntity<Object> configuracion() {
-        return Respuesta.ok(Json.obj("datos", Json.obj("publicKey", servicio.clavePublica(), "pagoEnPagina", config.mpPagoEnPagina)));
+        return Respuesta.ok(Json.obj("datos", Json.obj("publicKey", servicio.clavePublica(), "pasarela", config.pasarela, "pagoEnPagina", "culqi".equals(config.pasarela) || config.mpPagoEnPagina)));
     }
 
     /**
@@ -45,7 +45,7 @@ public class PagoControlador {
         Solicitud s = Solicitud.de(peticion);
         Validador v = Validador.de(s.json());
         String token = v.texto("token", 8, 200, true, "Falta el token de la tarjeta");
-        String metodo = v.texto("metodoPagoId", 2, 40, true, "Falta el medio de pago");
+        String metodo = v.texto("metodoPagoId", 2, 40, false, null);
         String emisor = v.texto("emisorId", 1, 10, false, null);
         String correo = v.correo("correo");
         String tipoDoc = v.texto("tipoDocumento", 2, 10, false, null);
@@ -53,7 +53,9 @@ public class PagoControlador {
         String dispositivo = v.texto("dispositivoId", 1, 1000, false, null);
         if (emisor != null && !emisor.matches("\\d{1,10}")) v.error("emisorId", "No es válido");
         v.validar();
-        PasarelaPago.DatosTarjeta tarjeta = new PasarelaPago.DatosTarjeta(token, metodo, emisor, correo, tipoDoc, numeroDoc, dispositivo, null, null, null);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> autenticacion = s.json().get("parametros3ds") instanceof Map<?, ?> m ? (Map<String, Object>) m : null;
+        PasarelaPago.DatosTarjeta tarjeta = new PasarelaPago.DatosTarjeta(token, metodo, emisor, correo, tipoDoc, numeroDoc, dispositivo, null, null, null, autenticacion);
         return Respuesta.ok(Json.obj("datos", servicio.pagarConTarjeta(s.usuario().id(), s.id("id"), tarjeta)));
     }
 

@@ -1074,3 +1074,12 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: non
 .modal-overlay .modal-contenido { width: 95%; max-width: 1000px; }
 .modal-overlay .modal-contenido .formulario-reserva { font-size: 1.1rem; }
 .modal-overlay .modal-contenido input, .modal-overlay .modal-contenido select, .modal-overlay .modal-contenido textarea { font-size: 1.1rem; }
+
+#contenedor-pago-culqi,
+#contenedor-pago-culqi iframe {
+  width: 100%;
+  min-height: 640px;
+  border: 0;
+  border-radius: 12px;
+  background: #fff;
+}
