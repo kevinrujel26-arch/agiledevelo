@@ -14,6 +14,8 @@ import CuentaLayout from './paginas/CuentaLayout';
 import MisReservas from './paginas/MisReservas';
 import PagoResultado from './paginas/PagoResultado';
 import NoEncontrado from './paginas/NoEncontrado';
+import LibroReclamaciones from './paginas/LibroReclamaciones';
+import { Terminos, Devoluciones } from './paginas/Legal';
 import AdminLayout from './paginas/admin/AdminLayout';
 import AdminCategorias from './paginas/admin/AdminCategorias';
 import AdminMaquinas from './paginas/admin/AdminMaquinas';
@@ -58,6 +60,9 @@ export default function App() {
           <Route path="/registro" element={<Registro />} />
           <Route path="/login" element={<Login />} />
           <Route path="/completar-registro" element={<CompletarRegistro />} />
+          <Route path="/terminos" element={<Terminos />} />
+          <Route path="/cambios-y-devoluciones" element={<Devoluciones />} />
+          <Route path="/libro-de-reclamaciones" element={<LibroReclamaciones />} />
           <Route
             path="/pago/resultado"
             element={
@@ -127,6 +132,14 @@ export default function App() {
               <ul>
                 <li><Link to="/login">Iniciar sesión</Link></li>
                 <li><Link to="/registro">Crear cuenta</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4>Legal</h4>
+              <ul>
+                <li><Link to="/terminos">Términos y condiciones</Link></li>
+                <li><Link to="/cambios-y-devoluciones">Cambios y devoluciones</Link></li>
+                <li><Link to="/libro-de-reclamaciones">Libro de reclamaciones</Link></li>
               </ul>
             </div>
             {/* HU-01 criterio 5: datos de contacto de la empresa */}
