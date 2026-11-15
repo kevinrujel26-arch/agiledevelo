@@ -5,7 +5,6 @@ import alquiler.json.Json;
 import alquiler.util.ErrorApp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -24,7 +23,6 @@ import java.util.Map;
  * Mercado Pago Checkout Pro por su API REST (sin SDK). El Access Token solo se
  * envía en la cabecera Authorization y nunca se escribe en los logs.
  */
-@Component
 public class PasarelaMercadoPago implements PasarelaPago {
 
     private static final Logger LOG = LoggerFactory.getLogger(PasarelaMercadoPago.class);

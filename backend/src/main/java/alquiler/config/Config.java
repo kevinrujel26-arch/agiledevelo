@@ -59,6 +59,9 @@ public final class Config {
     public final String mpPublicKey;   // clave pública de Mercado Pago (formulario de tarjeta)
     public final BigDecimal mpYapeMaximo; // sobre este monto (S/) no se ofrece Yape
     public final boolean mpPagoEnPagina;  // true: formulario de tarjeta dentro de la página; false: redirige a Mercado Pago
+    public final String pasarela;
+    public final String culqiPublicKey;
+    public final String culqiSecretKey;
 
     public final List<String> corsOrigenes;
     public final Path dirSubidas;
@@ -103,6 +106,9 @@ public final class Config {
         this.mpYapeMaximo = new BigDecimal(valor("MP_YAPE_MAX", "500"));
         this.mpPublicKey = valor("MP_PUBLIC_KEY", null);
         this.mpPagoEnPagina = "true".equalsIgnoreCase(valor("MP_PAGO_EN_PAGINA", "false"));
+        this.pasarela = valor("PASARELA", "mercadopago").toLowerCase();
+        this.culqiPublicKey = valor("CULQI_PUBLIC_KEY", null);
+        this.culqiSecretKey = valor("CULQI_SECRET_KEY", null);
     }
 
     /** Configuración normal: variables de entorno + archivo .env */

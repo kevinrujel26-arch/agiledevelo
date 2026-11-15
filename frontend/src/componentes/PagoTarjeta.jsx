@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '../api/cliente';
 import { formatearMoneda } from '../utils/formato';
 import { Alerta } from './comunes';
+import PagoCulqi from './PagoCulqi';
 
 const URL_SDK = 'https://sdk.mercadopago.com/js/v2';
 let sdkPendiente = null;
@@ -79,7 +80,7 @@ function cargarSeguridad() {
   script.async = true;
   document.head.appendChild(script);
 }
-export default function PagoTarjeta({ reservaId, total, onPagado }) {
+function PagoMercadoPago({ reservaId, total, onPagado }) {
   const [error, setError] = useState('');
   const [aviso, setAviso] = useState('');
   const [cargando, setCargando] = useState(true);
@@ -233,4 +234,18 @@ export default function PagoTarjeta({ reservaId, total, onPagado }) {
       )}
     </div>
   );
+}
+
+export default function PagoTarjeta(props) {
+  const [pasarela, setPasarela] = useState('');
+
+  useEffect(() => {
+    api
+      .get('/pagos/config')
+      .then((c) => setPasarela(c.datos?.pasarela || 'mercadopago'))
+      .catch(() => setPasarela('mercadopago'));
+  }, []);
+
+  if (!pasarela) return null;
+  return pasarela === 'culqi' ? <PagoCulqi {...props} /> : <PagoMercadoPago {...props} />;
 }

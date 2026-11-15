@@ -17,6 +17,8 @@ public interface PasarelaPago {
      * Pago tal como lo informa Mercado Pago. {@code estado}: approved, rejected, pending, in_process,
      * cancelled, refunded... {@code referencia}: el id de la reserva que enviamos al crear la preferencia.
      */
+    String DESAFIO_3DS = "3ds";
+
     record Pago(String id, String estado, String detalle, String referencia, BigDecimal monto, String urlDesafio) {
 
         public Pago(String id, String estado, String detalle, String referencia, BigDecimal monto) {
@@ -36,11 +38,11 @@ public interface PasarelaPago {
     /** Datos del formulario de tarjeta de Mercado Pago: la tarjeta ya viene convertida en un token de un solo uso. */
     record DatosTarjeta(String token, String metodoPagoId, String emisorId, String correo,
                         String tipoDocumento, String numeroDocumento, String dispositivoId,
-                        String nombre, String apellido, String telefono) {
+                        String nombre, String apellido, String telefono, java.util.Map<String, Object> autenticacion3ds) {
 
         public DatosTarjeta conComprador(String nombre, String apellido, String telefono) {
             return new DatosTarjeta(token, metodoPagoId, emisorId, correo, tipoDocumento, numeroDocumento,
-                    dispositivoId, nombre, apellido, telefono);
+                    dispositivoId, nombre, apellido, telefono, autenticacion3ds);
         }
     }
 
