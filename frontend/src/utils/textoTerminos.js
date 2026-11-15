@@ -3,7 +3,7 @@ export const TEXTO_TERMINOS = `
 Las reservas son por horas completas, de 07:00 a 19:00. Mínimo 1 hora de alquiler. Al reservar, la máquina queda en estado "Pendiente de pago" hasta que se complete el pago.
 
 2. PAGO
-Por ahora el pago se coordina fuera de la plataforma con el administrador de MaquiRenta. La fecha de vencimiento para completar el pago se comunica al hacer la reserva.
+El pago se realiza en línea con tarjeta de débito o crédito al confirmar la reserva, dentro del plazo de vencimiento que se muestra al reservar. Si el pago no se completa a tiempo, la reserva se cancela y el horario vuelve a estar disponible.
 
 3. MARGEN ENTRE ALQUILERES
 Entre dos alquileres de la misma máquina hay 1 hora de preparación obligatoria que no se cobra. Esta hora se reserva automáticamente para limpiar y verificar la máquina.
@@ -17,8 +17,8 @@ El costo de movilización de la máquina hasta la obra, si corresponde, se coord
 6. COBERTURA GEOGRÁFICA
 Por ahora el servicio de alquiler se presta únicamente dentro de la ciudad de Trujillo.
 
-7. CANCELACIÓN
-Las cancelaciones deben solicitarse directamente al administrador de MaquiRenta. La política de cancelación y devolución de dinero se comunicará antes de habilitar el pago en línea en la plataforma.
+7. CANCELACIÓN Y DEVOLUCIONES
+Las condiciones para cambiar, cancelar o pedir la devolución de una reserva están en la política de cambios y devoluciones publicada en este sitio.
 
 8. DATOS PERSONALES
 Los datos que proporciones (nombre, teléfono, correo, ubicación de obra) se usan únicamente para gestionar tu reserva y para que MaquiRenta pueda contactarte.

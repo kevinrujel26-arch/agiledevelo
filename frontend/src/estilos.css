@@ -692,7 +692,7 @@ a.contacto-item:hover { border-color: var(--acento-borde-fuerte); }
 
 /* ---------- Pie de página ---------- */
 .pie { border-top: 1px solid var(--borde); padding: 44px 0 28px; color: var(--texto-suave); font-size: 0.9rem; background: var(--pie-fondo); }
-.pie-rejilla { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 32px; margin-bottom: 30px; }
+.pie-rejilla { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr; gap: 32px; margin-bottom: 30px; }
 .pie h4 { color: var(--titulo); font-family: var(--fuente-titulos); margin: 0 0 12px; font-size: 0.95rem; }
 .pie ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .pie a { color: var(--texto-suave); text-decoration: none; }

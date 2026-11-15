@@ -334,3 +334,23 @@ CREATE INDEX ix_comprobantes_pendientes ON comprobantes (proximo_intento) WHERE 
 CREATE TRIGGER tg_comprobantes_actualizado
   BEFORE UPDATE ON comprobantes
   FOR EACH ROW EXECUTE FUNCTION fn_set_actualizado_en();
+
+CREATE TABLE reclamos (
+  id              INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  tipo            VARCHAR(10)   NOT NULL CHECK (tipo IN ('RECLAMO', 'QUEJA')),
+  nombre          VARCHAR(120)  NOT NULL,
+  tipo_documento  VARCHAR(10)   NOT NULL CHECK (tipo_documento IN ('DNI', 'CE', 'PASAPORTE')),
+  documento       VARCHAR(12)   NOT NULL,
+  domicilio       VARCHAR(200)  NOT NULL,
+  telefono        VARCHAR(9)    NOT NULL,
+  correo          VARCHAR(160)  NOT NULL,
+  tipo_bien       VARCHAR(10)   NOT NULL CHECK (tipo_bien IN ('PRODUCTO', 'SERVICIO')),
+  descripcion_bien VARCHAR(200) NOT NULL,
+  monto           NUMERIC(12,2) CHECK (monto IS NULL OR monto >= 0),
+  detalle         VARCHAR(2000) NOT NULL,
+  pedido          VARCHAR(1000) NOT NULL,
+  estado          VARCHAR(12)   NOT NULL DEFAULT 'PENDIENTE' CHECK (estado IN ('PENDIENTE', 'ATENDIDO')),
+  creado_en       TIMESTAMPTZ   NOT NULL DEFAULT now()
+);
+
+CREATE INDEX ix_reclamos_creado ON reclamos (creado_en DESC);

@@ -1,10 +1,15 @@
 export const NOMBRE_APP = 'MaquiRenta';
 
+export const EMPRESA = {
+  razonSocial: 'RUJEL ALVAREZ KEVIN DAVID',
+  ruc: '10608894689',
+};
+
 // HU-01 criterio 5: datos de contacto visibles en la página de inicio.
 // Cambia estos valores por los reales de tu empresa antes de sustentar.
 export const CONTACTO = {
-  correo: 'contacto@maquirenta.pe',
-  telefono: '+51 999 999 999',
+  correo: 'Kevinrujel26@gmail.com',
+  telefono: '+51 936 081 479',
   direccion: 'Trujillo, La Libertad, Perú',
 };
 
