@@ -29,6 +29,7 @@ export default function PagoCulqi({ reservaId, total, onPagado }) {
   const [aviso, setAviso] = useState('');
   const [procesando, setProcesando] = useState(false);
   const checkout = useRef(null);
+  const enCurso = useRef(false);
   const clave = useRef('');
   const alPagar = useRef(onPagado);
   alPagar.current = onPagado;
@@ -76,6 +77,7 @@ export default function PagoCulqi({ reservaId, total, onPagado }) {
         closeModalAction: () => {
           window.removeEventListener('message', alResponder);
           setProcesando(false);
+          enCurso.current = false;
           setAviso('');
           setError('Cancelaste la verificación con tu banco. Intenta nuevamente');
         },
@@ -87,6 +89,7 @@ export default function PagoCulqi({ reservaId, total, onPagado }) {
           window.removeEventListener('message', alResponder);
           Culqi3DS.reset();
           setProcesando(false);
+          enCurso.current = false;
           setAviso('');
           setError('No se pudo verificar tu identidad con el banco. Intenta nuevamente o usa otra tarjeta');
           return;
@@ -100,6 +103,7 @@ export default function PagoCulqi({ reservaId, total, onPagado }) {
           setError(e.message || 'No se pudo procesar el pago. Intenta nuevamente');
         } finally {
           setProcesando(false);
+          enCurso.current = false;
           setAviso('');
         }
       }
@@ -115,6 +119,8 @@ export default function PagoCulqi({ reservaId, total, onPagado }) {
         if (culqi?.error) setError(culqi.error.user_message || 'No se pudo validar la tarjeta. Revisa los datos');
         return;
       }
+      if (enCurso.current) return;
+      enCurso.current = true;
       const token = culqi.token.id;
       const correo = culqi.token.email;
       setError('');
@@ -133,6 +139,7 @@ export default function PagoCulqi({ reservaId, total, onPagado }) {
         setError(e.message || 'No se pudo procesar el pago. Intenta nuevamente');
       }
       setProcesando(false);
+      enCurso.current = false;
     }
 
     (async () => {
@@ -178,8 +185,32 @@ export default function PagoCulqi({ reservaId, total, onPagado }) {
       </p>
       <Alerta>{error}</Alerta>
       <Alerta tipo="aviso">{aviso}</Alerta>
-      <div id="contenedor-pago-culqi" />
-      {procesando && <p className="texto-suave">Procesando tu pago…</p>}
+      <div style={{ position: 'relative' }}>
+        <div id="contenedor-pago-culqi" />
+        {procesando && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              zIndex: 5,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 12,
+              background: 'rgba(14, 17, 23, 0.85)',
+              color: '#fff',
+              fontWeight: 600,
+              fontSize: '1.1rem',
+              textAlign: 'center',
+              padding: 24,
+            }}
+          >
+            Procesando tu pago…
+            <br />
+            No cierres ni recargues la página
+          </div>
+        )}
+      </div>
     </div>
   );
 }
