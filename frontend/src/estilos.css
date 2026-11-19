@@ -1078,3 +1078,4 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: non
   border-radius: 12px;
   background: transparent;
 }
+#contenedor-pago-culqi iframe { color-scheme: light; }
