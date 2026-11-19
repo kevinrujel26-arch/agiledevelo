@@ -1,22 +1,10 @@
 package alquiler.pagos;
 
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.util.Map;
 
-/**
- * Pasarela de pago (Mercado Pago). Es una interfaz para que las pruebas la
- * puedan simular sin llamar a internet, igual que VerificadorGoogle.
- */
 public interface PasarelaPago {
 
-    /** Pago de Checkout Pro: a dónde mandar al cliente para que pague. */
-    record Preferencia(String id, String urlPago) {
-    }
-
-    /**
-     * Pago tal como lo informa Mercado Pago. {@code estado}: approved, rejected, pending, in_process,
-     * cancelled, refunded... {@code referencia}: el id de la reserva que enviamos al crear la preferencia.
-     */
     String DESAFIO_3DS = "3ds";
 
     record Pago(String id, String estado, String detalle, String referencia, BigDecimal monto, String urlDesafio) {
@@ -26,19 +14,13 @@ public interface PasarelaPago {
         }
     }
 
-    /** false si falta MP_ACCESS_TOKEN: el pago en línea queda desactivado. */
     boolean configurada();
 
-    /** Crea la preferencia de pago. {@code referencia} es el id de la reserva; {@code venceEn} puede ser null. */
-    Preferencia crearPreferencia(String referencia, String titulo, BigDecimal monto, Instant venceEn);
-
-    /** Consulta un pago a Mercado Pago. Devuelve null si no existe. */
     Pago consultarPago(String idPago);
 
-    /** Datos del formulario de tarjeta de Mercado Pago: la tarjeta ya viene convertida en un token de un solo uso. */
     record DatosTarjeta(String token, String metodoPagoId, String emisorId, String correo,
                         String tipoDocumento, String numeroDocumento, String dispositivoId,
-                        String nombre, String apellido, String telefono, java.util.Map<String, Object> autenticacion3ds) {
+                        String nombre, String apellido, String telefono, Map<String, Object> autenticacion3ds) {
 
         public DatosTarjeta conComprador(String nombre, String apellido, String telefono) {
             return new DatosTarjeta(token, metodoPagoId, emisorId, correo, tipoDocumento, numeroDocumento,
@@ -46,9 +28,7 @@ public interface PasarelaPago {
         }
     }
 
-    /** Crea el pago con el token de la tarjeta (en 1 cuota). Devuelve el pago creado, aprobado o rechazado. */
     Pago pagarConTarjeta(String referencia, String descripcion, BigDecimal monto, DatosTarjeta tarjeta);
 
-    /** Clave pública de Mercado Pago (no es secreta: la usa el formulario de tarjeta). null si no está configurada. */
     String clavePublica();
 }

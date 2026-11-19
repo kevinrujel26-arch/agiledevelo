@@ -5,6 +5,7 @@ import alquiler.json.Json;
 import alquiler.util.ErrorApp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -13,9 +14,9 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Map;
 
+@Component
 public class PasarelaCulqi implements PasarelaPago {
 
     private static final Logger LOG = LoggerFactory.getLogger(PasarelaCulqi.class);
@@ -32,11 +33,6 @@ public class PasarelaCulqi implements PasarelaPago {
     @Override
     public boolean configurada() {
         return config.culqiSecretKey != null && config.culqiPublicKey != null;
-    }
-
-    @Override
-    public Preferencia crearPreferencia(String referencia, String titulo, BigDecimal monto, Instant venceEn) {
-        throw new ErrorApp(503, "Con Culqi el pago se hace con tarjeta dentro de la página");
     }
 
     @Override

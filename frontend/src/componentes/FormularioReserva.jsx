@@ -6,7 +6,7 @@ import { validarRuc, validarDni } from '../utils/validadorRuc';
 import { validarLinea, normalizarCelular, validarCelular, validarCorreo, normalizarTexto } from '../utils/validaciones';
 import { Icono } from './Ilustracion';
 import { Alerta } from './comunes';
-import PagoTarjeta from './PagoTarjeta';
+import PagoCulqi from './PagoCulqi';
 import { createPortal } from 'react-dom';
 import { TEXTO_TERMINOS } from '../utils/textoTerminos';
 
@@ -50,34 +50,10 @@ export default function FormularioReserva({ maquina, ocupados, onExito, onCerrar
   const [errorEnvio, setErrorEnvio] = useState('');
   const [codigoReserva, setCodigoReserva] = useState('');
   const [reservaCreada, setReservaCreada] = useState(null);
-  // HU-07: formulario de tarjeta dentro de la página (si el servidor lo activa) o redirección a Mercado Pago
-  const [pagando, setPagando] = useState(false);
+  // HU-07: formulario de tarjeta de Culqi dentro de la página
   const [verPago, setVerPago] = useState(false);
   const [pagoHecho, setPagoHecho] = useState(false);
 
-  async function pagarAhora() {
-    setPagando(true);
-    setErrorEnvio('');
-    try {
-      let enPagina = false;
-      try {
-        const c = await api.get('/pagos/config');
-        enPagina = c.datos?.pagoEnPagina === true;
-      } catch {
-        enPagina = false;
-      }
-      if (enPagina) {
-        setVerPago(true);
-        setPagando(false);
-        return;
-      }
-      const r = await api.post(`/reservas/${reservaCreada.id}/pagar`, {});
-      window.location.assign(r.datos.urlPago);
-    } catch (e) {
-      setErrorEnvio(e.message);
-      setPagando(false);
-    }
-  }
   const [verTerminos, setVerTerminos] = useState(false);
 
   // Efecto: auto-seleccionar primer día con hora LIBRE
@@ -517,13 +493,15 @@ export default function FormularioReserva({ maquina, ocupados, onExito, onCerrar
         {errorEnvio && <Alerta>{errorEnvio}</Alerta>}
 
         {verPago && !pagoHecho && (
-          <PagoTarjeta reservaId={reservaCreada.id} total={reservaCreada.total} onPagado={() => setPagoHecho(true)} />
+          <PagoCulqi reservaId={reservaCreada.id} total={reservaCreada.total} onPagado={() => setPagoHecho(true)} />
         )}
 
         <div className="acciones-centrado">
-          <button type="button" onClick={pagarAhora} disabled={pagando || verPago} style={verPago ? { display: 'none' } : undefined} className="boton boton-primario">
-            {pagando ? 'Procesando…' : 'Pagar ahora'}
-          </button>
+          {!verPago && (
+            <button type="button" onClick={() => setVerPago(true)} className="boton boton-primario">
+              Pagar ahora
+            </button>
+          )}
           <button type="button" onClick={onExito} className="boton boton-secundario">
             Volver al catálogo
           </button>

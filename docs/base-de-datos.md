@@ -87,7 +87,7 @@ erDiagram
     PAGOS {
         int id PK
         int reserva_id FK
-        varchar proveedor "MERCADO_PAGO"
+        varchar proveedor "CULQI"
         varchar id_externo UK
         varchar estado
         numeric monto
