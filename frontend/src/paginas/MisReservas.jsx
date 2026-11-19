@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api, descargarArchivo } from '../api/cliente';
 import { Alerta, Cargando } from '../componentes/comunes';
-import PagoTarjeta from '../componentes/PagoTarjeta';
+import PagoCulqi from '../componentes/PagoCulqi';
 import { formatearMoneda } from '../utils/formato';
 
 const ESTADOS = [
@@ -29,7 +29,6 @@ export default function MisReservas() {
   const [estado, setEstado] = useState('');
   const [reservas, setReservas] = useState(null);
   const [error, setError] = useState('');
-  const [procesandoId, setProcesandoId] = useState(null);
   const [tarjetaId, setTarjetaId] = useState(null);
   const [recarga, setRecarga] = useState(0);
 
@@ -49,30 +48,6 @@ export default function MisReservas() {
       vigente = false;
     };
   }, [estado, recarga]);
-
-  async function pagar(reserva) {
-    setProcesandoId(reserva.id);
-    setError('');
-    try {
-      let enPagina = false;
-      try {
-        const c = await api.get('/pagos/config');
-        enPagina = c.datos?.pagoEnPagina === true;
-      } catch {
-        enPagina = false;
-      }
-      if (enPagina) {
-        setTarjetaId(reserva.id);
-        setProcesandoId(null);
-        return;
-      }
-      const r = await api.post(`/reservas/${reserva.id}/pagar`, {});
-      window.location.assign(r.datos.urlPago);
-    } catch (e) {
-      setError(e.message);
-      setProcesandoId(null);
-    }
-  }
 
   async function descargar(reserva, formato) {
     setError('');
@@ -113,10 +88,9 @@ export default function MisReservas() {
                   <button
                     type="button"
                     className="boton boton-primario"
-                    disabled={procesandoId === r.id}
-                    onClick={() => pagar(r)}
+                    onClick={() => setTarjetaId(r.id)}
                   >
-                    {procesandoId === r.id ? 'Procesando…' : 'Pagar ahora'}
+                    Pagar ahora
                   </button>
                 )}
                 {r.estado === 'PENDIENTE_PAGO' && !puedePagar(r) && <p className="texto-suave">El plazo de pago venció.</p>}
@@ -132,7 +106,7 @@ export default function MisReservas() {
                   </p>
                 )}
                 {tarjetaId === r.id && (
-                  <PagoTarjeta
+                  <PagoCulqi
                     reservaId={r.id}
                     total={r.total}
                     onPagado={() => {

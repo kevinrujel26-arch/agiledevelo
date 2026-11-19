@@ -61,7 +61,7 @@ public abstract class PruebaBase {
     @MockBean
     protected VerificadorGoogle verificadorGoogle;
 
-    /** Simulado: las pruebas no llaman a Mercado Pago (sin configurar por defecto). */
+    /** Simulado: las pruebas no llaman a Culqi (sin configurar por defecto). */
     @MockBean
     protected PasarelaPago pasarela;
 

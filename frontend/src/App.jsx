@@ -12,7 +12,6 @@ import CompletarRegistro from './paginas/CompletarRegistro';
 import MiCuenta, { Seguridad } from './paginas/MiCuenta';
 import CuentaLayout from './paginas/CuentaLayout';
 import MisReservas from './paginas/MisReservas';
-import PagoResultado from './paginas/PagoResultado';
 import NoEncontrado from './paginas/NoEncontrado';
 import LibroReclamaciones from './paginas/LibroReclamaciones';
 import { Terminos, Devoluciones } from './paginas/Legal';
@@ -63,14 +62,6 @@ export default function App() {
           <Route path="/terminos" element={<Terminos />} />
           <Route path="/cambios-y-devoluciones" element={<Devoluciones />} />
           <Route path="/libro-de-reclamaciones" element={<LibroReclamaciones />} />
-          <Route
-            path="/pago/resultado"
-            element={
-              <RutaProtegida roles={['CLIENTE']}>
-                <PagoResultado />
-              </RutaProtegida>
-            }
-          />
 
           {/* Cliente */}
           <Route
